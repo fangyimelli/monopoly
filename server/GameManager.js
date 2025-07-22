@@ -6,13 +6,21 @@ class GameManager {
         this.playerRooms = new Map(); // Track which room each player is in
     }
 
-    createRoom(playerId, playerName, character = 'hat') {
+    createRoom(playerId, playerName, character = 'hat', hostParticipation = 'player') {
         const roomCode = this.generateRoomCode();
         const game = new MonopolyGame();
-        
-        game.addPlayer(playerId, playerName, character);
+        game.hostId = playerId;
+        game.hostIsObserver = (hostParticipation === 'observer');
+
+        if (!game.hostIsObserver) {
+            game.addPlayer(playerId, playerName, character);
+            this.playerRooms.set(playerId, roomCode);
+        }
+        // 即使觀戰，也要記錄房主在哪個房間（方便管理權限）
         this.rooms.set(roomCode, game);
-        this.playerRooms.set(playerId, roomCode);
+        if (game.hostIsObserver) {
+            this.playerRooms.set(playerId, roomCode);
+        }
 
         return {
             roomCode,
@@ -80,19 +88,30 @@ class GameManager {
     }
 
     rollDice(roomCode, playerId) {
+        console.log(`[${roomCode}] Player ${playerId} attempting to roll dice`);
         const game = this.rooms.get(roomCode);
         if (!game) {
+            console.log(`[${roomCode}] Room not found for player ${playerId}`);
             return { success: false, message: 'Room not found' };
         }
 
         if (!game.gameStarted) {
+            console.log(`[${roomCode}] Game not started for player ${playerId}`);
             return { success: false, message: 'Game not started' };
         }
 
         if (game.currentPlayer !== playerId) {
+            console.log(`[${roomCode}] Not ${playerId}'s turn, current player is ${game.currentPlayer}`);
             return { success: false, message: 'Not your turn' };
         }
 
+        // Check if player has already rolled dice this turn
+        if (game.hasRolledThisTurn) {
+            console.log(`[${roomCode}] Player ${playerId} already rolled this turn`);
+            return { success: false, message: 'You have already rolled dice this turn' };
+        }
+
+        console.log(`[${roomCode}] Player ${playerId} rolling dice successfully`);
         const dice = game.rollDice();
         return {
             success: true,
@@ -134,16 +153,21 @@ class GameManager {
     }
 
     endTurn(roomCode, playerId) {
+        console.log(`[${roomCode}] Player ${playerId} ending turn`);
         const game = this.rooms.get(roomCode);
         if (!game) {
+            console.log(`[${roomCode}] Room not found for player ${playerId}`);
             return { success: false, message: 'Room not found' };
         }
 
         if (game.currentPlayer !== playerId) {
+            console.log(`[${roomCode}] Not ${playerId}'s turn to end, current player is ${game.currentPlayer}`);
             return { success: false, message: 'Not your turn' };
         }
 
+        console.log(`[${roomCode}] Player ${playerId} ending turn successfully, next player will be determined`);
         game.endTurn();
+        console.log(`[${roomCode}] Turn ended, new current player is ${game.currentPlayer}`);
         return {
             success: true,
             gameState: game.getGameState()
@@ -163,14 +187,14 @@ class GameManager {
         const game = this.rooms.get(roomCode);
         if (game) {
             game.removePlayer(playerId);
-            
+
             // If no players left, delete the room
             if (game.players.size === 0) {
                 this.rooms.delete(roomCode);
             }
-            
+
             this.playerRooms.delete(playerId);
-            
+
             return {
                 roomCode,
                 gameState: game.getGameState()
@@ -182,6 +206,31 @@ class GameManager {
 
     generateRoomCode() {
         return Math.random().toString(36).substring(2, 8).toUpperCase();
+    }
+
+    endGame(roomCode, playerId) {
+        const game = this.rooms.get(roomCode);
+        if (!game || game.hostId !== playerId) return [];
+        // 分數計算：現金＋地產價值＋房屋/旅館價值
+        const propertyBase = 100; // 沒有明確地產價值時的預設
+        const houseValue = 50;
+        const hotelValue = 100;
+        const scores = Array.from(game.players.values()).map(player => {
+            let score = player.money;
+            if (player.properties && player.properties.length > 0) {
+                player.properties.forEach(pid => {
+                    const prop = game.properties.get(pid);
+                    if (prop) {
+                        score += (prop.price || propertyBase);
+                        score += (prop.houses || 0) * (prop.housePrice || houseValue);
+                        score += (prop.hotels || 0) * (prop.housePrice ? prop.housePrice * 2 : hotelValue);
+                    }
+                });
+            }
+            return { id: player.id, name: player.name, score };
+        });
+        scores.sort((a, b) => b.score - a.score);
+        return scores;
     }
 }
 
@@ -200,6 +249,9 @@ class MonopolyGame {
         this.hotels = 12;
         this.currentRoll = null;
         this.doubleRollCount = 0;
+        this.hasRolledThisTurn = false; // 新增：追蹤是否已在本回合擲過骰子
+        this.hostId = null;
+        this.hostIsObserver = false;
     }
 
     addPlayer(playerId, playerName, character = 'hat') {
@@ -222,7 +274,7 @@ class MonopolyGame {
             getOutOfJailCards: 0,
             color: this.getPlayerColor(this.players.size)
         };
-        
+
         this.players.set(playerId, player);
     }
 
@@ -230,10 +282,10 @@ class MonopolyGame {
         const availableCharacters = [
             'hat', 'car', 'dog', 'cat', 'ship', 'plane', 'boot', 'thimble'
         ];
-        
+
         const usedCharacters = Array.from(this.players.values()).map(p => p.character);
         const available = availableCharacters.find(char => !usedCharacters.includes(char));
-        
+
         return available || 'hat'; // Fallback to hat if all taken
     }
 
@@ -241,25 +293,39 @@ class MonopolyGame {
         const allCharacters = [
             'hat', 'car', 'dog', 'cat', 'ship', 'plane', 'boot', 'thimble'
         ];
-        
+
         const usedCharacters = Array.from(this.players.values()).map(p => p.character);
         return allCharacters.filter(char => !usedCharacters.includes(char));
     }
 
     removePlayer(playerId) {
+        const wasCurrentPlayer = this.currentPlayer === playerId;
+        const removedPlayerIndex = this.playerOrder.indexOf(playerId);
+
         this.players.delete(playerId);
         this.playerOrder = this.playerOrder.filter(id => id !== playerId);
-        
-        // Adjust current player index if needed
-        if (this.currentPlayerIndex >= this.playerOrder.length && this.playerOrder.length > 0) {
-            this.currentPlayerIndex = 0;
-        }
-        
-        if (this.playerOrder.length > 0) {
-            this.currentPlayer = this.playerOrder[this.currentPlayerIndex];
-        } else {
+
+        if (this.playerOrder.length === 0) {
+            // No players left
             this.currentPlayer = null;
             this.gameStarted = false;
+            this.currentPlayerIndex = 0;
+            this.hasRolledThisTurn = false;
+            this.currentRoll = null;
+        } else {
+            // Adjust current player index if needed
+            if (removedPlayerIndex < this.currentPlayerIndex) {
+                // Removed player was before current player, adjust index
+                this.currentPlayerIndex--;
+            } else if (wasCurrentPlayer || this.currentPlayerIndex >= this.playerOrder.length) {
+                // Removed player was current player or index is out of bounds
+                this.currentPlayerIndex = this.currentPlayerIndex % this.playerOrder.length;
+                // Reset turn state since we're switching to a new player
+                this.hasRolledThisTurn = false;
+                this.currentRoll = null;
+            }
+
+            this.currentPlayer = this.playerOrder[this.currentPlayerIndex];
         }
     }
 
@@ -268,26 +334,40 @@ class MonopolyGame {
         this.playerOrder = Array.from(this.players.keys());
         this.currentPlayerIndex = 0;
         this.currentPlayer = this.playerOrder[0];
+
+        // Reset turn state for new game
+        this.hasRolledThisTurn = false;
+        this.currentRoll = null;
+        this.doubleRollCount = 0;
     }
 
     rollDice() {
+        // 檢查是否已經在本回合擲過骰子（除非是雙重骰子）
+        if (this.hasRolledThisTurn && !this.currentRoll?.isDouble) {
+            throw new Error('Already rolled dice this turn');
+        }
+
         const dice1 = Math.floor(Math.random() * 6) + 1;
         const dice2 = Math.floor(Math.random() * 6) + 1;
         const total = dice1 + dice2;
         const isDouble = dice1 === dice2;
 
         this.currentRoll = { dice1, dice2, total, isDouble };
+        this.hasRolledThisTurn = true;
 
         const player = this.players.get(this.currentPlayer);
-        
+
         if (isDouble) {
             this.doubleRollCount++;
             if (this.doubleRollCount >= 3) {
                 // Go to jail on third double
                 this.sendPlayerToJail(this.currentPlayer);
                 this.doubleRollCount = 0;
+                this.hasRolledThisTurn = false; // 重置回合狀態
                 return this.currentRoll;
             }
+            // 如果是雙重但不到第三次，允許再次擲骰子
+            this.hasRolledThisTurn = false;
         } else {
             this.doubleRollCount = 0;
         }
@@ -364,7 +444,7 @@ class MonopolyGame {
         // Pay rent
         const rent = this.calculateRent(position, property.owner);
         const owner = this.players.get(property.owner);
-        
+
         if (player.money >= rent) {
             player.money -= rent;
             owner.money += rent;
@@ -472,13 +552,17 @@ class MonopolyGame {
     endTurn() {
         // Check if player gets another turn from doubles
         if (this.currentRoll && this.currentRoll.isDouble && this.doubleRollCount < 3) {
-            // Player gets another turn
+            // Player gets another turn, but reset roll state
+            this.hasRolledThisTurn = false;
+            this.currentRoll = null;
             return;
         }
 
+        // Reset turn state
         this.doubleRollCount = 0;
         this.currentRoll = null;
-        
+        this.hasRolledThisTurn = false;
+
         // Move to next player
         this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.playerOrder.length;
         this.currentPlayer = this.playerOrder[this.currentPlayerIndex];
@@ -493,7 +577,9 @@ class MonopolyGame {
             gameStarted: this.gameStarted,
             currentRoll: this.currentRoll,
             houses: this.houses,
-            hotels: this.hotels
+            hotels: this.hotels,
+            hostId: this.hostId,
+            hostIsObserver: this.hostIsObserver
         };
     }
 
@@ -546,43 +632,43 @@ class MonopolyGame {
             { type: 'tax', name: 'Luxury Tax', amount: 100 },
             { type: 'property', name: 'Boardwalk' }
         ];
-        
+
         return spaces[position] || { type: 'unknown', name: 'Unknown' };
     }
 
     initializeProperties() {
         const properties = new Map();
-        
-        // Property data with prices, rents, etc.
+
+        // Property data with prices, rents, etc. - 台灣主題
         const propertyData = [
-            { id: 1, name: 'Mediterranean Avenue', price: 60, rent: [2, 10, 30, 90, 160, 250], colorGroup: 'brown', housePrice: 50 },
-            { id: 3, name: 'Baltic Avenue', price: 60, rent: [4, 20, 60, 180, 320, 450], colorGroup: 'brown', housePrice: 50 },
-            { id: 5, name: 'Reading Railroad', price: 200, rent: [25, 50, 100, 200], type: 'railroad' },
-            { id: 6, name: 'Oriental Avenue', price: 100, rent: [6, 30, 90, 270, 400, 550], colorGroup: 'lightblue', housePrice: 50 },
-            { id: 8, name: 'Vermont Avenue', price: 100, rent: [6, 30, 90, 270, 400, 550], colorGroup: 'lightblue', housePrice: 50 },
-            { id: 9, name: 'Connecticut Avenue', price: 120, rent: [8, 40, 100, 300, 450, 600], colorGroup: 'lightblue', housePrice: 50 },
-            { id: 11, name: 'St. Charles Place', price: 140, rent: [10, 50, 150, 450, 625, 750], colorGroup: 'pink', housePrice: 100 },
-            { id: 12, name: 'Electric Company', price: 150, type: 'utility' },
-            { id: 13, name: 'States Avenue', price: 140, rent: [10, 50, 150, 450, 625, 750], colorGroup: 'pink', housePrice: 100 },
-            { id: 14, name: 'Virginia Avenue', price: 160, rent: [12, 60, 180, 500, 700, 900], colorGroup: 'pink', housePrice: 100 },
-            { id: 15, name: 'Pennsylvania Railroad', price: 200, rent: [25, 50, 100, 200], type: 'railroad' },
-            { id: 16, name: 'St. James Place', price: 180, rent: [14, 70, 200, 550, 750, 950], colorGroup: 'orange', housePrice: 100 },
-            { id: 18, name: 'Tennessee Avenue', price: 180, rent: [14, 70, 200, 550, 750, 950], colorGroup: 'orange', housePrice: 100 },
-            { id: 19, name: 'New York Avenue', price: 200, rent: [16, 80, 220, 600, 800, 1000], colorGroup: 'orange', housePrice: 100 },
-            { id: 21, name: 'Kentucky Avenue', price: 220, rent: [18, 90, 250, 700, 875, 1050], colorGroup: 'red', housePrice: 150 },
-            { id: 23, name: 'Indiana Avenue', price: 220, rent: [18, 90, 250, 700, 875, 1050], colorGroup: 'red', housePrice: 150 },
-            { id: 24, name: 'Illinois Avenue', price: 240, rent: [20, 100, 300, 750, 925, 1100], colorGroup: 'red', housePrice: 150 },
-            { id: 25, name: 'B&O Railroad', price: 200, rent: [25, 50, 100, 200], type: 'railroad' },
-            { id: 26, name: 'Atlantic Avenue', price: 260, rent: [22, 110, 330, 800, 975, 1150], colorGroup: 'yellow', housePrice: 150 },
-            { id: 27, name: 'Ventnor Avenue', price: 260, rent: [22, 110, 330, 800, 975, 1150], colorGroup: 'yellow', housePrice: 150 },
-            { id: 28, name: 'Water Works', price: 150, type: 'utility' },
-            { id: 29, name: 'Marvin Gardens', price: 280, rent: [24, 120, 360, 850, 1025, 1200], colorGroup: 'yellow', housePrice: 150 },
-            { id: 31, name: 'Pacific Avenue', price: 300, rent: [26, 130, 390, 900, 1100, 1275], colorGroup: 'green', housePrice: 200 },
-            { id: 32, name: 'North Carolina Avenue', price: 300, rent: [26, 130, 390, 900, 1100, 1275], colorGroup: 'green', housePrice: 200 },
-            { id: 34, name: 'Pennsylvania Avenue', price: 320, rent: [28, 150, 450, 1000, 1200, 1400], colorGroup: 'green', housePrice: 200 },
-            { id: 35, name: 'Short Line', price: 200, rent: [25, 50, 100, 200], type: 'railroad' },
-            { id: 37, name: 'Park Place', price: 350, rent: [35, 175, 500, 1100, 1300, 1500], colorGroup: 'darkblue', housePrice: 200 },
-            { id: 39, name: 'Boardwalk', price: 400, rent: [50, 200, 600, 1400, 1700, 2000], colorGroup: 'darkblue', housePrice: 200 }
+            { id: 1, name: '台北101', price: 60, rent: [2, 10, 30, 90, 160, 250], colorGroup: 'brown', housePrice: 50 },
+            { id: 3, name: '信義區', price: 60, rent: [4, 20, 60, 180, 320, 450], colorGroup: 'brown', housePrice: 50 },
+            { id: 5, name: '台灣高鐵', price: 200, rent: [25, 50, 100, 200], type: 'railroad' },
+            { id: 6, name: '士林夜市', price: 100, rent: [6, 30, 90, 270, 400, 550], colorGroup: 'lightblue', housePrice: 50 },
+            { id: 8, name: '九份老街', price: 100, rent: [6, 30, 90, 270, 400, 550], colorGroup: 'lightblue', housePrice: 50 },
+            { id: 9, name: '西門町', price: 120, rent: [8, 40, 100, 300, 450, 600], colorGroup: 'lightblue', housePrice: 50 },
+            { id: 11, name: '日月潭', price: 140, rent: [10, 50, 150, 450, 625, 750], colorGroup: 'pink', housePrice: 100 },
+            { id: 12, name: '台電公司', price: 150, type: 'utility' },
+            { id: 13, name: '阿里山', price: 140, rent: [10, 50, 150, 450, 625, 750], colorGroup: 'pink', housePrice: 100 },
+            { id: 14, name: '太魯閣', price: 160, rent: [12, 60, 180, 500, 700, 900], colorGroup: 'pink', housePrice: 100 },
+            { id: 15, name: '中華航空', price: 200, rent: [25, 50, 100, 200], type: 'railroad' },
+            { id: 16, name: '墾丁', price: 180, rent: [14, 70, 200, 550, 750, 950], colorGroup: 'orange', housePrice: 100 },
+            { id: 18, name: '清境農場', price: 180, rent: [14, 70, 200, 550, 750, 950], colorGroup: 'orange', housePrice: 100 },
+            { id: 19, name: '淡水老街', price: 200, rent: [16, 80, 220, 600, 800, 1000], colorGroup: 'orange', housePrice: 100 },
+            { id: 21, name: '故宮博物院', price: 220, rent: [18, 90, 250, 700, 875, 1050], colorGroup: 'red', housePrice: 150 },
+            { id: 23, name: '中正紀念堂', price: 220, rent: [18, 90, 250, 700, 875, 1050], colorGroup: 'red', housePrice: 150 },
+            { id: 24, name: '龍山寺', price: 240, rent: [20, 100, 300, 750, 925, 1100], colorGroup: 'red', housePrice: 150 },
+            { id: 25, name: '台鐵', price: 200, rent: [25, 50, 100, 200], type: 'railroad' },
+            { id: 26, name: '野柳地質公園', price: 260, rent: [22, 110, 330, 800, 975, 1150], colorGroup: 'yellow', housePrice: 150 },
+            { id: 27, name: '平溪天燈', price: 260, rent: [22, 110, 330, 800, 975, 1150], colorGroup: 'yellow', housePrice: 150 },
+            { id: 28, name: '自來水公司', price: 150, type: 'utility' },
+            { id: 29, name: '陽明山', price: 280, rent: [24, 120, 360, 850, 1025, 1200], colorGroup: 'yellow', housePrice: 150 },
+            { id: 31, name: '高雄愛河', price: 300, rent: [26, 130, 390, 900, 1100, 1275], colorGroup: 'green', housePrice: 200 },
+            { id: 32, name: '台中逢甲', price: 300, rent: [26, 130, 390, 900, 1100, 1275], colorGroup: 'green', housePrice: 200 },
+            { id: 34, name: '嘉義雞肉飯', price: 320, rent: [28, 150, 450, 1000, 1200, 1400], colorGroup: 'green', housePrice: 200 },
+            { id: 35, name: '長榮航空', price: 200, rent: [25, 50, 100, 200], type: 'railroad' },
+            { id: 37, name: '花蓮太魯閣', price: 350, rent: [35, 175, 500, 1100, 1300, 1500], colorGroup: 'darkblue', housePrice: 200 },
+            { id: 39, name: '台東熱氣球', price: 400, rent: [50, 200, 600, 1400, 1700, 2000], colorGroup: 'darkblue', housePrice: 200 }
         ];
 
         propertyData.forEach(prop => {
@@ -639,7 +725,7 @@ class MonopolyGame {
         const groupProperties = Array.from(this.properties.values()).filter(p => p.colorGroup === colorGroup && p.owner === playerId);
         const currentProperty = this.properties.get(propertyId);
         const minHouses = Math.min(...groupProperties.map(p => p.houses));
-        
+
         return currentProperty.houses === minHouses;
     }
 
@@ -672,7 +758,7 @@ class MonopolyGame {
 
     executeCard(playerId, card) {
         const player = this.players.get(playerId);
-        
+
         switch (card.action) {
             case 'move':
                 player.position = card.target;
@@ -698,7 +784,7 @@ class MonopolyGame {
 
     handleBankruptcy(playerId, creditorId, debt) {
         const player = this.players.get(playerId);
-        
+
         // Sell all houses and hotels
         player.properties.forEach(propId => {
             const property = this.properties.get(propId);
@@ -720,7 +806,7 @@ class MonopolyGame {
                 // Transfer to creditor
                 const creditor = this.players.get(creditorId);
                 creditor.money += player.money;
-                
+
                 player.properties.forEach(propId => {
                     const property = this.properties.get(propId);
                     property.owner = creditorId;
@@ -734,7 +820,7 @@ class MonopolyGame {
                     property.mortgaged = false;
                 });
             }
-            
+
             // Remove player from game
             this.removePlayer(playerId);
         }

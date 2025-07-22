@@ -9,49 +9,49 @@
     <h1>Socket.io 連接測試</h1>
     <div id="status">連接中...</div>
     <div id="log"></div>
-    
+
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const statusDiv = document.getElementById('status');
         const logDiv = document.getElementById('log');
-        
+
         function log(message) {
             console.log(message);
             logDiv.innerHTML += '<p>' + message + '</p>';
         }
-        
+
         log('開始初始化 Socket.io...');
-        
+
         const socket = io({
             transports: ['polling', 'websocket'],
             timeout: 20000,
             forceNew: true
         });
-        
+
         socket.on('connect', () => {
             statusDiv.textContent = '已連接';
             statusDiv.style.color = 'green';
             log('Successfully connected to server with ID: ' + socket.id);
         });
-        
+
         socket.on('disconnect', (reason) => {
             statusDiv.textContent = '已斷線: ' + reason;
             statusDiv.style.color = 'red';
             log('Disconnected: ' + reason);
         });
-        
+
         socket.on('connect_error', (error) => {
             statusDiv.textContent = '連接錯誤: ' + error.message;
             statusDiv.style.color = 'red';
             log('Connection error: ' + error.message);
         });
-        
+
         socket.on('reconnect', (attemptNumber) => {
             statusDiv.textContent = '重新連接成功';
             statusDiv.style.color = 'orange';
             log('Reconnected after ' + attemptNumber + ' attempts');
         });
-        
+
         socket.on('reconnect_error', (error) => {
             statusDiv.textContent = '重新連接失敗: ' + error.message;
             statusDiv.style.color = 'red';

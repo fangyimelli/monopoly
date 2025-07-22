@@ -7,7 +7,7 @@ class MonopolyClient {
         this.roomCode = null;
         this.playerId = null;
         this.isHost = false;
-        
+
         this.init();
     }
 
@@ -58,7 +58,7 @@ class MonopolyClient {
             this.gameState = data.gameState;
             this.availableCharacters = data.availableCharacters;
             this.isHost = true;
-            
+
             this.showSuccess(`房間已創建！代碼: ${this.roomCode}`);
             this.showLobby();
         });
@@ -69,7 +69,7 @@ class MonopolyClient {
             this.gameState = data.gameState;
             this.availableCharacters = data.availableCharacters;
             this.isHost = false;
-            
+
             if (data.assignedCharacter) {
                 this.showSuccess(`成功加入房間！獲得角色: ${this.getCharacterName(data.assignedCharacter)}`);
             } else {
@@ -119,7 +119,7 @@ class MonopolyClient {
             this.gameState = data.gameState;
             this.updateGameScreen();
             this.showDiceResult(data.dice);
-            
+
             if (data.playerId === this.playerId) {
                 this.enableActionButtons();
             }
@@ -132,7 +132,7 @@ class MonopolyClient {
         this.socket.on('propertyBought', (data) => {
             this.gameState = data.gameState;
             this.updateGameScreen();
-            
+
             const player = this.gameState.players.find(p => p.id === data.playerId);
             const property = this.gameState.properties.find(p => p.id === data.propertyId);
             this.showSuccess(`${player.name} 購買了 ${property.name}`);
@@ -145,7 +145,7 @@ class MonopolyClient {
         this.socket.on('houseBuilt', (data) => {
             this.gameState = data.gameState;
             this.updateGameScreen();
-            
+
             const player = this.gameState.players.find(p => p.id === data.playerId);
             const property = this.gameState.properties.find(p => p.id === data.propertyId);
             this.showSuccess(`${player.name} 在 ${property.name} 建造了房屋`);
@@ -175,14 +175,18 @@ class MonopolyClient {
         this.socket.on('tradeError', (data) => {
             this.showError(data.message);
         });
+
+        this.socket.on('gameEnded', (data) => {
+            this.showGameEndModal(data.scores);
+        });
     }
 
     // Room management
-    createRoom(playerName) {
+    createRoom(playerName, hostParticipation = 'player') {
         const character = this.getSelectedCharacter('hostCharacterSelection') || 'hat';
-        console.log('Creating room with character:', character); // Debug log
+        console.log('Creating room with character:', character, 'hostParticipation:', hostParticipation); // Debug log
         this.showLoading();
-        this.socket.emit('createRoom', { playerName, character });
+        this.socket.emit('createRoom', { playerName, character, hostParticipation });
     }
 
     joinRoom(roomCode, playerName) {
@@ -197,7 +201,7 @@ class MonopolyClient {
             this.showError('只有房主可以開始遊戲');
             return;
         }
-        
+
         this.socket.emit('startGame', { roomCode: this.roomCode });
     }
 
@@ -207,7 +211,7 @@ class MonopolyClient {
             this.showError('還沒有輪到您');
             return;
         }
-        
+
         this.socket.emit('rollDice', { roomCode: this.roomCode });
         this.disableRollButton();
     }
@@ -215,10 +219,10 @@ class MonopolyClient {
     buyProperty() {
         const currentPlayerData = this.getCurrentPlayerData();
         const propertyId = currentPlayerData.position;
-        
-        this.socket.emit('buyProperty', { 
-            roomCode: this.roomCode, 
-            propertyId 
+
+        this.socket.emit('buyProperty', {
+            roomCode: this.roomCode,
+            propertyId
         });
     }
 
@@ -229,6 +233,10 @@ class MonopolyClient {
 
     endTurn() {
         this.socket.emit('endTurn', { roomCode: this.roomCode });
+    }
+
+    endGame() {
+        this.socket.emit('endGame', { roomCode: this.roomCode });
     }
 
     // UI state management
@@ -277,7 +285,7 @@ class MonopolyClient {
             screen.classList.remove('active');
         });
         document.getElementById('gameScreen').classList.add('active');
-        
+
         // Initialize game board and UI
         this.initializeGameBoard();
         this.updateGameScreen();
@@ -296,11 +304,18 @@ class MonopolyClient {
         this.gameState.players.forEach((player, index) => {
             const playerItem = document.createElement('div');
             playerItem.className = 'player-item';
-            
-            const isHost = index === 0;
+
+            const isHost = player.id === this.gameState.hostId;
             const characterIcon = this.getCharacterIcon(player.character);
             const characterName = this.getCharacterName(player.character);
-            
+
+            let hostLabel = '';
+            if (isHost) {
+                hostLabel = '<span class="host-badge">房主';
+                if (this.gameState.hostIsObserver) hostLabel += '（觀戰）';
+                hostLabel += '</span>';
+            }
+
             playerItem.innerHTML = `
                 <div class="player-avatar" style="background-color: ${player.color}">
                     ${characterIcon}
@@ -310,11 +325,11 @@ class MonopolyClient {
                     <div class="player-character">${characterName}</div>
                 </div>
                 <div class="player-status">
-                    ${isHost ? '<span class="host-badge">房主</span>' : ''}
+                    ${hostLabel}
                     ${player.id === this.playerId ? '<span class="host-badge" style="background: #28a745;">您</span>' : ''}
                 </div>
             `;
-            
+
             playersList.appendChild(playerItem);
         });
 
@@ -330,6 +345,29 @@ class MonopolyClient {
     // Game screen management
     updateGameScreen() {
         if (!this.gameState) return;
+
+        // 控制結束遊戲按鈕顯示
+        const endGameBtn = document.getElementById('endGameBtn');
+        if (endGameBtn) {
+            if (this.playerId === this.gameState.hostId) {
+                endGameBtn.style.display = 'block';
+            } else {
+                endGameBtn.style.display = 'none';
+            }
+        }
+
+        // 觀戰房主隱藏所有遊戲操作按鈕
+        if (this.gameState.hostIsObserver && this.playerId === this.gameState.hostId) {
+            document.getElementById('rollDiceBtn').style.display = 'none';
+            document.getElementById('buyPropertyBtn').style.display = 'none';
+            document.getElementById('buildHouseBtn').style.display = 'none';
+            document.getElementById('endTurnBtn').style.display = 'none';
+        } else {
+            document.getElementById('rollDiceBtn').style.display = '';
+            document.getElementById('buyPropertyBtn').style.display = '';
+            document.getElementById('buildHouseBtn').style.display = '';
+            document.getElementById('endTurnBtn').style.display = '';
+        }
 
         this.updateCurrentPlayerInfo();
         this.updatePlayersPanel();
@@ -352,15 +390,15 @@ class MonopolyClient {
 
         const playerNameElement = playerInfo.querySelector('.player-name');
         const playerMoneyElement = playerInfo.querySelector('.player-money');
-        
+
         if (playerNameElement) {
             playerNameElement.textContent = currentPlayerData.name;
         }
-        
+
         if (playerMoneyElement) {
             playerMoneyElement.textContent = `$${currentPlayerData.money}`;
         }
-        
+
         // Highlight if it's current player's turn
         if (this.isMyTurn()) {
             playerInfo.style.background = '#e3f2fd';
@@ -379,7 +417,7 @@ class MonopolyClient {
             const playerItem = document.createElement('div');
             playerItem.className = 'game-player-item';
             playerItem.dataset.character = this.getCharacterIcon(player.character);
-            
+
             if (player.id === this.gameState.currentPlayer) {
                 playerItem.classList.add('current');
             }
@@ -409,7 +447,8 @@ class MonopolyClient {
         console.log('Game state:', this.gameState);
         console.log('Current player ID:', this.playerId);
         console.log('Is my turn:', this.isMyTurn());
-        
+        console.log('Current roll:', this.gameState?.currentRoll);
+
         const rollBtn = document.getElementById('rollDiceBtn');
         const buyBtn = document.getElementById('buyPropertyBtn');
         const buildBtn = document.getElementById('buildHouseBtn');
@@ -437,16 +476,18 @@ class MonopolyClient {
 
         // Check if player has rolled dice
         if (this.gameState.currentRoll) {
+            console.log('Player has rolled dice, disabling roll button');
             rollBtn.disabled = true;
-            
+
             // Check if can buy property
             const currentPlayerData = this.getCurrentPlayerData();
             const property = this.getPropertyAtPosition(currentPlayerData.position);
-            
+
             if (property && !property.owner && currentPlayerData.money >= property.price) {
                 buyBtn.style.display = 'block';
             }
         } else {
+            console.log('Player has not rolled dice, enabling roll button');
             rollBtn.disabled = false;
         }
 
@@ -459,10 +500,16 @@ class MonopolyClient {
     }
 
     resetActionButtons() {
+        console.log('Resetting action buttons');
         const rollBtn = document.getElementById('rollDiceBtn');
+        const buyBtn = document.getElementById('buyPropertyBtn');
+
+        // Reset roll button - will be managed by updateActionButtons
         rollBtn.disabled = false;
-        
-        document.getElementById('buyPropertyBtn').style.display = 'none';
+        buyBtn.style.display = 'none';
+
+        // Update all buttons based on current game state
+        this.updateActionButtons();
     }
 
     disableRollButton() {
@@ -498,14 +545,14 @@ class MonopolyClient {
 
     setupCharacterOptions(container) {
         const options = container.querySelectorAll('.character-option');
-        
+
         options.forEach(option => {
             option.addEventListener('click', () => {
                 if (option.classList.contains('disabled')) return;
-                
+
                 // Remove selected class from all options
                 options.forEach(opt => opt.classList.remove('selected'));
-                
+
                 // Add selected class to clicked option
                 option.classList.add('selected');
             });
@@ -518,7 +565,7 @@ class MonopolyClient {
             console.warn(`Character selection container "${containerId}" not found`);
             return 'hat';
         }
-        
+
         const selected = container.querySelector('.character-option.selected');
         const character = selected ? selected.dataset.character : 'hat';
         console.log(`Selected character from ${containerId}:`, character);
@@ -530,17 +577,17 @@ class MonopolyClient {
         if (!container) return;
 
         const options = container.querySelectorAll('.character-option');
-        
+
         options.forEach(option => {
             const character = option.dataset.character;
-            
+
             if (availableCharacters.includes(character)) {
                 option.classList.remove('disabled');
                 option.classList.remove('character-unavailable');
             } else {
                 option.classList.add('disabled');
                 option.classList.add('character-unavailable');
-                
+
                 // If currently selected character is unavailable, select first available
                 if (option.classList.contains('selected')) {
                     option.classList.remove('selected');
@@ -629,7 +676,7 @@ class MonopolyClient {
             38: '奢侈稅',
             39: '台東熱氣球'
         };
-        
+
         return positionNames[position] || `位置 ${position}`;
     }
 
@@ -644,7 +691,7 @@ class MonopolyClient {
             'boot': '👢',
             'thimble': '🔧'
         };
-        
+
         return characterIcons[character] || '🎩';
     }
 
@@ -659,7 +706,7 @@ class MonopolyClient {
             'boot': '靴子',
             'thimble': '頂針'
         };
-        
+
         return characterNames[character] || '紳士帽';
     }
 
@@ -668,10 +715,10 @@ class MonopolyClient {
         const errorContainer = document.getElementById('errorContainer');
         const errorMessage = document.getElementById('errorMessage');
         const errorText = document.getElementById('errorText');
-        
+
         errorText.textContent = message;
         errorMessage.style.display = 'flex';
-        
+
         setTimeout(() => {
             errorMessage.style.display = 'none';
         }, 5000);
@@ -681,10 +728,10 @@ class MonopolyClient {
         const successContainer = document.getElementById('successContainer');
         const successMessage = document.getElementById('successMessage');
         const successText = document.getElementById('successText');
-        
+
         successText.textContent = message;
         successMessage.style.display = 'flex';
-        
+
         setTimeout(() => {
             successMessage.style.display = 'none';
         }, 3000);
@@ -695,29 +742,29 @@ class MonopolyClient {
         const modal = document.getElementById('propertyModal');
         const propertyName = document.getElementById('propertyName');
         const propertyDetails = document.getElementById('propertyDetails');
-        
+
         propertyName.textContent = property.name;
-        
+
         let detailsHTML = `
             <p><strong>價格:</strong> $${property.price}</p>
             <p><strong>租金:</strong> $${property.rent[0]}</p>
         `;
-        
+
         if (property.owner) {
             const owner = this.gameState.players.find(p => p.id === property.owner);
             detailsHTML += `<p><strong>擁有者:</strong> ${owner.name}</p>`;
         }
-        
+
         if (property.houses > 0) {
             detailsHTML += `<p><strong>房屋:</strong> ${property.houses}</p>`;
         }
-        
+
         if (property.hotels > 0) {
             detailsHTML += `<p><strong>旅館:</strong> ${property.hotels}</p>`;
         }
-        
+
         propertyDetails.innerHTML = detailsHTML;
-        
+
         const buyBtn = document.getElementById('modalBuyBtn');
         if (!property.owner && this.isMyTurn()) {
             buyBtn.style.display = 'block';
@@ -728,29 +775,29 @@ class MonopolyClient {
         } else {
             buyBtn.style.display = 'none';
         }
-        
+
         modal.style.display = 'block';
     }
 
     showTradeModal(tradeData) {
         const modal = document.getElementById('tradeModal');
         const tradeDetails = document.getElementById('tradeDetails');
-        
+
         const fromPlayer = this.gameState.players.find(p => p.id === tradeData.fromPlayerId);
-        
+
         tradeDetails.innerHTML = `
             <p><strong>來自:</strong> ${fromPlayer.name}</p>
             <p><strong>提議:</strong> ${JSON.stringify(tradeData.offer)}</p>
         `;
-        
+
         modal.style.display = 'block';
-        
+
         // Set up accept/reject handlers
         document.getElementById('acceptTradeBtn').onclick = () => {
             // Handle trade acceptance
             modal.style.display = 'none';
         };
-        
+
         document.getElementById('rejectTradeBtn').onclick = () => {
             // Handle trade rejection
             modal.style.display = 'none';
@@ -764,7 +811,7 @@ class MonopolyClient {
             this.showError('您沒有可以建造房屋的地產');
             return;
         }
-        
+
         // For now, just show error - full implementation would show property selection
         this.showError('建造功能開發中...');
     }
@@ -782,6 +829,16 @@ class MonopolyClient {
         if (this.gameBoard) {
             this.gameBoard.update(this.gameState);
         }
+    }
+
+    showGameEndModal(scores) {
+        let html = '<h3>遊戲結束！分數排名：</h3><ol>';
+        scores.forEach((item, idx) => {
+            html += `<li><strong>${item.name}</strong>：${item.score} 分</li>`;
+        });
+        html += '</ol>';
+        alert(html.replace(/<[^>]+>/g, ''));
+        // 你可以改成自訂 modal 彈窗
     }
 }
 

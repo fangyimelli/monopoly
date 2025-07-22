@@ -18,18 +18,19 @@ class UIManager {
         document.getElementById('createRoomForm').addEventListener('submit', (e) => {
             e.preventDefault();
             const playerName = document.getElementById('hostName').value.trim();
-            
+            const hostParticipation = document.querySelector('input[name="hostParticipation"]:checked').value;
+
             if (!playerName) {
                 window.game.showError('請輸入您的名稱');
                 return;
             }
-            
+
             if (playerName.length > 20) {
                 window.game.showError('名稱不能超過20個字符');
                 return;
             }
-            
-            window.game.createRoom(playerName);
+
+            window.game.createRoom(playerName, hostParticipation);
         });
 
         // Join room form
@@ -37,27 +38,27 @@ class UIManager {
             e.preventDefault();
             const playerName = document.getElementById('playerName').value.trim();
             const roomCode = document.getElementById('roomCode').value.trim().toUpperCase();
-            
+
             if (!playerName) {
                 window.game.showError('請輸入您的名稱');
                 return;
             }
-            
+
             if (!roomCode) {
                 window.game.showError('請輸入房間代碼');
                 return;
             }
-            
+
             if (playerName.length > 20) {
                 window.game.showError('名稱不能超過20個字符');
                 return;
             }
-            
+
             if (roomCode.length !== 6) {
                 window.game.showError('房間代碼必須是6位字符');
                 return;
             }
-            
+
             window.game.joinRoom(roomCode, playerName);
         });
 
@@ -104,6 +105,12 @@ class UIManager {
             window.game.endTurn();
         });
 
+        document.getElementById('endGameBtn').addEventListener('click', () => {
+            if (confirm('確定要結束本場遊戲並統計分數嗎？')) {
+                window.game.endGame();
+            }
+        });
+
         // Modal close buttons
         document.querySelectorAll('.close').forEach(closeBtn => {
             closeBtn.addEventListener('click', (e) => {
@@ -145,7 +152,7 @@ class UIManager {
 
         // Initialize character selection
         this.initializeCharacterSelection();
-        
+
         // Initialize tooltips and other UI enhancements
         this.initializeUIEnhancements();
     }
@@ -183,7 +190,7 @@ class UIManager {
             text-align: right;
             margin-top: 5px;
         `;
-        
+
         const updateCounter = () => {
             const remaining = input.maxLength - input.value.length;
             counter.textContent = `${input.value.length}/${input.maxLength}`;
@@ -262,7 +269,7 @@ class UIManager {
 
     validateInput(input) {
         const isValid = input.checkValidity() && input.value.trim().length > 0;
-        
+
         if (isValid) {
             input.style.borderColor = '#28a745';
             this.removeValidationMessage(input);
@@ -274,7 +281,7 @@ class UIManager {
 
     showValidationMessage(input) {
         this.removeValidationMessage(input);
-        
+
         const message = document.createElement('div');
         message.className = 'validation-message';
         message.style.cssText = `
@@ -282,13 +289,13 @@ class UIManager {
             font-size: 0.875rem;
             margin-top: 5px;
         `;
-        
+
         if (input.name === 'hostName' || input.name === 'playerName') {
             message.textContent = '請輸入您的名稱';
         } else if (input.name === 'roomCode') {
             message.textContent = '請輸入6位房間代碼';
         }
-        
+
         input.parentNode.appendChild(message);
     }
 
@@ -341,7 +348,7 @@ class UIManager {
     fadeIn(element) {
         element.style.opacity = '0';
         element.style.display = 'block';
-        
+
         setTimeout(() => {
             element.style.transition = 'opacity 0.3s ease';
             element.style.opacity = '1';
@@ -351,7 +358,7 @@ class UIManager {
     fadeOut(element, callback) {
         element.style.transition = 'opacity 0.3s ease';
         element.style.opacity = '0';
-        
+
         setTimeout(() => {
             element.style.display = 'none';
             if (callback) callback();
@@ -411,7 +418,7 @@ class UIManager {
             word-wrap: break-word;
             animation: slideIn 0.3s ease;
         `;
-        
+
         switch (type) {
             case 'success':
                 notification.style.backgroundColor = '#28a745';
@@ -426,10 +433,10 @@ class UIManager {
             default:
                 notification.style.backgroundColor = '#17a2b8';
         }
-        
+
         notification.textContent = message;
         document.body.appendChild(notification);
-        
+
         setTimeout(() => {
             notification.style.animation = 'slideOut 0.3s ease forwards';
             setTimeout(() => {
@@ -451,9 +458,9 @@ class UIManager {
             overflow: hidden;
         `;
         announcement.textContent = message;
-        
+
         document.body.appendChild(announcement);
-        
+
         setTimeout(() => {
             document.body.removeChild(announcement);
         }, 1000);
@@ -465,7 +472,7 @@ class UIManager {
             element.addEventListener('mouseenter', (e) => {
                 this.showTooltip(e.target, e.target.dataset.tooltip);
             });
-            
+
             element.addEventListener('mouseleave', (e) => {
                 this.hideTooltip();
             });
@@ -487,13 +494,13 @@ class UIManager {
             pointer-events: none;
             white-space: nowrap;
         `;
-        
+
         document.body.appendChild(tooltip);
-        
+
         const rect = element.getBoundingClientRect();
         tooltip.style.left = rect.left + (rect.width / 2) - (tooltip.offsetWidth / 2) + 'px';
         tooltip.style.top = rect.top - tooltip.offsetHeight - 5 + 'px';
-        
+
         this.currentTooltip = tooltip;
     }
 
@@ -521,22 +528,22 @@ class UIManager {
 
     setupCharacterSelection(container) {
         const options = container.querySelectorAll('.character-option');
-        
+
         options.forEach(option => {
             option.addEventListener('click', () => {
                 if (option.classList.contains('disabled')) {
                     this.showNotification('此角色已被其他玩家選擇', 'warning');
                     return;
                 }
-                
+
                 // Remove selected class from all options in this container
                 container.querySelectorAll('.character-option').forEach(opt => {
                     opt.classList.remove('selected');
                 });
-                
+
                 // Add selected class to clicked option
                 option.classList.add('selected');
-                
+
                 // Add visual feedback
                 this.animateElement(option, 'pulse');
             });
@@ -560,7 +567,7 @@ class UIManager {
     initializeUIEnhancements() {
         // Initialize tooltips
         this.initializeTooltips();
-        
+
         // Other UI enhancements can be initialized here
     }
 
@@ -568,15 +575,15 @@ class UIManager {
     displayPlayersInLobby(players) {
         const playersContainer = document.getElementById('playersList');
         if (!playersContainer) return;
-        
+
         playersContainer.innerHTML = '';
 
         players.forEach(player => {
             const playerElement = document.createElement('div');
             playerElement.className = 'player-item';
-            
+
             const characterIcon = CHARACTERS[player.character] || '👤';
-            
+
             playerElement.innerHTML = `
                 <div class="player-info">
                     <div class="player-name">${player.name}</div>
@@ -586,7 +593,7 @@ class UIManager {
                     ${characterIcon}
                 </div>
             `;
-            
+
             playersContainer.appendChild(playerElement);
         });
     }
@@ -598,9 +605,9 @@ class UIManager {
         players.forEach(player => {
             const playerElement = document.createElement('div');
             playerElement.className = `player-info-card ${player.id === currentPlayerId ? 'current-player' : ''}`;
-            
+
             const characterIcon = CHARACTERS[player.character] || '👤';
-            
+
             playerElement.innerHTML = `
                 <div class="game-player-header">
                     <span class="game-player-character">${characterIcon}</span>
@@ -613,7 +620,7 @@ class UIManager {
                     ${player.isBankrupt ? '<span class="bankrupt-status">💸 Bankrupt</span>' : ''}
                 </div>
             `;
-            
+
             playersContainer.appendChild(playerElement);
         });
     }
@@ -635,11 +642,11 @@ class UIManager {
     // Enhanced character selection with availability checking
     updateCharacterAvailability(unavailableCharacters = []) {
         const characterOptions = document.querySelectorAll('.character-option');
-        
+
         characterOptions.forEach(option => {
             const character = option.dataset.character;
             const isUnavailable = unavailableCharacters.includes(character);
-            
+
             if (isUnavailable) {
                 option.classList.add('character-unavailable');
                 option.style.pointerEvents = 'none';

@@ -13,7 +13,7 @@ class GameBoard {
             green: '#008000',
             darkblue: '#00008B'
         };
-        
+
         this.boardLayout = this.createBoardLayout();
     }
 
@@ -26,52 +26,52 @@ class GameBoard {
     createBoardLayout() {
         return [
             // Bottom row (right to left)
-            { id: 0, name: 'GO', type: 'corner', position: { row: 10, col: 10 } },
-            { id: 1, name: '地中海大道', type: 'property', colorGroup: 'brown', price: 60, position: { row: 10, col: 9 } },
+            { id: 0, name: 'GO起點', type: 'corner', position: { row: 10, col: 10 } },
+            { id: 1, name: '台北101', type: 'property', colorGroup: 'brown', price: 60, position: { row: 10, col: 9 } },
             { id: 2, name: '公益福利', type: 'community_chest', position: { row: 10, col: 8 } },
-            { id: 3, name: '波羅的海大道', type: 'property', colorGroup: 'brown', price: 60, position: { row: 10, col: 7 } },
+            { id: 3, name: '信義區', type: 'property', colorGroup: 'brown', price: 60, position: { row: 10, col: 7 } },
             { id: 4, name: '所得稅', type: 'tax', amount: 200, position: { row: 10, col: 6 } },
-            { id: 5, name: '雷丁鐵路', type: 'railroad', price: 200, position: { row: 10, col: 5 } },
-            { id: 6, name: '東方大道', type: 'property', colorGroup: 'lightblue', price: 100, position: { row: 10, col: 4 } },
+            { id: 5, name: '台灣高鐵', type: 'railroad', price: 200, position: { row: 10, col: 5 } },
+            { id: 6, name: '士林夜市', type: 'property', colorGroup: 'lightblue', price: 100, position: { row: 10, col: 4 } },
             { id: 7, name: '機會', type: 'chance', position: { row: 10, col: 3 } },
-            { id: 8, name: '佛蒙特大道', type: 'property', colorGroup: 'lightblue', price: 100, position: { row: 10, col: 2 } },
-            { id: 9, name: '康乃狄克大道', type: 'property', colorGroup: 'lightblue', price: 120, position: { row: 10, col: 1 } },
-            
+            { id: 8, name: '九份老街', type: 'property', colorGroup: 'lightblue', price: 100, position: { row: 10, col: 2 } },
+            { id: 9, name: '西門町', type: 'property', colorGroup: 'lightblue', price: 120, position: { row: 10, col: 1 } },
+
             // Left side (bottom to top)
             { id: 10, name: '監獄', type: 'corner', position: { row: 10, col: 0 } },
-            { id: 11, name: '聖查爾斯廣場', type: 'property', colorGroup: 'pink', price: 140, position: { row: 9, col: 0 } },
-            { id: 12, name: '電力公司', type: 'utility', price: 150, position: { row: 8, col: 0 } },
-            { id: 13, name: '州街', type: 'property', colorGroup: 'pink', price: 140, position: { row: 7, col: 0 } },
-            { id: 14, name: '維吉尼亞大道', type: 'property', colorGroup: 'pink', price: 160, position: { row: 6, col: 0 } },
-            { id: 15, name: '賓夕法尼亞鐵路', type: 'railroad', price: 200, position: { row: 5, col: 0 } },
-            { id: 16, name: '聖詹姆斯廣場', type: 'property', colorGroup: 'orange', price: 180, position: { row: 4, col: 0 } },
+            { id: 11, name: '日月潭', type: 'property', colorGroup: 'pink', price: 140, position: { row: 9, col: 0 } },
+            { id: 12, name: '台電公司', type: 'utility', price: 150, position: { row: 8, col: 0 } },
+            { id: 13, name: '阿里山', type: 'property', colorGroup: 'pink', price: 140, position: { row: 7, col: 0 } },
+            { id: 14, name: '太魯閣', type: 'property', colorGroup: 'pink', price: 160, position: { row: 6, col: 0 } },
+            { id: 15, name: '中華航空', type: 'railroad', price: 200, position: { row: 5, col: 0 } },
+            { id: 16, name: '墾丁', type: 'property', colorGroup: 'orange', price: 180, position: { row: 4, col: 0 } },
             { id: 17, name: '公益福利', type: 'community_chest', position: { row: 3, col: 0 } },
-            { id: 18, name: '田納西大道', type: 'property', colorGroup: 'orange', price: 180, position: { row: 2, col: 0 } },
-            { id: 19, name: '紐約大道', type: 'property', colorGroup: 'orange', price: 200, position: { row: 1, col: 0 } },
-            
+            { id: 18, name: '清境農場', type: 'property', colorGroup: 'orange', price: 180, position: { row: 2, col: 0 } },
+            { id: 19, name: '淡水老街', type: 'property', colorGroup: 'orange', price: 200, position: { row: 1, col: 0 } },
+
             // Top side (left to right)
             { id: 20, name: '免費停車', type: 'corner', position: { row: 0, col: 0 } },
-            { id: 21, name: '肯塔基大道', type: 'property', colorGroup: 'red', price: 220, position: { row: 0, col: 1 } },
+            { id: 21, name: '故宮博物院', type: 'property', colorGroup: 'red', price: 220, position: { row: 0, col: 1 } },
             { id: 22, name: '機會', type: 'chance', position: { row: 0, col: 2 } },
-            { id: 23, name: '印第安納大道', type: 'property', colorGroup: 'red', price: 220, position: { row: 0, col: 3 } },
-            { id: 24, name: '伊利諾大道', type: 'property', colorGroup: 'red', price: 240, position: { row: 0, col: 4 } },
-            { id: 25, name: 'B&O鐵路', type: 'railroad', price: 200, position: { row: 0, col: 5 } },
-            { id: 26, name: '大西洋大道', type: 'property', colorGroup: 'yellow', price: 260, position: { row: 0, col: 6 } },
-            { id: 27, name: '文特諾大道', type: 'property', colorGroup: 'yellow', price: 260, position: { row: 0, col: 7 } },
-            { id: 28, name: '自來水廠', type: 'utility', price: 150, position: { row: 0, col: 8 } },
-            { id: 29, name: '馬文花園', type: 'property', colorGroup: 'yellow', price: 280, position: { row: 0, col: 9 } },
-            
+            { id: 23, name: '中正紀念堂', type: 'property', colorGroup: 'red', price: 220, position: { row: 0, col: 3 } },
+            { id: 24, name: '龍山寺', type: 'property', colorGroup: 'red', price: 240, position: { row: 0, col: 4 } },
+            { id: 25, name: '台鐵', type: 'railroad', price: 200, position: { row: 0, col: 5 } },
+            { id: 26, name: '野柳地質公園', type: 'property', colorGroup: 'yellow', price: 260, position: { row: 0, col: 6 } },
+            { id: 27, name: '平溪天燈', type: 'property', colorGroup: 'yellow', price: 260, position: { row: 0, col: 7 } },
+            { id: 28, name: '自來水公司', type: 'utility', price: 150, position: { row: 0, col: 8 } },
+            { id: 29, name: '陽明山', type: 'property', colorGroup: 'yellow', price: 280, position: { row: 0, col: 9 } },
+
             // Right side (top to bottom)
             { id: 30, name: '入獄', type: 'corner', position: { row: 0, col: 10 } },
-            { id: 31, name: '太平洋大道', type: 'property', colorGroup: 'green', price: 300, position: { row: 1, col: 10 } },
-            { id: 32, name: '北卡羅萊納大道', type: 'property', colorGroup: 'green', price: 300, position: { row: 2, col: 10 } },
+            { id: 31, name: '高雄愛河', type: 'property', colorGroup: 'green', price: 300, position: { row: 1, col: 10 } },
+            { id: 32, name: '台中逢甲', type: 'property', colorGroup: 'green', price: 300, position: { row: 2, col: 10 } },
             { id: 33, name: '公益福利', type: 'community_chest', position: { row: 3, col: 10 } },
-            { id: 34, name: '賓夕法尼亞大道', type: 'property', colorGroup: 'green', price: 320, position: { row: 4, col: 10 } },
-            { id: 35, name: '短線鐵路', type: 'railroad', price: 200, position: { row: 5, col: 10 } },
+            { id: 34, name: '嘉義雞肉飯', type: 'property', colorGroup: 'green', price: 320, position: { row: 4, col: 10 } },
+            { id: 35, name: '長榮航空', type: 'railroad', price: 200, position: { row: 5, col: 10 } },
             { id: 36, name: '機會', type: 'chance', position: { row: 6, col: 10 } },
-            { id: 37, name: '公園廣場', type: 'property', colorGroup: 'darkblue', price: 350, position: { row: 7, col: 10 } },
+            { id: 37, name: '花蓮太魯閣', type: 'property', colorGroup: 'darkblue', price: 350, position: { row: 7, col: 10 } },
             { id: 38, name: '奢侈稅', type: 'tax', amount: 100, position: { row: 8, col: 10 } },
-            { id: 39, name: '木板路', type: 'property', colorGroup: 'darkblue', price: 400, position: { row: 9, col: 10 } }
+            { id: 39, name: '台東熱氣球', type: 'property', colorGroup: 'darkblue', price: 400, position: { row: 9, col: 10 } }
         ];
     }
 
@@ -94,7 +94,7 @@ class GameBoard {
             border-radius: 10px;
             box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
         `;
-        
+
         centerSpace.innerHTML = `
             <div style="text-align: center; color: #333;">
                 <h2 style="margin: 0; font-size: 1.5rem; margin-bottom: 10px;">地產大亨</h2>
@@ -102,7 +102,7 @@ class GameBoard {
                 <div id="gameTimer" style="font-size: 0.9rem; color: #888; margin-top: 10px;"></div>
             </div>
         `;
-        
+
         this.boardElement.appendChild(centerSpace);
 
         // Create board squares
@@ -127,7 +127,7 @@ class GameBoard {
 
         // Create square content based on type
         let content = '';
-        
+
         switch (squareData.type) {
             case 'property':
                 content = this.createPropertySquare(squareData);
@@ -200,7 +200,7 @@ class GameBoard {
             '免費停車': '🅿️',
             '入獄': '→🔒'
         };
-        
+
         return `
             <div class="corner-icon">${icons[squareData.name] || ''}</div>
             <div class="corner-name">${squareData.name}</div>
@@ -251,7 +251,7 @@ class GameBoard {
 
             // Update ownership indicator
             this.updateOwnership(square, property, gameState.players);
-            
+
             // Update houses and hotels
             this.updateBuildings(square, property);
         });
@@ -315,17 +315,17 @@ class GameBoard {
                     playerToken.className = 'player-token';
                     playerToken.style.backgroundColor = player.color;
                     playerToken.title = `${player.name} (${this.getCharacterName(player.character)})`;
-                    
+
                     // Display character icon instead of color
                     playerToken.textContent = this.getCharacterIcon(player.character);
                     playerToken.style.color = '#333';
                     playerToken.style.fontSize = '0.8rem';
-                    
+
                     // Add special styling for current player
                     if (player.id === gameState.currentPlayer) {
                         playerToken.classList.add('current-turn');
                     }
-                    
+
                     playersContainer.appendChild(playerToken);
                 }
             }
@@ -343,7 +343,7 @@ class GameBoard {
             'boot': '👢',
             'thimble': '🔧'
         };
-        
+
         return characterIcons[character] || '🎩';
     }
 
@@ -358,7 +358,7 @@ class GameBoard {
             'boot': '靴子',
             'thimble': '頂針'
         };
-        
+
         return characterNames[character] || '紳士帽';
     }
 
@@ -370,8 +370,8 @@ class GameBoard {
         if (currentPlayer) {
             statusElement.innerHTML = `
                 <div>當前玩家: <strong style="color: ${currentPlayer.color}">${currentPlayer.name}</strong></div>
-                ${gameState.currentRoll ? 
-                    `<div>骰子: ${gameState.currentRoll.dice1} + ${gameState.currentRoll.dice2} = ${gameState.currentRoll.total}</div>` : 
+                ${gameState.currentRoll ?
+                    `<div>骰子: ${gameState.currentRoll.dice1} + ${gameState.currentRoll.dice2} = ${gameState.currentRoll.total}</div>` :
                     '<div>等待擲骰子...</div>'
                 }
             `;
@@ -455,14 +455,14 @@ class GameBoard {
     adjustForMobile() {
         if (window.innerWidth <= 768) {
             this.boardElement.style.fontSize = '0.7rem';
-            
+
             // Adjust square sizes
             this.squares.forEach(square => {
                 square.style.padding = '1px';
             });
         } else {
             this.boardElement.style.fontSize = '';
-            
+
             this.squares.forEach(square => {
                 square.style.padding = '';
             });

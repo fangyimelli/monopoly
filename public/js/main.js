@@ -13,7 +13,7 @@ const CHARACTERS = {
 // Main application entry point
 document.addEventListener('DOMContentLoaded', function() {
     console.log('地產大亨遊戲初始化中...');
-    
+
     // Wait for game object to be available
     function waitForGame() {
         if (window.game && window.game.socket) {
@@ -24,32 +24,32 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(waitForGame, 100);
         }
     }
-    
+
     waitForGame();
 });
 
 function init() {
     // Show loading screen initially
     showInitialLoading();
-    
+
     // Set up error handling
     setupErrorHandling();
-    
+
     // Initialize responsive design
     setupResponsiveDesign();
-    
+
     // Initialize tooltips and other UI enhancements
     initializeUIEnhancements();
-    
+
     // Set up theme
     initializeTheme();
-    
+
     // Set up accessibility features
     setupAccessibility();
-    
+
     // Initialize game analytics (if needed)
     initializeAnalytics();
-    
+
     // Hide loading after everything is set up
     setTimeout(() => {
         hideInitialLoading();
@@ -74,7 +74,7 @@ function showInitialLoading() {
         z-index: 9999;
         color: white;
     `;
-    
+
     loadingOverlay.innerHTML = `
         <div style="text-align: center;">
             <div class="spinner" style="
@@ -95,7 +95,7 @@ function showInitialLoading() {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(loadingOverlay);
 }
 
@@ -121,7 +121,7 @@ function setupErrorHandling() {
     // Global error handler
     window.addEventListener('error', (event) => {
         console.error('Global error:', event.error);
-        
+
         if (window.game) {
             window.game.showError('發生了一個錯誤，請重新整理頁面');
         } else {
@@ -132,7 +132,7 @@ function setupErrorHandling() {
     // Unhandled promise rejection handler
     window.addEventListener('unhandledrejection', (event) => {
         console.error('Unhandled promise rejection:', event.reason);
-        
+
         if (window.game) {
             window.game.showError('網路連接出現問題，請檢查您的網路連接');
         }
@@ -156,7 +156,7 @@ function setupResponsiveDesign() {
     // Handle screen size changes
     window.addEventListener('resize', debounce(() => {
         adjustLayoutForScreenSize();
-        
+
         // Update game board if it exists
         if (window.game && window.game.gameBoard) {
             window.game.gameBoard.adjustForMobile();
@@ -170,10 +170,10 @@ function setupResponsiveDesign() {
 function adjustLayoutForScreenSize() {
     const isMobile = window.innerWidth <= 768;
     const isTablet = window.innerWidth <= 1024 && window.innerWidth > 768;
-    
+
     document.body.classList.toggle('mobile', isMobile);
     document.body.classList.toggle('tablet', isTablet);
-    
+
     // Adjust game board size for mobile
     if (isMobile) {
         const gameBoard = document.getElementById('gameBoard');
@@ -189,13 +189,13 @@ function initializeUIEnhancements() {
     if (window.uiManager) {
         window.uiManager.initializeTooltips();
     }
-    
+
     // Add keyboard navigation support
     setupKeyboardNavigation();
-    
+
     // Add smooth scrolling
     document.documentElement.style.scrollBehavior = 'smooth';
-    
+
     // Add focus management
     setupFocusManagement();
 }
@@ -239,7 +239,7 @@ function trapFocus(e, container) {
     const focusableElements = container.querySelectorAll(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
     );
-    
+
     const firstElement = focusableElements[0];
     const lastElement = focusableElements[focusableElements.length - 1];
 
@@ -260,14 +260,14 @@ function initializeTheme() {
     // Load saved theme
     const savedTheme = localStorage.getItem('monopoly-theme') || 'default';
     applyTheme(savedTheme);
-    
+
     // Add theme switcher if needed
     createThemeSwitcher();
 }
 
 function applyTheme(theme) {
     document.body.dataset.theme = theme;
-    
+
     // Apply theme-specific styles
     switch (theme) {
         case 'dark':
@@ -297,7 +297,7 @@ function setupAccessibility() {
         announcement.setAttribute('aria-atomic', 'true');
         announcement.className = 'sr-only';
         announcement.textContent = message;
-        
+
         announcement.style.cssText = `
             position: absolute;
             width: 1px;
@@ -309,9 +309,9 @@ function setupAccessibility() {
             white-space: nowrap;
             border: 0;
         `;
-        
+
         document.body.appendChild(announcement);
-        
+
         setTimeout(() => {
             document.body.removeChild(announcement);
         }, 1000);
@@ -319,7 +319,7 @@ function setupAccessibility() {
 
     // Add ARIA labels to game elements
     addAriaLabels();
-    
+
     // Set up reduced motion preferences
     setupReducedMotion();
 }
@@ -349,17 +349,17 @@ function addAriaLabels() {
 function setupReducedMotion() {
     // Respect user's motion preferences
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    
+
     function updateMotionPreference() {
         if (prefersReducedMotion.matches) {
             document.body.classList.add('reduce-motion');
-            
+
             // Override animations with CSS
             const style = document.createElement('style');
             style.id = 'reduced-motion-styles';
             style.textContent = `
-                .reduce-motion *, 
-                .reduce-motion *::before, 
+                .reduce-motion *,
+                .reduce-motion *::before,
                 .reduce-motion *::after {
                     animation-duration: 0.01ms !important;
                     animation-iteration-count: 1 !important;
@@ -375,7 +375,7 @@ function setupReducedMotion() {
             }
         }
     }
-    
+
     prefersReducedMotion.addListener(updateMotionPreference);
     updateMotionPreference();
 }
@@ -385,18 +385,18 @@ function initializeAnalytics() {
     window.gameAnalytics = {
         startTime: Date.now(),
         events: [],
-        
+
         trackEvent: function(event, data) {
             this.events.push({
                 event,
                 data,
                 timestamp: Date.now()
             });
-            
+
             // Could send to analytics service
             console.log('Analytics:', event, data);
         },
-        
+
         getSessionData: function() {
             return {
                 sessionDuration: Date.now() - this.startTime,
@@ -452,7 +452,7 @@ function monitorPerformance() {
         if (window.performance && window.performance.timing) {
             const loadTime = window.performance.timing.loadEventEnd - window.performance.timing.navigationStart;
             console.log('Page load time:', loadTime, 'ms');
-            
+
             if (window.gameAnalytics) {
                 window.gameAnalytics.trackEvent('pageLoad', { loadTime });
             }

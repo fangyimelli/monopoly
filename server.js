@@ -27,7 +27,15 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', (reason) => {
         console.log('Client disconnected:', socket.id, 'Reason:', reason);
-        gameManager.removePlayer(socket.id);
+        const result = gameManager.removePlayer(socket.id);
+
+        // Notify other players in the room
+        if (result.roomCode) {
+            socket.to(result.roomCode).emit('playerDisconnected', {
+                playerId: socket.id,
+                gameState: result.gameState
+            });
+        }
     });
 
     // Handle joining a game room
@@ -44,7 +52,7 @@ io.on('connection', (socket) => {
                     availableCharacters: result.availableCharacters,
                     assignedCharacter: result.assignedCharacter
                 });
-                
+
                 // Notify other players
                 socket.to(roomCode).emit('playerJoined', {
                     playerId: socket.id,
@@ -62,10 +70,10 @@ io.on('connection', (socket) => {
     });
 
     // Handle creating a new game room
-    socket.on('createRoom', ({ playerName, character }) => {
-        console.log('Create room request:', { socketId: socket.id, playerName, character });
+    socket.on('createRoom', ({ playerName, character, hostParticipation }) => {
+        console.log('Create room request:', { socketId: socket.id, playerName, character, hostParticipation });
         try {
-            const result = gameManager.createRoom(socket.id, playerName, character);
+            const result = gameManager.createRoom(socket.id, playerName, character, hostParticipation);
             socket.join(result.roomCode);
             console.log('Room created successfully:', result.roomCode);
             socket.emit('roomCreated', {
@@ -182,6 +190,21 @@ io.on('connection', (socket) => {
         } catch (error) {
             socket.emit('turnError', { message: 'Failed to end turn' });
         }
+    });
+
+    // Handle ending the game
+    socket.on('endGame', ({ roomCode }) => {
+        const game = gameManager.rooms.get(roomCode);
+        if (!game) {
+            socket.emit('gameEnded', { scores: [], message: '房間不存在' });
+            return;
+        }
+        if (game.hostId !== socket.id) {
+            socket.emit('gameEnded', { scores: [], message: '只有房主可以結束遊戲' });
+            return;
+        }
+        const scores = gameManager.endGame(roomCode, socket.id);
+        io.to(roomCode).emit('gameEnded', { scores });
     });
 });
 

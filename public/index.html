@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
+
 <body>
     <!-- Main Menu Screen -->
     <div id="mainMenu" class="screen active">
@@ -17,7 +19,7 @@
                 地產大亨
             </h1>
             <p class="game-subtitle">多人線上大富翁遊戲</p>
-            
+
             <div class="menu-buttons">
                 <button id="createRoomBtn" class="menu-btn primary">
                     <i class="fas fa-plus"></i>
@@ -28,7 +30,7 @@
                     加入房間
                 </button>
             </div>
-            
+
             <div class="game-info">
                 <h3>遊戲說明</h3>
                 <ul>
@@ -50,7 +52,7 @@
                     <label for="hostName">您的名稱</label>
                     <input type="text" id="hostName" placeholder="輸入您的遊戲名稱" required maxlength="20">
                 </div>
-                
+
                 <!-- Character Selection -->
                 <div class="input-group">
                     <label>選擇您的角色</label>
@@ -89,7 +91,22 @@
                         </div>
                     </div>
                 </div>
-                
+
+                <!-- Host Participation Option -->
+                <div class="input-group">
+                    <label>房主參與方式</label>
+                    <div>
+                        <label style="margin-right: 15px;">
+                            <input type="radio" name="hostParticipation" value="player" checked>
+                            參與遊戲
+                        </label>
+                        <label>
+                            <input type="radio" name="hostParticipation" value="observer">
+                            僅觀戰（只管理房間與觀察）
+                        </label>
+                    </div>
+                </div>
+
                 <div class="form-buttons">
                     <button type="submit" class="btn primary">
                         <i class="fas fa-check"></i>
@@ -117,7 +134,7 @@
                     <label for="roomCode">房間代碼</label>
                     <input type="text" id="roomCode" placeholder="輸入房間代碼" required maxlength="6">
                 </div>
-                
+
                 <!-- Character Selection -->
                 <div class="input-group">
                     <label>選擇您的角色</label>
@@ -156,7 +173,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="form-buttons">
                     <button type="submit" class="btn primary">
                         <i class="fas fa-check"></i>
@@ -184,12 +201,12 @@
                     </button>
                 </div>
             </div>
-            
+
             <div class="players-section">
                 <h3>玩家列表 (<span id="playerCount">0</span>/8)</h3>
                 <div id="playersList" class="players-list"></div>
             </div>
-            
+
             <div class="lobby-buttons">
                 <button id="startGameBtn" class="btn primary large" disabled>
                     <i class="fas fa-play"></i>
@@ -200,7 +217,7 @@
                     離開房間
                 </button>
             </div>
-            
+
             <div class="game-rules">
                 <h4>遊戲規則提醒</h4>
                 <ul>
@@ -224,7 +241,7 @@
                         <div class="player-money"></div>
                     </div>
                 </div>
-                
+
                 <div class="dice-section">
                     <button id="rollDiceBtn" class="btn primary large">
                         <i class="fas fa-dice"></i>
@@ -232,7 +249,7 @@
                     </button>
                     <div id="diceResult" class="dice-result"></div>
                 </div>
-                
+
                 <div class="action-buttons">
                     <button id="buyPropertyBtn" class="btn success" style="display: none;">
                         <i class="fas fa-shopping-cart"></i>
@@ -245,6 +262,10 @@
                     <button id="endTurnBtn" class="btn secondary">
                         <i class="fas fa-forward"></i>
                         結束回合
+                    </button>
+                    <button id="endGameBtn" class="btn danger" style="display: none;">
+                        <i class="fas fa-flag-checkered"></i>
+                        結束遊戲
                     </button>
                 </div>
             </div>
@@ -325,4 +346,5 @@
     <script src="js/board.js"></script>
     <script src="js/main.js"></script>
 </body>
+
 </html>
