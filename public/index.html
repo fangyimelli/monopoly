@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地產大亨 - 多人大富翁遊戲</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Main Menu Screen -->
+    <div id="mainMenu" class="screen active">
+        <div class="menu-container">
+            <h1 class="game-title">
+                <i class="fas fa-building"></i>
+                地產大亨
+            </h1>
+            <p class="game-subtitle">多人線上大富翁遊戲</p>
+            
+            <div class="menu-buttons">
+                <button id="createRoomBtn" class="menu-btn primary">
+                    <i class="fas fa-plus"></i>
+                    創建房間
+                </button>
+                <button id="joinRoomBtn" class="menu-btn secondary">
+                    <i class="fas fa-sign-in-alt"></i>
+                    加入房間
+                </button>
+            </div>
+            
+            <div class="game-info">
+                <h3>遊戲說明</h3>
+                <ul>
+                    <li>支援 2-8 位玩家同時遊戲</li>
+                    <li>經典大富翁規則</li>
+                    <li>即時多人連線</li>
+                    <li>完整的交易系統</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Room Screen -->
+    <div id="createRoomScreen" class="screen">
+        <div class="form-container">
+            <h2><i class="fas fa-plus-circle"></i> 創建新房間</h2>
+            <form id="createRoomForm">
+                <div class="input-group">
+                    <label for="hostName">您的名稱</label>
+                    <input type="text" id="hostName" placeholder="輸入您的遊戲名稱" required maxlength="20">
+                </div>
+                
+                <!-- Character Selection -->
+                <div class="input-group">
+                    <label>選擇您的角色</label>
+                    <div class="character-selection" id="hostCharacterSelection">
+                        <div class="character-option selected" data-character="hat">
+                            <div class="character-icon">🎩</div>
+                            <div class="character-name">紳士帽</div>
+                        </div>
+                        <div class="character-option" data-character="car">
+                            <div class="character-icon">🚗</div>
+                            <div class="character-name">汽車</div>
+                        </div>
+                        <div class="character-option" data-character="dog">
+                            <div class="character-icon">🐕</div>
+                            <div class="character-name">小狗</div>
+                        </div>
+                        <div class="character-option" data-character="cat">
+                            <div class="character-icon">🐱</div>
+                            <div class="character-name">小貓</div>
+                        </div>
+                        <div class="character-option" data-character="ship">
+                            <div class="character-icon">⛵</div>
+                            <div class="character-name">帆船</div>
+                        </div>
+                        <div class="character-option" data-character="plane">
+                            <div class="character-icon">✈️</div>
+                            <div class="character-name">飛機</div>
+                        </div>
+                        <div class="character-option" data-character="boot">
+                            <div class="character-icon">👢</div>
+                            <div class="character-name">靴子</div>
+                        </div>
+                        <div class="character-option" data-character="thimble">
+                            <div class="character-icon">🔧</div>
+                            <div class="character-name">頂針</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-buttons">
+                    <button type="submit" class="btn primary">
+                        <i class="fas fa-check"></i>
+                        創建房間
+                    </button>
+                    <button type="button" id="backToMenuFromCreate" class="btn secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        返回
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Join Room Screen -->
+    <div id="joinRoomScreen" class="screen">
+        <div class="form-container">
+            <h2><i class="fas fa-sign-in-alt"></i> 加入房間</h2>
+            <form id="joinRoomForm">
+                <div class="input-group">
+                    <label for="playerName">您的名稱</label>
+                    <input type="text" id="playerName" placeholder="輸入您的遊戲名稱" required maxlength="20">
+                </div>
+                <div class="input-group">
+                    <label for="roomCode">房間代碼</label>
+                    <input type="text" id="roomCode" placeholder="輸入房間代碼" required maxlength="6">
+                </div>
+                
+                <!-- Character Selection -->
+                <div class="input-group">
+                    <label>選擇您的角色</label>
+                    <div class="character-selection" id="playerCharacterSelection">
+                        <div class="character-option selected" data-character="hat">
+                            <div class="character-icon">🎩</div>
+                            <div class="character-name">紳士帽</div>
+                        </div>
+                        <div class="character-option" data-character="car">
+                            <div class="character-icon">🚗</div>
+                            <div class="character-name">汽車</div>
+                        </div>
+                        <div class="character-option" data-character="dog">
+                            <div class="character-icon">🐕</div>
+                            <div class="character-name">小狗</div>
+                        </div>
+                        <div class="character-option" data-character="cat">
+                            <div class="character-icon">🐱</div>
+                            <div class="character-name">小貓</div>
+                        </div>
+                        <div class="character-option" data-character="ship">
+                            <div class="character-icon">⛵</div>
+                            <div class="character-name">帆船</div>
+                        </div>
+                        <div class="character-option" data-character="plane">
+                            <div class="character-icon">✈️</div>
+                            <div class="character-name">飛機</div>
+                        </div>
+                        <div class="character-option" data-character="boot">
+                            <div class="character-icon">👢</div>
+                            <div class="character-name">靴子</div>
+                        </div>
+                        <div class="character-option" data-character="thimble">
+                            <div class="character-icon">🔧</div>
+                            <div class="character-name">頂針</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-buttons">
+                    <button type="submit" class="btn primary">
+                        <i class="fas fa-check"></i>
+                        加入房間
+                    </button>
+                    <button type="button" id="backToMenuFromJoin" class="btn secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        返回
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lobby Screen -->
+    <div id="lobbyScreen" class="screen">
+        <div class="lobby-container">
+            <div class="lobby-header">
+                <h2><i class="fas fa-users"></i> 遊戲大廳</h2>
+                <div class="room-info">
+                    <span class="room-code">房間代碼: <strong id="lobbyRoomCode"></strong></span>
+                    <button id="copyRoomCode" class="btn small">
+                        <i class="fas fa-copy"></i>
+                        複製
+                    </button>
+                </div>
+            </div>
+            
+            <div class="players-section">
+                <h3>玩家列表 (<span id="playerCount">0</span>/8)</h3>
+                <div id="playersList" class="players-list"></div>
+            </div>
+            
+            <div class="lobby-buttons">
+                <button id="startGameBtn" class="btn primary large" disabled>
+                    <i class="fas fa-play"></i>
+                    開始遊戲
+                </button>
+                <button id="leaveLobby" class="btn secondary">
+                    <i class="fas fa-sign-out-alt"></i>
+                    離開房間
+                </button>
+            </div>
+            
+            <div class="game-rules">
+                <h4>遊戲規則提醒</h4>
+                <ul>
+                    <li>需要至少 2 位玩家才能開始遊戲</li>
+                    <li>只有房主可以開始遊戲</li>
+                    <li>遊戲開始後新玩家無法加入</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="gameScreen" class="screen">
+        <div class="game-container">
+            <!-- Game Info Panel -->
+            <div class="game-info-panel">
+                <div class="current-player">
+                    <h3>當前玩家</h3>
+                    <div id="currentPlayerInfo" class="player-info">
+                        <div class="player-name"></div>
+                        <div class="player-money"></div>
+                    </div>
+                </div>
+                
+                <div class="dice-section">
+                    <button id="rollDiceBtn" class="btn primary large">
+                        <i class="fas fa-dice"></i>
+                        擲骰子
+                    </button>
+                    <div id="diceResult" class="dice-result"></div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button id="buyPropertyBtn" class="btn success" style="display: none;">
+                        <i class="fas fa-shopping-cart"></i>
+                        購買地產
+                    </button>
+                    <button id="buildHouseBtn" class="btn warning" style="display: none;">
+                        <i class="fas fa-home"></i>
+                        建造房屋
+                    </button>
+                    <button id="endTurnBtn" class="btn secondary">
+                        <i class="fas fa-forward"></i>
+                        結束回合
+                    </button>
+                </div>
+            </div>
+
+            <!-- Game Board -->
+            <div class="game-board-container">
+                <div id="gameBoard" class="game-board">
+                    <!-- Board squares will be generated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Players Panel -->
+            <div class="players-panel">
+                <h3>玩家狀態</h3>
+                <div id="gamePlayersList" class="game-players-list">
+                    <!-- Players will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Property Info Modal -->
+        <div id="propertyModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3 id="propertyName"></h3>
+                <div id="propertyDetails"></div>
+                <div class="modal-buttons">
+                    <button id="modalBuyBtn" class="btn primary">購買</button>
+                    <button id="modalCloseBtn" class="btn secondary">關閉</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trade Modal -->
+        <div id="tradeModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3>交易提議</h3>
+                <div id="tradeDetails"></div>
+                <div class="modal-buttons">
+                    <button id="acceptTradeBtn" class="btn success">接受</button>
+                    <button id="rejectTradeBtn" class="btn danger">拒絕</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="screen">
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <p>連接中...</p>
+        </div>
+    </div>
+
+    <!-- Error Messages -->
+    <div id="errorContainer" class="error-container">
+        <div id="errorMessage" class="error-message">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span id="errorText"></span>
+            <button id="closeError" class="error-close">&times;</button>
+        </div>
+    </div>
+
+    <!-- Success Messages -->
+    <div id="successContainer" class="success-container">
+        <div id="successMessage" class="success-message">
+            <i class="fas fa-check-circle"></i>
+            <span id="successText"></span>
+            <button id="closeSuccess" class="success-close">&times;</button>
+        </div>
+    </div>
+
+    <!-- Game Scripts -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/board.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
