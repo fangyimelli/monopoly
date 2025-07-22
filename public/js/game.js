@@ -57,7 +57,7 @@ class MonopolyClient {
             this.playerId = data.playerId;
             this.gameState = data.gameState;
             this.availableCharacters = data.availableCharacters;
-            this.isHost = true;
+            this.isHost = (this.playerId === this.gameState.hostId);
 
             this.showSuccess(`房間已創建！代碼: ${this.roomCode}`);
             this.showLobby();
@@ -68,7 +68,7 @@ class MonopolyClient {
             this.playerId = data.playerId;
             this.gameState = data.gameState;
             this.availableCharacters = data.availableCharacters;
-            this.isHost = false;
+            this.isHost = (this.playerId === this.gameState.hostId);
 
             if (data.assignedCharacter) {
                 this.showSuccess(`成功加入房間！獲得角色: ${this.getCharacterName(data.assignedCharacter)}`);
