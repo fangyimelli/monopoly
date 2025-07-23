@@ -25,53 +25,53 @@ class GameBoard {
 
     createBoardLayout() {
         return [
-            // Bottom row (right to left)
-            { id: 0, name: 'GO起點', type: 'corner', position: { row: 10, col: 10 } },
-            { id: 1, name: '台北101', type: 'property', colorGroup: 'brown', price: 60, position: { row: 10, col: 9 } },
-            { id: 2, name: '公益福利', type: 'community_chest', position: { row: 10, col: 8 } },
-            { id: 3, name: '信義區', type: 'property', colorGroup: 'brown', price: 60, position: { row: 10, col: 7 } },
-            { id: 4, name: '所得稅', type: 'tax', amount: 200, position: { row: 10, col: 6 } },
-            { id: 5, name: '台灣高鐵', type: 'railroad', price: 200, position: { row: 10, col: 5 } },
-            { id: 6, name: '士林夜市', type: 'property', colorGroup: 'lightblue', price: 100, position: { row: 10, col: 4 } },
-            { id: 7, name: '機會', type: 'chance', position: { row: 10, col: 3 } },
-            { id: 8, name: '九份老街', type: 'property', colorGroup: 'lightblue', price: 100, position: { row: 10, col: 2 } },
-            { id: 9, name: '西門町', type: 'property', colorGroup: 'lightblue', price: 120, position: { row: 10, col: 1 } },
+            // 下排（右到左，0~10）
+            { id: 0, name: '桃園國際機場（跳到「起飛」）✈️🔀', type: 'special', position: { row: 10, col: 10 } },
+            { id: 1, name: '新北中和華新街 🏮', type: 'property', colorGroup: 'brown', price: 60, position: { row: 10, col: 9 } },
+            { id: 2, name: '？❓', type: 'property', colorGroup: 'brown', price: 60, position: { row: 10, col: 8 } },
+            { id: 3, name: '臺北龍山寺 🛕', type: 'property', colorGroup: 'brown', price: 60, position: { row: 10, col: 7 } },
+            { id: 4, name: '新竹北埔峨眉湖 🏞️', type: 'property', colorGroup: 'lightblue', price: 100, position: { row: 10, col: 6 } },
+            { id: 5, name: '日月潭 🌊', type: 'property', colorGroup: 'lightblue', price: 100, position: { row: 10, col: 5 } },
+            { id: 6, name: '臺中美國學校 🏫', type: 'property', colorGroup: 'lightblue', price: 100, position: { row: 10, col: 4 } },
+            { id: 7, name: '？❓', type: 'property', colorGroup: 'lightblue', price: 120, position: { row: 10, col: 3 } },
+            { id: 8, name: '嘉義達邦部落 🏕️', type: 'property', colorGroup: 'lightblue', price: 120, position: { row: 10, col: 2 } },
+            { id: 9, name: '台南安平古堡 🏯', type: 'property', colorGroup: 'lightblue', price: 120, position: { row: 10, col: 1 } },
+            { id: 10, name: '起點 🚩', type: 'corner', position: { row: 10, col: 0 } },
 
-            // Left side (bottom to top)
-            { id: 10, name: '監獄', type: 'corner', position: { row: 10, col: 0 } },
-            { id: 11, name: '日月潭', type: 'property', colorGroup: 'pink', price: 140, position: { row: 9, col: 0 } },
-            { id: 12, name: '台電公司', type: 'utility', price: 150, position: { row: 8, col: 0 } },
-            { id: 13, name: '阿里山', type: 'property', colorGroup: 'pink', price: 140, position: { row: 7, col: 0 } },
-            { id: 14, name: '太魯閣', type: 'property', colorGroup: 'pink', price: 160, position: { row: 6, col: 0 } },
-            { id: 15, name: '中華航空', type: 'railroad', price: 200, position: { row: 5, col: 0 } },
-            { id: 16, name: '墾丁', type: 'property', colorGroup: 'orange', price: 180, position: { row: 4, col: 0 } },
-            { id: 17, name: '公益福利', type: 'community_chest', position: { row: 3, col: 0 } },
-            { id: 18, name: '清境農場', type: 'property', colorGroup: 'orange', price: 180, position: { row: 2, col: 0 } },
-            { id: 19, name: '淡水老街', type: 'property', colorGroup: 'orange', price: 200, position: { row: 1, col: 0 } },
+            // 左排（下到上，11~19）
+            { id: 11, name: '臺北天母國際社區 🏘️', type: 'property', colorGroup: 'pink', price: 140, position: { row: 9, col: 0 } },
+            { id: 12, name: '彰化鹿港老街 🏮', type: 'property', colorGroup: 'pink', price: 140, position: { row: 8, col: 0 } },
+            { id: 13, name: '？❓', type: 'property', colorGroup: 'orange', price: 160, position: { row: 7, col: 0 } },
+            { id: 14, name: '臺中東協廣場 🏢', type: 'property', colorGroup: 'orange', price: 160, position: { row: 6, col: 0 } },
+            { id: 15, name: '高雄美濃 🍃', type: 'property', colorGroup: 'orange', price: 180, position: { row: 5, col: 0 } },
+            { id: 16, name: '？❓', type: 'property', colorGroup: 'orange', price: 180, position: { row: 4, col: 0 } },
+            { id: 17, name: '花蓮奇美部落 🏞️', type: 'property', colorGroup: 'orange', price: 200, position: { row: 3, col: 0 } },
+            { id: 18, name: '台北101 🏙️', type: 'property', colorGroup: 'orange', price: 200, position: { row: 2, col: 0 } },
+            { id: 19, name: '彩虹眷村 🌈', type: 'property', colorGroup: 'orange', price: 200, position: { row: 1, col: 0 } },
 
-            // Top side (left to right)
-            { id: 20, name: '免費停車', type: 'corner', position: { row: 0, col: 0 } },
-            { id: 21, name: '故宮博物院', type: 'property', colorGroup: 'red', price: 220, position: { row: 0, col: 1 } },
-            { id: 22, name: '機會', type: 'chance', position: { row: 0, col: 2 } },
-            { id: 23, name: '中正紀念堂', type: 'property', colorGroup: 'red', price: 220, position: { row: 0, col: 3 } },
-            { id: 24, name: '龍山寺', type: 'property', colorGroup: 'red', price: 240, position: { row: 0, col: 4 } },
-            { id: 25, name: '台鐵', type: 'railroad', price: 200, position: { row: 0, col: 5 } },
-            { id: 26, name: '野柳地質公園', type: 'property', colorGroup: 'yellow', price: 260, position: { row: 0, col: 6 } },
-            { id: 27, name: '平溪天燈', type: 'property', colorGroup: 'yellow', price: 260, position: { row: 0, col: 7 } },
-            { id: 28, name: '自來水公司', type: 'utility', price: 150, position: { row: 0, col: 8 } },
-            { id: 29, name: '陽明山', type: 'property', colorGroup: 'yellow', price: 280, position: { row: 0, col: 9 } },
+            // 上排（左到右，20~30）
+            { id: 20, name: '台中國家歌劇院（暫停一輪）🎭⏸️', type: 'special', position: { row: 0, col: 0 } },
+            { id: 21, name: '台北木柵動物園 🦁', type: 'property', colorGroup: 'red', price: 220, position: { row: 0, col: 1 } },
+            { id: 22, name: '苗栗南庄桂花巷 🌼', type: 'property', colorGroup: 'red', price: 220, position: { row: 0, col: 2 } },
+            { id: 23, name: '？❓', type: 'property', colorGroup: 'red', price: 240, position: { row: 0, col: 3 } },
+            { id: 24, name: '臺北火車站 🚉', type: 'railroad', price: 200, position: { row: 0, col: 4 } },
+            { id: 25, name: '雲林北港朝天宮 🛕', type: 'property', colorGroup: 'yellow', price: 260, position: { row: 0, col: 5 } },
+            { id: 26, name: '？❓', type: 'property', colorGroup: 'yellow', price: 260, position: { row: 0, col: 6 } },
+            { id: 27, name: '高雄左營美軍基地 🪖', type: 'property', colorGroup: 'yellow', price: 260, position: { row: 0, col: 7 } },
+            { id: 28, name: '臺東拉勞蘭部落 🏞️', type: 'property', colorGroup: 'yellow', price: 150, position: { row: 0, col: 8 } },
+            { id: 29, name: '？❓', type: 'property', colorGroup: 'yellow', price: 280, position: { row: 0, col: 9 } },
+            { id: 30, name: '起飛 🛫', type: 'corner', position: { row: 0, col: 10 } },
 
-            // Right side (top to bottom)
-            { id: 30, name: '入獄', type: 'corner', position: { row: 0, col: 10 } },
-            { id: 31, name: '高雄愛河', type: 'property', colorGroup: 'green', price: 300, position: { row: 1, col: 10 } },
-            { id: 32, name: '台中逢甲', type: 'property', colorGroup: 'green', price: 300, position: { row: 2, col: 10 } },
-            { id: 33, name: '公益福利', type: 'community_chest', position: { row: 3, col: 10 } },
-            { id: 34, name: '嘉義雞肉飯', type: 'property', colorGroup: 'green', price: 320, position: { row: 4, col: 10 } },
-            { id: 35, name: '長榮航空', type: 'railroad', price: 200, position: { row: 5, col: 10 } },
-            { id: 36, name: '機會', type: 'chance', position: { row: 6, col: 10 } },
-            { id: 37, name: '花蓮太魯閣', type: 'property', colorGroup: 'darkblue', price: 350, position: { row: 7, col: 10 } },
-            { id: 38, name: '奢侈稅', type: 'tax', amount: 100, position: { row: 8, col: 10 } },
-            { id: 39, name: '台東熱氣球', type: 'property', colorGroup: 'darkblue', price: 400, position: { row: 9, col: 10 } }
+            // 右排（上到下，31~39）
+            { id: 31, name: '南投武界部落 🏞️', type: 'property', colorGroup: 'green', price: 300, position: { row: 1, col: 10 } },
+            { id: 32, name: '屏東六堆客家園區 🏡', type: 'property', colorGroup: 'green', price: 300, position: { row: 2, col: 10 } },
+            { id: 33, name: '？❓', type: 'property', colorGroup: 'green', price: 320, position: { row: 3, col: 10 } },
+            { id: 34, name: '屏東墾丁大街 🏖️', type: 'property', colorGroup: 'green', price: 320, position: { row: 4, col: 10 } },
+            { id: 35, name: '臺北國際教會 ⛪', type: 'property', colorGroup: 'green', price: 200, position: { row: 5, col: 10 } },
+            { id: 36, name: '？❓', type: 'property', colorGroup: 'green', price: 200, position: { row: 6, col: 10 } },
+            { id: 37, name: '臺北清真大寺 🕌', type: 'property', colorGroup: 'darkblue', price: 350, position: { row: 7, col: 10 } },
+            { id: 38, name: '？❓', type: 'property', colorGroup: 'darkblue', price: 400, position: { row: 8, col: 10 } },
+            { id: 39, name: '臺南孔廟 🏯', type: 'property', colorGroup: 'darkblue', price: 400, position: { row: 9, col: 10 } },
         ];
     }
 
@@ -150,6 +150,9 @@ class GameBoard {
             case 'corner':
                 content = this.createCornerSquare(squareData);
                 break;
+            case 'special':
+                content = this.createSpecialSquare(squareData);
+                break;
         }
 
         square.innerHTML = content;
@@ -195,15 +198,30 @@ class GameBoard {
 
     createCornerSquare(squareData) {
         const icons = {
-            'GO': '→',
+            'GO起點': '→',
             '監獄': '🔒',
             '免費停車': '🅿️',
-            '入獄': '→🔒'
+            '入獄': '→🔒',
+            '起點 🚩': '→',
+            '起飛 🛫': '✈️',
+            '（跳到「起飛」）🔀': '🔀',
+            '（暫停一輪）⏸️': '⏸️',
+            '？❓': '❓'
         };
 
         return `
             <div class="corner-icon">${icons[squareData.name] || ''}</div>
             <div class="corner-name">${squareData.name}</div>
+        `;
+    }
+
+    createSpecialSquare(squareData) {
+        const icons = {
+            '台中國家歌劇院🎭⏸️／桃園國際機場✈️🔀': '🎭⏸️／✈️🔀'
+        };
+        return `
+            <div class="special-icon">${icons[squareData.name] || ''}</div>
+            <div class="special-name">${squareData.name}</div>
         `;
     }
 
@@ -403,8 +421,8 @@ class GameBoard {
         const fromRect = fromSquare.getBoundingClientRect();
         const boardRect = this.boardElement.getBoundingClientRect();
 
-        animatedToken.style.left = (fromRect.left - boardRect.left + fromRect.width/2 - 10) + 'px';
-        animatedToken.style.top = (fromRect.top - boardRect.top + fromRect.height/2 - 10) + 'px';
+        animatedToken.style.left = (fromRect.left - boardRect.left + fromRect.width / 2 - 10) + 'px';
+        animatedToken.style.top = (fromRect.top - boardRect.top + fromRect.height / 2 - 10) + 'px';
 
         this.boardElement.appendChild(animatedToken);
 
@@ -413,8 +431,8 @@ class GameBoard {
             const toSquare = this.boardElement.querySelector(`[data-square-id="${toPosition}"]`);
             const toRect = toSquare.getBoundingClientRect();
 
-            animatedToken.style.left = (toRect.left - boardRect.left + toRect.width/2 - 10) + 'px';
-            animatedToken.style.top = (toRect.top - boardRect.top + toRect.height/2 - 10) + 'px';
+            animatedToken.style.left = (toRect.left - boardRect.left + toRect.width / 2 - 10) + 'px';
+            animatedToken.style.top = (toRect.top - boardRect.top + toRect.height / 2 - 10) + 'px';
         }, 100);
 
         // Remove animated token and update positions
