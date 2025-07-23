@@ -664,6 +664,10 @@ body {
     height: 8px;
     border-radius: 50%;
     border: 1px solid #333;
+    font-size: 1.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Players Panel */

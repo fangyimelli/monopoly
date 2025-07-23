@@ -7,6 +7,11 @@ class MonopolyClient {
         this.roomCode = null;
         this.playerId = null;
         this.isHost = false;
+        this.turnCountdownInterval = null;
+        this.turnCountdownValue = 10;
+
+        // 新增倒數狀態追蹤
+        this.lastCountdownPlayerId = null;
 
         this.init();
     }
@@ -69,13 +74,14 @@ class MonopolyClient {
             this.gameState = data.gameState;
             this.availableCharacters = data.availableCharacters;
             this.isHost = (this.playerId === this.gameState.hostId);
-
+            this.updateCharacterAvailability();
             if (data.assignedCharacter) {
                 this.showSuccess(`成功加入房間！獲得角色: ${this.getCharacterName(data.assignedCharacter)}`);
             } else {
                 this.showSuccess('成功加入房間！');
             }
             this.showLobby();
+            this.updateLobby();
         });
 
         this.socket.on('joinError', (data) => {
@@ -91,6 +97,7 @@ class MonopolyClient {
             this.gameState = data.gameState;
             this.availableCharacters = data.availableCharacters;
             this.updateLobby();
+            this.updateCharacterAvailability();
             this.showSuccess(`${data.playerName} (${this.getCharacterName(data.character)}) 加入了房間`);
         });
 
@@ -100,6 +107,7 @@ class MonopolyClient {
                 this.updateGameScreen();
             } else {
                 this.updateLobby();
+                this.updateCharacterAvailability();
             }
             this.showError('有玩家離開了遊戲');
         });
@@ -122,6 +130,26 @@ class MonopolyClient {
 
             if (data.playerId === this.playerId) {
                 this.enableActionButtons();
+                // 擲完骰子才啟動倒數
+                const endBtn = document.getElementById('endTurnBtn');
+                if (this.turnCountdownInterval) clearInterval(this.turnCountdownInterval);
+                this.turnCountdownValue = 10;
+                endBtn.textContent = `結束回合(${this.turnCountdownValue})`;
+                endBtn.disabled = false;
+                this.turnCountdownInterval = setInterval(() => {
+                    this.turnCountdownValue--;
+                    endBtn.textContent = `結束回合(${this.turnCountdownValue})`;
+                    if (this.turnCountdownValue <= 0) {
+                        clearInterval(this.turnCountdownInterval);
+                        this.turnCountdownInterval = null;
+                        this.endTurn();
+                    }
+                }, 1000);
+                endBtn.onclick = () => {
+                    if (this.turnCountdownInterval) clearInterval(this.turnCountdownInterval);
+                    this.turnCountdownInterval = null;
+                    this.endTurn();
+                };
             }
         });
 
@@ -211,9 +239,21 @@ class MonopolyClient {
             this.showError('還沒有輪到您');
             return;
         }
-
-        this.socket.emit('rollDice', { roomCode: this.roomCode });
-        this.disableRollButton();
+        // 動畫：骰子滾動效果
+        const diceResultDiv = document.getElementById('diceResult');
+        let animCount = 0;
+        const animInterval = setInterval(() => {
+            const fake1 = Math.floor(Math.random() * 6) + 1;
+            const fake2 = Math.floor(Math.random() * 6) + 1;
+            diceResultDiv.innerHTML = `<span class='dice'>🎲${fake1}</span> <span class='dice'>🎲${fake2}</span>`;
+            animCount++;
+            if (animCount > 7) { // 約0.8秒
+                clearInterval(animInterval);
+                diceResultDiv.innerHTML = '';
+                // 真正送出擲骰子
+                this.socket.emit('rollDice', { roomCode: this.roomCode });
+            }
+        }, 100);
     }
 
     buyProperty() {
@@ -263,13 +303,65 @@ class MonopolyClient {
             screen.classList.remove('active');
         });
         document.getElementById('createRoomScreen').classList.add('active');
+        this.updateCharacterAvailability();
     }
 
+    // 加入房間流程：按下確認後查詢房間狀態，成功才顯示姓名與角色選擇區塊
     showJoinRoom() {
         document.querySelectorAll('.screen').forEach(screen => {
             screen.classList.remove('active');
         });
         document.getElementById('joinRoomScreen').classList.add('active');
+        this.updateCharacterAvailability();
+        // 隱藏第二步
+        const joinStep2 = document.getElementById('joinStep2');
+        if (joinStep2) joinStep2.style.display = 'none';
+        // 防止表單 submit 預設行為
+        const joinRoomForm = document.getElementById('joinRoomForm');
+        if (joinRoomForm) {
+            joinRoomForm.addEventListener('submit', e => e.preventDefault());
+        }
+        // 監聽確認按鈕
+        const checkBtn = document.getElementById('checkRoomBtn');
+        const roomCodeInput = document.getElementById('roomCode');
+        if (checkBtn && roomCodeInput) {
+            // 先移除舊的事件
+            checkBtn.onclick = null;
+            checkBtn.addEventListener('click', () => {
+                console.log('確認按鈕被點擊');
+                const code = roomCodeInput.value.trim().toUpperCase();
+                if (code.length !== 6) {
+                    this.showError('請輸入正確的6位房間代碼');
+                    return;
+                }
+                this.socket.emit('getRoomState', { roomCode: code });
+                this.socket.once('roomState', (data) => {
+                    if (!data.success) {
+                        this.showError('房間不存在或已關閉');
+                        if (joinStep2) joinStep2.style.display = 'none';
+                        return;
+                    }
+                    // 顯示剩餘角色
+                    const playerSel = document.getElementById('playerCharacterSelection');
+                    if (playerSel) {
+                        playerSel.querySelectorAll('.character-option').forEach(opt => {
+                            const char = opt.getAttribute('data-character');
+                            if (data.takenCharacters && data.takenCharacters.includes(char)) {
+                                opt.classList.add('character-unavailable');
+                                opt.classList.remove('selected');
+                                opt.style.pointerEvents = 'none';
+                                opt.style.opacity = '0.5';
+                            } else {
+                                opt.classList.remove('character-unavailable');
+                                opt.style.pointerEvents = '';
+                                opt.style.opacity = '';
+                            }
+                        });
+                    }
+                    if (joinStep2) joinStep2.style.display = '';
+                });
+            });
+        }
     }
 
     showLobby() {
@@ -442,57 +534,110 @@ class MonopolyClient {
         });
     }
 
+    // 移除 updateActionButtons 內的倒數邏輯
     updateActionButtons() {
-        console.log('Updating action buttons');
-        console.log('Game state:', this.gameState);
-        console.log('Current player ID:', this.playerId);
-        console.log('Is my turn:', this.isMyTurn());
-        console.log('Current roll:', this.gameState?.currentRoll);
-
         const rollBtn = document.getElementById('rollDiceBtn');
         const buyBtn = document.getElementById('buyPropertyBtn');
         const buildBtn = document.getElementById('buildHouseBtn');
         const endBtn = document.getElementById('endTurnBtn');
 
         if (!rollBtn || !buyBtn || !buildBtn || !endBtn) {
-            console.error('Button elements not found');
             return;
         }
 
-        // Reset all buttons
         rollBtn.style.display = 'block';
         buyBtn.style.display = 'none';
         buildBtn.style.display = 'none';
+        endBtn.style.display = 'block';
+
+        if (this.turnCountdownInterval) clearInterval(this.turnCountdownInterval);
+        this.turnCountdownInterval = null;
+        this.lastCountdownPlayerId = null;
+        endBtn.textContent = '結束回合';
 
         if (!this.isMyTurn()) {
-            console.log('Not my turn, disabling buttons');
             rollBtn.disabled = true;
             endBtn.disabled = true;
             return;
         }
-
-        console.log('It is my turn, enabling buttons');
         endBtn.disabled = false;
 
-        // Check if player has rolled dice
+        // 判斷是否顯示購買地產按鈕
+        let canBuy = false;
         if (this.gameState.currentRoll) {
-            console.log('Player has rolled dice, disabling roll button');
             rollBtn.disabled = true;
-
-            // Check if can buy property
             const currentPlayerData = this.getCurrentPlayerData();
             const property = this.getPropertyAtPosition(currentPlayerData.position);
-
-            if (property && !property.owner && currentPlayerData.money >= property.price) {
+            if (
+                property &&
+                (property.type === 'property' || property.type === 'railroad' || property.type === 'utility') &&
+                !property.owner &&
+                currentPlayerData.money >= property.price
+            ) {
+                canBuy = true;
                 buyBtn.style.display = 'block';
+                buyBtn.disabled = false;
+                buyBtn.onclick = () => {
+                    this.buyProperty();
+                    this.endTurn();
+                };
             }
         } else {
-            console.log('Player has not rolled dice, enabling roll button');
             rollBtn.disabled = false;
         }
+        if (!canBuy) {
+            buyBtn.onclick = null;
+        }
 
-        // Always show build button (will check eligibility in modal)
-        buildBtn.style.display = 'block';
+        // 建造房屋按鈕（僅在玩家停在自己擁有的地產格時顯示）
+        let canBuild = false;
+        const myPlayer = this.gameState.players.find(p => p.id === this.playerId);
+        if (myPlayer && this.gameState.currentRoll) {
+            const property = this.getPropertyAtPosition(myPlayer.position);
+            if (
+                property &&
+                property.type === 'property' &&
+                property.owner === this.playerId
+            ) {
+                canBuild = true;
+                buildBtn.style.display = 'block';
+                buildBtn.disabled = false;
+                buildBtn.onclick = () => {
+                    // 你可以在這裡加建造房屋的實際邏輯
+                    this.buildHouse();
+                    this.endTurn();
+                };
+            }
+        }
+        if (!canBuild) {
+            buildBtn.onclick = null;
+        }
+        if (!canBuy) buyBtn.style.display = 'none';
+        if (!canBuild) buildBtn.style.display = 'none';
+
+        // 結束回合倒數
+        if (this.turnCountdownInterval) clearInterval(this.turnCountdownInterval);
+        this.turnCountdownInterval = null;
+        this.turnCountdownValue = 10;
+        if (this.gameState.currentRoll) {
+            endBtn.textContent = `結束回合(${this.turnCountdownValue})`;
+            this.turnCountdownInterval = setInterval(() => {
+                this.turnCountdownValue--;
+                endBtn.textContent = `結束回合(${this.turnCountdownValue})`;
+                if (this.turnCountdownValue <= 0) {
+                    clearInterval(this.turnCountdownInterval);
+                    this.turnCountdownInterval = null;
+                    this.endTurn();
+                }
+            }, 1000);
+        } else {
+            endBtn.textContent = '結束回合';
+        }
+        endBtn.onclick = () => {
+            if (this.turnCountdownInterval) clearInterval(this.turnCountdownInterval);
+            this.turnCountdownInterval = null;
+            this.endTurn();
+        };
     }
 
     enableActionButtons() {
@@ -600,6 +745,69 @@ class MonopolyClient {
         });
     }
 
+    updateCharacterAvailability() {
+        // 取得所有已被選的角色
+        const takenCharacters = this.gameState && this.gameState.players
+            ? this.gameState.players.map(p => p.character)
+            : [];
+        // 處理主機創房角色選擇
+        const hostSel = document.getElementById('hostCharacterSelection');
+        if (hostSel) {
+            hostSel.querySelectorAll('.character-option').forEach(opt => {
+                const char = opt.getAttribute('data-character');
+                if (takenCharacters.includes(char)) {
+                    opt.classList.add('character-unavailable');
+                    opt.classList.remove('selected');
+                    opt.style.pointerEvents = 'none';
+                    opt.style.opacity = '0.5';
+                } else {
+                    opt.classList.remove('character-unavailable');
+                    opt.style.pointerEvents = '';
+                    opt.style.opacity = '';
+                }
+            });
+        }
+        // 處理加入房間角色選擇（如有）
+        const playerSel = document.getElementById('playerCharacterSelection');
+        if (playerSel) {
+            playerSel.querySelectorAll('.character-option').forEach(opt => {
+                const char = opt.getAttribute('data-character');
+                if (takenCharacters.includes(char)) {
+                    opt.classList.add('character-unavailable');
+                    opt.classList.remove('selected');
+                    opt.style.pointerEvents = 'none';
+                    opt.style.opacity = '0.5';
+                } else {
+                    opt.classList.remove('character-unavailable');
+                    opt.style.pointerEvents = '';
+                    opt.style.opacity = '';
+                }
+            });
+        }
+    }
+
+    // 新增：查詢房間剩餘角色並只顯示可選角色
+    filterAvailableCharacters(roomCode) {
+        this.socket.emit('getRoomState', { roomCode });
+        this.socket.once('roomState', (data) => {
+            const playerSel = document.getElementById('playerCharacterSelection');
+            if (!playerSel) return;
+            playerSel.querySelectorAll('.character-option').forEach(opt => {
+                const char = opt.getAttribute('data-character');
+                if (data.success && data.takenCharacters && data.takenCharacters.includes(char)) {
+                    opt.classList.add('character-unavailable');
+                    opt.classList.remove('selected');
+                    opt.style.pointerEvents = 'none';
+                    opt.style.opacity = '0.5';
+                } else {
+                    opt.classList.remove('character-unavailable');
+                    opt.style.pointerEvents = '';
+                    opt.style.opacity = '';
+                }
+            });
+        });
+    }
+
     // Helper methods
     getCurrentPlayerData() {
         if (!this.gameState || !this.playerId) {
@@ -682,32 +890,24 @@ class MonopolyClient {
 
     getCharacterIcon(character) {
         const characterIcons = {
-            'hat': '🎩',
-            'car': '🚗',
-            'dog': '🐕',
-            'cat': '🐱',
-            'ship': '⛵',
-            'plane': '✈️',
-            'boot': '👢',
-            'thimble': '🔧'
+            'candle': '🕯️',
+            'bow': '🏹',
+            'plate': '🍽️',
+            'noodle': '🍜',
+            'yam': '🍠'
         };
-
-        return characterIcons[character] || '🎩';
+        return characterIcons[character] || '🕯️';
     }
 
     getCharacterName(character) {
         const characterNames = {
-            'hat': '紳士帽',
-            'car': '汽車',
-            'dog': '小狗',
-            'cat': '小貓',
-            'ship': '帆船',
-            'plane': '飛機',
-            'boot': '靴子',
-            'thimble': '頂針'
+            'candle': '蠟燭',
+            'bow': '弓箭',
+            'plate': '盤子',
+            'noodle': '麵條',
+            'yam': '番薯'
         };
-
-        return characterNames[character] || '紳士帽';
+        return characterNames[character] || '蠟燭';
     }
 
     // Message system
@@ -738,47 +938,6 @@ class MonopolyClient {
     }
 
     // Modal management
-    showPropertyModal(property) {
-        const modal = document.getElementById('propertyModal');
-        const propertyName = document.getElementById('propertyName');
-        const propertyDetails = document.getElementById('propertyDetails');
-
-        propertyName.textContent = property.name;
-
-        let detailsHTML = `
-            <p><strong>價格:</strong> $${property.price}</p>
-            <p><strong>租金:</strong> $${property.rent[0]}</p>
-        `;
-
-        if (property.owner) {
-            const owner = this.gameState.players.find(p => p.id === property.owner);
-            detailsHTML += `<p><strong>擁有者:</strong> ${owner.name}</p>`;
-        }
-
-        if (property.houses > 0) {
-            detailsHTML += `<p><strong>房屋:</strong> ${property.houses}</p>`;
-        }
-
-        if (property.hotels > 0) {
-            detailsHTML += `<p><strong>旅館:</strong> ${property.hotels}</p>`;
-        }
-
-        propertyDetails.innerHTML = detailsHTML;
-
-        const buyBtn = document.getElementById('modalBuyBtn');
-        if (!property.owner && this.isMyTurn()) {
-            buyBtn.style.display = 'block';
-            buyBtn.onclick = () => {
-                this.buyProperty();
-                modal.style.display = 'none';
-            };
-        } else {
-            buyBtn.style.display = 'none';
-        }
-
-        modal.style.display = 'block';
-    }
-
     showTradeModal(tradeData) {
         const modal = document.getElementById('tradeModal');
         const tradeDetails = document.getElementById('tradeDetails');
@@ -804,16 +963,41 @@ class MonopolyClient {
         };
     }
 
-    showBuildModal() {
-        // Implementation for building modal
-        const myPlayer = this.getMyPlayerData();
-        if (!myPlayer || !myPlayer.properties.length) {
-            this.showError('您沒有可以建造房屋的地產');
-            return;
-        }
+    // 移除 showPropertyModal 內的倒數顯示與 timer，只保留購買按鈕功能（如有需要可直接刪除整個 showPropertyModal）
+    showPropertyModal(property) {
+        // 你可以選擇完全移除這個函式，或只保留購買邏輯
+        // 目前不再顯示任何倒數或 timerDiv
+        // 若仍需購買流程，可直接在主畫面按鈕處理
+    }
 
-        // For now, just show error - full implementation would show property selection
-        this.showError('建造功能開發中...');
+    // 在 showBuildModal 彈窗出現時才啟動倒數
+    showBuildModal() {
+        const modal = document.getElementById('buildModal');
+        const buildBtn = document.getElementById('modalBuildBtn');
+        const closeBtn = document.getElementById('modalCloseBtn');
+        // 移除舊的 timerDiv
+        const oldTimer = modal.querySelector('#build-timer');
+        if (oldTimer) oldTimer.remove();
+        let timer = 10;
+        const timerDiv = document.createElement('div');
+        timerDiv.style = 'color:#d32f2f;font-weight:bold;margin-top:10px;';
+        timerDiv.id = 'build-timer';
+        timerDiv.textContent = `自動結束回合倒數：${timer} 秒`;
+        modal.querySelector('.modal-buttons').appendChild(timerDiv);
+        if (this.turnCountdownInterval) clearInterval(this.turnCountdownInterval);
+        this.turnCountdownInterval = setInterval(() => {
+            timer--;
+            timerDiv.textContent = `自動結束回合倒數：${timer} 秒`;
+            if (timer <= 0) {
+                clearInterval(this.turnCountdownInterval);
+                this.turnCountdownInterval = null;
+                closeBtn.click();
+                this.endTurn();
+            }
+        }, 1000);
+        buildBtn.onclick = () => { clearInterval(this.turnCountdownInterval); this.turnCountdownInterval = null; /*...原有建造流程...*/ };
+        closeBtn.onclick = () => { clearInterval(this.turnCountdownInterval); this.turnCountdownInterval = null; this.endTurn(); };
+        modal.style.display = 'block';
     }
 
     // Board management

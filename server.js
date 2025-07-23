@@ -53,8 +53,8 @@ io.on('connection', (socket) => {
                     assignedCharacter: result.assignedCharacter
                 });
 
-                // Notify other players
-                socket.to(roomCode).emit('playerJoined', {
+                // 廣播給所有人（包含新玩家）
+                io.to(roomCode).emit('playerJoined', {
                     playerId: socket.id,
                     playerName,
                     character: result.assignedCharacter,
@@ -205,6 +205,20 @@ io.on('connection', (socket) => {
         }
         const scores = gameManager.endGame(roomCode, socket.id);
         io.to(roomCode).emit('gameEnded', { scores });
+    });
+
+    // 查詢房間剩餘角色
+    socket.on('getRoomState', ({ roomCode }) => {
+        const game = gameManager.rooms.get(roomCode);
+        if (!game) {
+            socket.emit('roomState', { success: false, message: '房間不存在' });
+            return;
+        }
+        socket.emit('roomState', {
+            success: true,
+            availableCharacters: game.getAvailableCharacters(),
+            takenCharacters: Array.from(game.players.values()).map(p => p.character)
+        });
     });
 });
 

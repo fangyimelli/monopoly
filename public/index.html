@@ -57,37 +57,25 @@
                 <div class="input-group">
                     <label>選擇您的角色</label>
                     <div class="character-selection" id="hostCharacterSelection">
-                        <div class="character-option selected" data-character="hat">
-                            <div class="character-icon">🎩</div>
-                            <div class="character-name">紳士帽</div>
+                        <div class="character-option selected" data-character="candle">
+                            <div class="character-icon">🕯️</div>
+                            <div class="character-name">蠟燭</div>
                         </div>
-                        <div class="character-option" data-character="car">
-                            <div class="character-icon">🚗</div>
-                            <div class="character-name">汽車</div>
+                        <div class="character-option" data-character="bow">
+                            <div class="character-icon">🏹</div>
+                            <div class="character-name">弓箭</div>
                         </div>
-                        <div class="character-option" data-character="dog">
-                            <div class="character-icon">🐕</div>
-                            <div class="character-name">小狗</div>
+                        <div class="character-option" data-character="plate">
+                            <div class="character-icon">🍽️</div>
+                            <div class="character-name">盤子</div>
                         </div>
-                        <div class="character-option" data-character="cat">
-                            <div class="character-icon">🐱</div>
-                            <div class="character-name">小貓</div>
+                        <div class="character-option" data-character="noodle">
+                            <div class="character-icon">🍜</div>
+                            <div class="character-name">麵條</div>
                         </div>
-                        <div class="character-option" data-character="ship">
-                            <div class="character-icon">⛵</div>
-                            <div class="character-name">帆船</div>
-                        </div>
-                        <div class="character-option" data-character="plane">
-                            <div class="character-icon">✈️</div>
-                            <div class="character-name">飛機</div>
-                        </div>
-                        <div class="character-option" data-character="boot">
-                            <div class="character-icon">👢</div>
-                            <div class="character-name">靴子</div>
-                        </div>
-                        <div class="character-option" data-character="thimble">
-                            <div class="character-icon">🔧</div>
-                            <div class="character-name">頂針</div>
+                        <div class="character-option" data-character="yam">
+                            <div class="character-icon">🍠</div>
+                            <div class="character-name">番薯</div>
                         </div>
                     </div>
                 </div>
@@ -127,63 +115,46 @@
             <h2><i class="fas fa-sign-in-alt"></i> 加入房間</h2>
             <form id="joinRoomForm">
                 <div class="input-group">
-                    <label for="playerName">您的名稱</label>
-                    <input type="text" id="playerName" placeholder="輸入您的遊戲名稱" required maxlength="20">
-                </div>
-                <div class="input-group">
                     <label for="roomCode">房間代碼</label>
                     <input type="text" id="roomCode" placeholder="輸入房間代碼" required maxlength="6">
                 </div>
-
-                <!-- Character Selection -->
-                <div class="input-group">
-                    <label>選擇您的角色</label>
-                    <div class="character-selection" id="playerCharacterSelection">
-                        <div class="character-option selected" data-character="hat">
-                            <div class="character-icon">🎩</div>
-                            <div class="character-name">紳士帽</div>
-                        </div>
-                        <div class="character-option" data-character="car">
-                            <div class="character-icon">🚗</div>
-                            <div class="character-name">汽車</div>
-                        </div>
-                        <div class="character-option" data-character="dog">
-                            <div class="character-icon">🐕</div>
-                            <div class="character-name">小狗</div>
-                        </div>
-                        <div class="character-option" data-character="cat">
-                            <div class="character-icon">🐱</div>
-                            <div class="character-name">小貓</div>
-                        </div>
-                        <div class="character-option" data-character="ship">
-                            <div class="character-icon">⛵</div>
-                            <div class="character-name">帆船</div>
-                        </div>
-                        <div class="character-option" data-character="plane">
-                            <div class="character-icon">✈️</div>
-                            <div class="character-name">飛機</div>
-                        </div>
-                        <div class="character-option" data-character="boot">
-                            <div class="character-icon">👢</div>
-                            <div class="character-name">靴子</div>
-                        </div>
-                        <div class="character-option" data-character="thimble">
-                            <div class="character-icon">🔧</div>
-                            <div class="character-name">頂針</div>
+                <button type="button" id="checkRoomBtn" class="btn primary">確認</button>
+                <div id="joinStep2" style="display:none;">
+                    <div class="input-group">
+                        <label for="playerName">您的名稱</label>
+                        <input type="text" id="playerName" placeholder="輸入您的遊戲名稱" required maxlength="20">
+                    </div>
+                    <div class="input-group">
+                        <label>選擇您的角色</label>
+                        <div class="character-selection" id="playerCharacterSelection">
+                            <div class="character-option selected" data-character="candle">
+                                <div class="character-icon">🕯️</div>
+                                <div class="character-name">蠟燭</div>
+                            </div>
+                            <div class="character-option" data-character="bow">
+                                <div class="character-icon">🏹</div>
+                                <div class="character-name">弓箭</div>
+                            </div>
+                            <div class="character-option" data-character="plate">
+                                <div class="character-icon">🍽️</div>
+                                <div class="character-name">盤子</div>
+                            </div>
+                            <div class="character-option" data-character="noodle">
+                                <div class="character-icon">🍜</div>
+                                <div class="character-name">麵條</div>
+                            </div>
+                            <div class="character-option" data-character="yam">
+                                <div class="character-icon">🍠</div>
+                                <div class="character-name">番薯</div>
+                            </div>
                         </div>
                     </div>
+                    <button type="submit" class="btn primary">加入房間</button>
                 </div>
-
-                <div class="form-buttons">
-                    <button type="submit" class="btn primary">
-                        <i class="fas fa-check"></i>
-                        加入房間
-                    </button>
-                    <button type="button" id="backToMenuFromJoin" class="btn secondary">
-                        <i class="fas fa-arrow-left"></i>
-                        返回
-                    </button>
-                </div>
+                <button type="button" id="backToMenuFromJoin" class="btn secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    返回
+                </button>
             </form>
         </div>
     </div>

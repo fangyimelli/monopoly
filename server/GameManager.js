@@ -6,15 +6,25 @@ class GameManager {
         this.playerRooms = new Map(); // Track which room each player is in
     }
 
-    createRoom(playerId, playerName, character = 'hat', hostParticipation = 'player') {
+    createRoom(playerId, playerName, character = 'candle', hostParticipation = 'player') {
         const roomCode = this.generateRoomCode();
         const game = new MonopolyGame();
         game.hostId = playerId;
         game.hostIsObserver = (hostParticipation === 'observer');
 
-        if (!game.hostIsObserver) {
-            game.addPlayer(playerId, playerName, character);
-            this.playerRooms.set(playerId, roomCode);
+        // 檢查角色是否已被選走（理論上房主第一個進來不會重複，但保險起見）
+        const takenCharacters = Array.from(game.players.values()).map(p => p.character);
+        if (takenCharacters.includes(character)) {
+            return { success: false, message: '角色已被選擇，請選擇其他角色' };
+        }
+
+        try {
+            if (!game.hostIsObserver) {
+                game.addPlayer(playerId, playerName, character);
+                this.playerRooms.set(playerId, roomCode);
+            }
+        } catch (e) {
+            return { success: false, message: e.message || '角色已被選擇' };
         }
         // 即使觀戰，也要記錄房主在哪個房間（方便管理權限）
         this.rooms.set(roomCode, game);
@@ -29,28 +39,32 @@ class GameManager {
         };
     }
 
-    joinRoom(playerId, roomCode, playerName, character = 'hat') {
+    joinRoom(playerId, roomCode, playerName, character = 'candle') {
         const game = this.rooms.get(roomCode);
         if (!game) {
             return { success: false, message: 'Room not found' };
         }
 
-        if (game.players.size >= 8) {
-            return { success: false, message: 'Room is full (max 8 players)' };
+        if (game.players.size >= 5) {
+            return { success: false, message: 'Room is full (max 5 players)' };
         }
 
         if (game.gameStarted) {
             return { success: false, message: 'Game already started' };
         }
 
-        // Check if character is available
-        const availableCharacters = game.getAvailableCharacters();
-        if (!availableCharacters.includes(character)) {
-            character = availableCharacters[0] || 'hat';
+        // 檢查角色是否已被選走
+        const takenCharacters = Array.from(game.players.values()).map(p => p.character);
+        if (takenCharacters.includes(character)) {
+            return { success: false, message: '角色已被選擇，請選擇其他角色' };
         }
 
-        game.addPlayer(playerId, playerName, character);
-        this.playerRooms.set(playerId, roomCode);
+        try {
+            game.addPlayer(playerId, playerName, character);
+            this.playerRooms.set(playerId, roomCode);
+        } catch (e) {
+            return { success: false, message: e.message || '角色已被選擇' };
+        }
 
         return {
             success: true,
@@ -74,9 +88,8 @@ class GameManager {
             return { success: false, message: 'Game already started' };
         }
 
-        // Only the first player (host) can start the game
-        const playerIds = Array.from(game.players.keys());
-        if (playerId !== playerIds[0]) {
+        // 只允許 hostId 開始遊戲
+        if (playerId !== game.hostId) {
             return { success: false, message: 'Only the host can start the game' };
         }
 
@@ -254,12 +267,11 @@ class MonopolyGame {
         this.hostIsObserver = false;
     }
 
-    addPlayer(playerId, playerName, character = 'hat') {
-        // Check if character is already taken
-        const existingPlayer = Array.from(this.players.values()).find(p => p.character === character);
-        if (existingPlayer) {
-            // Auto-assign next available character
-            character = this.getNextAvailableCharacter();
+    addPlayer(playerId, playerName, character = 'candle') {
+        // 檢查角色唯一性
+        const takenCharacters = Array.from(this.players.values()).map(p => p.character);
+        if (takenCharacters.includes(character)) {
+            throw new Error('角色已被選擇');
         }
 
         const player = {
