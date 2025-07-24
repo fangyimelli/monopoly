@@ -20,6 +20,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Game state management
 const GameManager = require('./server/GameManager');
 const gameManager = new GameManager();
+gameManager.ioRef = io;
 
 // Socket.io connection handling
 io.on('connection', (socket) => {

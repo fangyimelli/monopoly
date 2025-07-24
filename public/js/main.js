@@ -11,8 +11,12 @@ const CHARACTERS = {
 };
 
 // Main application entry point
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     console.log('地產大亨遊戲初始化中...');
+
+    // 創建 MonopolyClient 實例並初始化
+    window.game = new MonopolyClient();
+    window.game.init();
 
     // Wait for game object to be available
     function waitForGame() {
@@ -291,7 +295,7 @@ function createThemeSwitcher() {
 
 function setupAccessibility() {
     // Add screen reader announcements for important game events
-    window.announceToScreenReader = function(message) {
+    window.announceToScreenReader = function (message) {
         const announcement = document.createElement('div');
         announcement.setAttribute('aria-live', 'polite');
         announcement.setAttribute('aria-atomic', 'true');
@@ -386,7 +390,7 @@ function initializeAnalytics() {
         startTime: Date.now(),
         events: [],
 
-        trackEvent: function(event, data) {
+        trackEvent: function (event, data) {
             this.events.push({
                 event,
                 data,
@@ -397,7 +401,7 @@ function initializeAnalytics() {
             console.log('Analytics:', event, data);
         },
 
-        getSessionData: function() {
+        getSessionData: function () {
             return {
                 sessionDuration: Date.now() - this.startTime,
                 events: this.events
@@ -421,7 +425,7 @@ function debounce(func, wait) {
 
 function throttle(func, limit) {
     let inThrottle;
-    return function() {
+    return function () {
         const args = arguments;
         const context = this;
         if (!inThrottle) {

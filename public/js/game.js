@@ -13,7 +13,8 @@ class MonopolyClient {
         // 新增倒數狀態追蹤
         this.lastCountdownPlayerId = null;
 
-        this.init();
+        this.hasRemovedTagThisTurn = false;
+        this.setupTagRemoveModal();
     }
 
     init() {
@@ -157,32 +158,6 @@ class MonopolyClient {
             this.showError(data.message);
         });
 
-        this.socket.on('propertyBought', (data) => {
-            this.gameState = data.gameState;
-            this.updateGameScreen();
-
-            const player = this.gameState.players.find(p => p.id === data.playerId);
-            const property = this.gameState.properties.find(p => p.id === data.propertyId);
-            this.showSuccess(`${player.name} 購買了 ${property.name}`);
-        });
-
-        this.socket.on('buyError', (data) => {
-            this.showError(data.message);
-        });
-
-        this.socket.on('houseBuilt', (data) => {
-            this.gameState = data.gameState;
-            this.updateGameScreen();
-
-            const player = this.gameState.players.find(p => p.id === data.playerId);
-            const property = this.gameState.properties.find(p => p.id === data.propertyId);
-            this.showSuccess(`${player.name} 在 ${property.name} 建造了房屋`);
-        });
-
-        this.socket.on('buildError', (data) => {
-            this.showError(data.message);
-        });
-
         this.socket.on('turnEnded', (data) => {
             this.gameState = data.gameState;
             this.updateGameScreen();
@@ -206,6 +181,13 @@ class MonopolyClient {
 
         this.socket.on('gameEnded', (data) => {
             this.showGameEndModal(data.scores);
+        });
+
+        this.socket.on('payToll', (data) => {
+            this.showError(`你經過 ${data.propertyName}，需支付 $${data.amount} 給 ${this.getCharacterName(data.ownerCharacter)}（${data.ownerName}）`);
+        });
+        this.socket.on('receiveToll', (data) => {
+            this.showSuccess(`你收到 ${data.payerName}（${this.getCharacterName(data.payerCharacter)}）支付的 $${data.amount} 過路費（地點：${data.propertyName}）`);
         });
     }
 
@@ -254,21 +236,6 @@ class MonopolyClient {
                 this.socket.emit('rollDice', { roomCode: this.roomCode });
             }
         }, 100);
-    }
-
-    buyProperty() {
-        const currentPlayerData = this.getCurrentPlayerData();
-        const propertyId = currentPlayerData.position;
-
-        this.socket.emit('buyProperty', {
-            roomCode: this.roomCode,
-            propertyId
-        });
-    }
-
-    buildHouse() {
-        // Show property selection modal for building
-        this.showBuildModal();
     }
 
     endTurn() {
@@ -451,20 +418,25 @@ class MonopolyClient {
         // 觀戰房主隱藏所有遊戲操作按鈕
         if (this.gameState.hostIsObserver && this.playerId === this.gameState.hostId) {
             document.getElementById('rollDiceBtn').style.display = 'none';
-            document.getElementById('buyPropertyBtn').style.display = 'none';
-            document.getElementById('buildHouseBtn').style.display = 'none';
             document.getElementById('endTurnBtn').style.display = 'none';
         } else {
             document.getElementById('rollDiceBtn').style.display = '';
-            document.getElementById('buyPropertyBtn').style.display = '';
-            document.getElementById('buildHouseBtn').style.display = '';
             document.getElementById('endTurnBtn').style.display = '';
         }
 
         this.updateCurrentPlayerInfo();
         this.updatePlayersPanel();
         this.updateGameBoard();
-        this.updateActionButtons();
+        // 新增：檢查自己是否在問號格
+        const me = this.gameState.players.find(p => p.id === this.playerId);
+        if (me) {
+            const currentSquare = window.game && window.game.gameBoard && window.game.gameBoard.boardLayout
+                ? window.game.gameBoard.boardLayout.find(sq => sq.id == me.position)
+                : null;
+            if (currentSquare && currentSquare.name.includes('❓')) {
+                this.handleQuestionMark(me);
+            }
+        }
     }
 
     updateCurrentPlayerInfo() {
@@ -505,6 +477,17 @@ class MonopolyClient {
         const playersList = document.getElementById('gamePlayersList');
         playersList.innerHTML = '';
 
+        // 角色對應族群
+        const characterEthnicMap = {
+            plate: '歐美新住民',
+            candle: '客家人',
+            yam: '閩南人',
+            bow: '原住民',
+            noodle: '東南亞新住民'
+        };
+        // 客家人標籤
+        const hakkaTags = ["小氣", "生活保守", "不懂時尚", "標準乖寶寶", "不能出門玩"];
+
         this.gameState.players.forEach(player => {
             const playerItem = document.createElement('div');
             playerItem.className = 'game-player-item';
@@ -515,8 +498,52 @@ class MonopolyClient {
             }
 
             const positionName = this.getPositionName(player.position);
-            const propertyCount = player.properties ? player.properties.length : 0;
             const characterIcon = this.getCharacterIcon(player.character);
+
+            // 地主顏色色條
+            let ownerColorHex = '';
+            const colorMap = {
+                noodle: '#FFD600',
+                yam: '#43A047',
+                candle: '#FF9800',
+                plate: '#1976D2',
+                bow: '#795548'
+            };
+            if (colorMap[player.character]) {
+                ownerColorHex = colorMap[player.character];
+            }
+
+            // 取得玩家目前位置的地格，若有地主則顯示大點點
+            let dotHtml = '';
+            if (window.game && window.game.gameBoard && window.game.gameBoard.boardLayout) {
+                const currentSquare = window.game.gameBoard.boardLayout.find(sq => sq.id == player.position);
+                if (currentSquare && currentSquare.ownerCharacter && colorMap[currentSquare.ownerCharacter]) {
+                    dotHtml = `<span style="display:inline-block;width:18px;height:18px;border-radius:50%;background:${colorMap[currentSquare.ownerCharacter]};margin-left:6px;vertical-align:middle;"></span>`;
+                }
+            }
+
+            // 族群名稱
+            const ethnicName = characterEthnicMap[player.character] ? `族群：${characterEthnicMap[player.character]}` : '';
+
+            // 預設標籤（只針對客家人）
+            if (!player.tags) {
+                if (player.character === 'candle') {
+                    player.tags = [...hakkaTags];
+                } else {
+                    player.tags = [];
+                }
+            }
+
+            // 標籤按鈕
+            let tagsHtml = '';
+            if (player.tags && player.tags.length > 0) {
+                tagsHtml = `<div class="player-tags" style="margin-top:4px;">` +
+                    player.tags.map((tag, idx) => `<button class="player-tag-btn" data-player-id="${player.id}" data-tag-idx="${idx}" style="margin:2px 4px 2px 0;padding:2px 10px;border-radius:12px;border:1px solid #bbb;background:#f5f5f5;cursor:pointer;font-size:0.95em;">${tag}</button>`).join('') +
+                    `</div>`;
+            }
+
+            // 計算得分（暫以現金 player.money 為分數）
+            const score = player.money;
 
             playerItem.innerHTML = `
                 <div class="game-player-header">
@@ -525,9 +552,11 @@ class MonopolyClient {
                         ${player.name} ${player.id === this.playerId ? '(您)' : ''}
                     </div>
                 </div>
-                <div class="game-player-money">$${player.money}</div>
-                <div class="game-player-position">位置: ${positionName}</div>
-                <div class="game-player-properties">地產: ${propertyCount} 個</div>
+                <div class="game-player-ethnic" style="font-size: 0.95em; color: #666; margin-bottom: 2px;">${ethnicName}</div>
+                <div class="game-player-position">位置: ${positionName}${dotHtml}</div>
+                <div class="game-player-score" style="margin-top:2px;font-size:1em;color:#333;">得分：${score}</div>
+                ${tagsHtml}
+                ${ownerColorHex ? `<div class="owner-color-strip" style="height: 8px; border-radius: 4px; margin: 4px 0 0 0; background: ${ownerColorHex};"></div>` : ''}
             `;
 
             playersList.appendChild(playerItem);
@@ -537,17 +566,13 @@ class MonopolyClient {
     // 移除 updateActionButtons 內的倒數邏輯
     updateActionButtons() {
         const rollBtn = document.getElementById('rollDiceBtn');
-        const buyBtn = document.getElementById('buyPropertyBtn');
-        const buildBtn = document.getElementById('buildHouseBtn');
         const endBtn = document.getElementById('endTurnBtn');
 
-        if (!rollBtn || !buyBtn || !buildBtn || !endBtn) {
+        if (!rollBtn || !endBtn) {
             return;
         }
 
         rollBtn.style.display = 'block';
-        buyBtn.style.display = 'none';
-        buildBtn.style.display = 'none';
         endBtn.style.display = 'block';
 
         if (this.turnCountdownInterval) clearInterval(this.turnCountdownInterval);
@@ -561,59 +586,6 @@ class MonopolyClient {
             return;
         }
         endBtn.disabled = false;
-
-        // 判斷是否顯示購買地產按鈕
-        let canBuy = false;
-        if (this.gameState.currentRoll) {
-            rollBtn.disabled = true;
-            const currentPlayerData = this.getCurrentPlayerData();
-            const property = this.getPropertyAtPosition(currentPlayerData.position);
-            if (
-                property &&
-                (property.type === 'property' || property.type === 'railroad' || property.type === 'utility') &&
-                !property.owner &&
-                currentPlayerData.money >= property.price
-            ) {
-                canBuy = true;
-                buyBtn.style.display = 'block';
-                buyBtn.disabled = false;
-                buyBtn.onclick = () => {
-                    this.buyProperty();
-                    this.endTurn();
-                };
-            }
-        } else {
-            rollBtn.disabled = false;
-        }
-        if (!canBuy) {
-            buyBtn.onclick = null;
-        }
-
-        // 建造房屋按鈕（僅在玩家停在自己擁有的地產格時顯示）
-        let canBuild = false;
-        const myPlayer = this.gameState.players.find(p => p.id === this.playerId);
-        if (myPlayer && this.gameState.currentRoll) {
-            const property = this.getPropertyAtPosition(myPlayer.position);
-            if (
-                property &&
-                property.type === 'property' &&
-                property.owner === this.playerId
-            ) {
-                canBuild = true;
-                buildBtn.style.display = 'block';
-                buildBtn.disabled = false;
-                buildBtn.onclick = () => {
-                    // 你可以在這裡加建造房屋的實際邏輯
-                    this.buildHouse();
-                    this.endTurn();
-                };
-            }
-        }
-        if (!canBuild) {
-            buildBtn.onclick = null;
-        }
-        if (!canBuy) buyBtn.style.display = 'none';
-        if (!canBuild) buildBtn.style.display = 'none';
 
         // 結束回合倒數
         if (this.turnCountdownInterval) clearInterval(this.turnCountdownInterval);
@@ -647,14 +619,13 @@ class MonopolyClient {
     resetActionButtons() {
         console.log('Resetting action buttons');
         const rollBtn = document.getElementById('rollDiceBtn');
-        const buyBtn = document.getElementById('buyPropertyBtn');
 
         // Reset roll button - will be managed by updateActionButtons
         rollBtn.disabled = false;
-        buyBtn.style.display = 'none';
 
         // Update all buttons based on current game state
         this.updateActionButtons();
+        this.hasRemovedTagThisTurn = false;
     }
 
     disableRollButton() {
@@ -841,51 +812,11 @@ class MonopolyClient {
     }
 
     getPositionName(position) {
-        // 大富翁棋盤位置名稱對應表
-        const positionNames = {
-            0: 'GO起點',
-            1: '台北101',
-            2: '公益福利',
-            3: '信義區',
-            4: '所得稅',
-            5: '台灣高鐵',
-            6: '士林夜市',
-            7: '機會',
-            8: '九份老街',
-            9: '西門町',
-            10: '監獄',
-            11: '日月潭',
-            12: '台電公司',
-            13: '阿里山',
-            14: '太魯閣',
-            15: '中華航空',
-            16: '墾丁',
-            17: '公益福利',
-            18: '清境農場',
-            19: '淡水老街',
-            20: '免費停車',
-            21: '故宮博物院',
-            22: '機會',
-            23: '中正紀念堂',
-            24: '龍山寺',
-            25: '台鐵',
-            26: '野柳地質公園',
-            27: '平溪天燈',
-            28: '自來水公司',
-            29: '陽明山',
-            30: '入獄',
-            31: '高雄愛河',
-            32: '台中逢甲',
-            33: '公益福利',
-            34: '嘉義雞肉飯',
-            35: '長榮航空',
-            36: '機會',
-            37: '花蓮太魯閣',
-            38: '奢侈稅',
-            39: '台東熱氣球'
-        };
-
-        return positionNames[position] || `位置 ${position}`;
+        if (window.game && window.game.gameBoard && window.game.gameBoard.boardLayout) {
+            const square = window.game.gameBoard.boardLayout.find(sq => sq.id == position);
+            return square ? square.name : `位置 ${position}`;
+        }
+        return `位置 ${position}`;
     }
 
     getCharacterIcon(character) {
@@ -1023,6 +954,78 @@ class MonopolyClient {
         html += '</ol>';
         alert(html.replace(/<[^>]+>/g, ''));
         // 你可以改成自訂 modal 彈窗
+    }
+
+    // 問號格觸發標籤刪除
+    handleQuestionMark(player) {
+        if (!player.tags || player.tags.length === 0) return;
+        if (player.id !== this.playerId) return;
+        if (this.hasRemovedTagThisTurn) return;
+        this.showTagRemoveModal(player);
+    }
+
+    showTagRemoveModal(player) {
+        // 建立 modal
+        let modal = document.getElementById('tagRemoveModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'tagRemoveModal';
+            modal.style.position = 'fixed';
+            modal.style.left = '0';
+            modal.style.top = '0';
+            modal.style.width = '100vw';
+            modal.style.height = '100vh';
+            modal.style.background = 'rgba(0,0,0,0.3)';
+            modal.style.display = 'flex';
+            modal.style.alignItems = 'center';
+            modal.style.justifyContent = 'center';
+            modal.style.zIndex = '9999';
+            document.body.appendChild(modal);
+        }
+        modal.innerHTML = `<div style="background:#fff;padding:32px 24px;border-radius:12px;min-width:260px;box-shadow:0 2px 16px #0002;text-align:center;">
+            <div style='font-size:1.1em;margin-bottom:12px;'>請選擇要刪除的標籤：</div>
+            <div id='tagRemoveBtns'></div>
+            <button id='tagRemoveCancel' style='margin-top:18px;padding:4px 18px;border-radius:8px;'>取消</button>
+        </div>`;
+        const btns = modal.querySelector('#tagRemoveBtns');
+        player.tags.forEach((tag, idx) => {
+            const btn = document.createElement('button');
+            btn.textContent = tag;
+            btn.style.margin = '4px 8px';
+            btn.style.padding = '4px 16px';
+            btn.style.borderRadius = '12px';
+            btn.style.border = '1px solid #bbb';
+            btn.style.background = '#f5f5f5';
+            btn.style.cursor = 'pointer';
+            btn.onclick = () => {
+                player.tags.splice(idx, 1);
+                modal.remove();
+                this.hasRemovedTagThisTurn = true;
+                this.updatePlayersPanel();
+            };
+            btns.appendChild(btn);
+        });
+        modal.querySelector('#tagRemoveCancel').onclick = () => modal.remove();
+    }
+
+    setupTagRemoveModal() {
+        // 預留，未來可加全局事件
+    }
+
+    // 在玩家移動後判斷是否在問號格
+    updateGameState(gameState) {
+        this.gameState = gameState;
+        this.updatePlayersPanel();
+        // 檢查自己是否在問號格
+        const me = this.gameState.players.find(p => p.id === this.playerId);
+        if (me) {
+            const currentSquare = window.game && window.game.gameBoard && window.game.gameBoard.boardLayout
+                ? window.game.gameBoard.boardLayout.find(sq => sq.id == me.position)
+                : null;
+            if (currentSquare && currentSquare.name.includes('❓')) {
+                this.handleQuestionMark(me);
+            }
+        }
     }
 }
 

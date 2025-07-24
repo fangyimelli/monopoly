@@ -93,14 +93,6 @@ class UIManager {
             window.game.rollDice();
         });
 
-        document.getElementById('buyPropertyBtn').addEventListener('click', () => {
-            window.game.buyProperty();
-        });
-
-        document.getElementById('buildHouseBtn').addEventListener('click', () => {
-            window.game.buildHouse();
-        });
-
         document.getElementById('endTurnBtn').addEventListener('click', () => {
             window.game.endTurn();
         });

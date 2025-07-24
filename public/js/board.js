@@ -27,51 +27,51 @@ class GameBoard {
         return [
             // 下排（右到左，0~10）
             { id: 0, name: '桃園國際機場（跳到「起飛」）✈️🔀', type: 'special', position: { row: 10, col: 10 } },
-            { id: 1, name: '新北中和華新街 🏮', type: 'property', colorGroup: 'brown', price: 60, position: { row: 10, col: 9 } },
-            { id: 2, name: '？❓', type: 'property', colorGroup: 'brown', price: 60, position: { row: 10, col: 8 } },
-            { id: 3, name: '臺北龍山寺 🛕', type: 'property', colorGroup: 'brown', price: 60, position: { row: 10, col: 7 } },
-            { id: 4, name: '新竹北埔峨眉湖 🏞️', type: 'property', colorGroup: 'lightblue', price: 100, position: { row: 10, col: 6 } },
-            { id: 5, name: '日月潭 🌊', type: 'property', colorGroup: 'lightblue', price: 100, position: { row: 10, col: 5 } },
-            { id: 6, name: '臺中美國學校 🏫', type: 'property', colorGroup: 'lightblue', price: 100, position: { row: 10, col: 4 } },
-            { id: 7, name: '？❓', type: 'property', colorGroup: 'lightblue', price: 120, position: { row: 10, col: 3 } },
-            { id: 8, name: '嘉義達邦部落 🏕️', type: 'property', colorGroup: 'lightblue', price: 120, position: { row: 10, col: 2 } },
-            { id: 9, name: '台南安平古堡 🏯', type: 'property', colorGroup: 'lightblue', price: 120, position: { row: 10, col: 1 } },
+            { id: 1, name: '新北中和華新街 🏮', type: 'property', colorGroup: 'yellow', toll: 500, ownerCharacter: 'noodle', position: { row: 10, col: 9 } },
+            { id: 2, name: '❓', type: 'property', colorGroup: 'red', position: { row: 10, col: 8 } },
+            { id: 3, name: '臺北龍山寺 🛕', type: 'property', colorGroup: 'green', toll: 500, ownerCharacter: 'yam', position: { row: 10, col: 7 } },
+            { id: 4, name: '新竹北埔峨眉湖 🏞️', type: 'property', colorGroup: 'orange', toll: 300, ownerCharacter: 'candle', position: { row: 10, col: 6 } },
+            { id: 5, name: '日月潭 🌊', type: 'property', position: { row: 10, col: 5 } },
+            { id: 6, name: '臺中美國學校 🏫', type: 'property', colorGroup: 'blue', toll: 300, ownerCharacter: 'plate', position: { row: 10, col: 4 } },
+            { id: 7, name: '❓', type: 'property', colorGroup: 'red', position: { row: 10, col: 3 } },
+            { id: 8, name: '嘉義達邦部落 🏕️', type: 'property', colorGroup: 'brown', toll: 200, ownerCharacter: 'bow', position: { row: 10, col: 2 } },
+            { id: 9, name: '台南安平古堡 🏯', type: 'property', position: { row: 10, col: 1 } },
             { id: 10, name: '起點 🚩', type: 'corner', position: { row: 10, col: 0 } },
 
             // 左排（下到上，11~19）
-            { id: 11, name: '臺北天母國際社區 🏘️', type: 'property', colorGroup: 'pink', price: 140, position: { row: 9, col: 0 } },
-            { id: 12, name: '彰化鹿港老街 🏮', type: 'property', colorGroup: 'pink', price: 140, position: { row: 8, col: 0 } },
-            { id: 13, name: '？❓', type: 'property', colorGroup: 'orange', price: 160, position: { row: 7, col: 0 } },
-            { id: 14, name: '臺中東協廣場 🏢', type: 'property', colorGroup: 'orange', price: 160, position: { row: 6, col: 0 } },
-            { id: 15, name: '高雄美濃 🍃', type: 'property', colorGroup: 'orange', price: 180, position: { row: 5, col: 0 } },
-            { id: 16, name: '？❓', type: 'property', colorGroup: 'orange', price: 180, position: { row: 4, col: 0 } },
-            { id: 17, name: '花蓮奇美部落 🏞️', type: 'property', colorGroup: 'orange', price: 200, position: { row: 3, col: 0 } },
-            { id: 18, name: '台北101 🏙️', type: 'property', colorGroup: 'orange', price: 200, position: { row: 2, col: 0 } },
-            { id: 19, name: '彩虹眷村 🌈', type: 'property', colorGroup: 'orange', price: 200, position: { row: 1, col: 0 } },
+            { id: 11, name: '臺北天母國際社區 🏘️', type: 'property', colorGroup: 'blue', toll: 500, ownerCharacter: 'plate', position: { row: 9, col: 0 } },
+            { id: 12, name: '彰化鹿港老街 🏮', type: 'property', colorGroup: 'green', toll: 200, ownerCharacter: 'yam', position: { row: 8, col: 0 } },
+            { id: 13, name: '❓', type: 'property', colorGroup: 'red', position: { row: 7, col: 0 } },
+            { id: 14, name: '臺中東協廣場 🏢', type: 'property', colorGroup: 'yellow', toll: 200, ownerCharacter: 'noodle', position: { row: 6, col: 0 } },
+            { id: 15, name: '高雄美濃 🍃', type: 'property', colorGroup: 'orange', toll: 500, ownerCharacter: 'candle', position: { row: 5, col: 0 } },
+            { id: 16, name: '❓', type: 'property', colorGroup: 'red', position: { row: 4, col: 0 } },
+            { id: 17, name: '花蓮奇美部落 🏞️', type: 'property', colorGroup: 'brown', toll: 300, ownerCharacter: 'bow', position: { row: 3, col: 0 } },
+            { id: 18, name: '台北101 🏙️', type: 'property', position: { row: 2, col: 0 } },
+            { id: 19, name: '彩虹眷村 🌈', type: 'property', position: { row: 1, col: 0 } },
 
             // 上排（左到右，20~30）
             { id: 20, name: '台中國家歌劇院（暫停一輪）🎭⏸️', type: 'special', position: { row: 0, col: 0 } },
-            { id: 21, name: '台北木柵動物園 🦁', type: 'property', colorGroup: 'red', price: 220, position: { row: 0, col: 1 } },
-            { id: 22, name: '苗栗南庄桂花巷 🌼', type: 'property', colorGroup: 'red', price: 220, position: { row: 0, col: 2 } },
-            { id: 23, name: '？❓', type: 'property', colorGroup: 'red', price: 240, position: { row: 0, col: 3 } },
-            { id: 24, name: '臺北火車站 🚉', type: 'railroad', price: 200, position: { row: 0, col: 4 } },
-            { id: 25, name: '雲林北港朝天宮 🛕', type: 'property', colorGroup: 'yellow', price: 260, position: { row: 0, col: 5 } },
-            { id: 26, name: '？❓', type: 'property', colorGroup: 'yellow', price: 260, position: { row: 0, col: 6 } },
-            { id: 27, name: '高雄左營美軍基地 🪖', type: 'property', colorGroup: 'yellow', price: 260, position: { row: 0, col: 7 } },
-            { id: 28, name: '臺東拉勞蘭部落 🏞️', type: 'property', colorGroup: 'yellow', price: 150, position: { row: 0, col: 8 } },
-            { id: 29, name: '？❓', type: 'property', colorGroup: 'yellow', price: 280, position: { row: 0, col: 9 } },
+            { id: 21, name: '台北木柵動物園 🦁', type: 'property', position: { row: 0, col: 1 } },
+            { id: 22, name: '苗栗南庄桂花巷 🌼', type: 'property', colorGroup: 'orange', toll: 200, ownerCharacter: 'candle', position: { row: 0, col: 2 } },
+            { id: 23, name: '❓', type: 'property', colorGroup: 'red', position: { row: 0, col: 3 } },
+            { id: 24, name: '臺北火車站 🚉', type: 'property', colorGroup: 'yellow', toll: 300, ownerCharacter: 'noodle', position: { row: 0, col: 4 } },
+            { id: 25, name: '雲林北港朝天宮 🛕', type: 'property', colorGroup: 'green', toll: 400, ownerCharacter: 'yam', position: { row: 0, col: 5 } },
+            { id: 26, name: '❓', type: 'property', colorGroup: 'red', position: { row: 0, col: 6 } },
+            { id: 27, name: '高雄左營美軍基地 🪖', type: 'property', colorGroup: 'blue', toll: 200, ownerCharacter: 'plate', position: { row: 0, col: 7 } },
+            { id: 28, name: '臺東拉勞蘭部落 🏞️', type: 'property', colorGroup: 'brown', toll: 400, ownerCharacter: 'bow', position: { row: 0, col: 8 } },
+            { id: 29, name: '❓', type: 'property', colorGroup: 'red', position: { row: 0, col: 9 } },
             { id: 30, name: '起飛 🛫', type: 'corner', position: { row: 0, col: 10 } },
 
             // 右排（上到下，31~39）
-            { id: 31, name: '南投武界部落 🏞️', type: 'property', colorGroup: 'green', price: 300, position: { row: 1, col: 10 } },
-            { id: 32, name: '屏東六堆客家園區 🏡', type: 'property', colorGroup: 'green', price: 300, position: { row: 2, col: 10 } },
-            { id: 33, name: '？❓', type: 'property', colorGroup: 'green', price: 320, position: { row: 3, col: 10 } },
-            { id: 34, name: '屏東墾丁大街 🏖️', type: 'property', colorGroup: 'green', price: 320, position: { row: 4, col: 10 } },
-            { id: 35, name: '臺北國際教會 ⛪', type: 'property', colorGroup: 'green', price: 200, position: { row: 5, col: 10 } },
-            { id: 36, name: '？❓', type: 'property', colorGroup: 'green', price: 200, position: { row: 6, col: 10 } },
-            { id: 37, name: '臺北清真大寺 🕌', type: 'property', colorGroup: 'darkblue', price: 350, position: { row: 7, col: 10 } },
-            { id: 38, name: '？❓', type: 'property', colorGroup: 'darkblue', price: 400, position: { row: 8, col: 10 } },
-            { id: 39, name: '臺南孔廟 🏯', type: 'property', colorGroup: 'darkblue', price: 400, position: { row: 9, col: 10 } },
+            { id: 31, name: '南投武界部落 🏞️', type: 'property', colorGroup: 'brown', toll: 500, ownerCharacter: 'bow', position: { row: 1, col: 10 } },
+            { id: 32, name: '屏東六堆客家園區 🏡', type: 'property', colorGroup: 'orange', toll: 400, ownerCharacter: 'candle', position: { row: 2, col: 10 } },
+            { id: 33, name: '❓', type: 'property', colorGroup: 'red', position: { row: 3, col: 10 } },
+            { id: 34, name: '屏東墾丁大街 🏖️', type: 'property', colorGroup: 'orange', position: { row: 4, col: 10 } },
+            { id: 35, name: '臺北國際教會 ⛪', type: 'property', colorGroup: 'blue', toll: 400, ownerCharacter: 'plate', position: { row: 5, col: 10 } },
+            { id: 36, name: '❓', type: 'property', colorGroup: 'red', position: { row: 6, col: 10 } },
+            { id: 37, name: '臺北清真大寺 🕌', type: 'property', colorGroup: 'yellow', toll: 400, ownerCharacter: 'noodle', position: { row: 7, col: 10 } },
+            { id: 38, name: '❓', type: 'property', colorGroup: 'red', position: { row: 8, col: 10 } },
+            { id: 39, name: '臺南孔廟 🏯', type: 'property', colorGroup: 'green', toll: 300, ownerCharacter: 'yam', position: { row: 9, col: 10 } },
         ];
     }
 
@@ -157,11 +157,18 @@ class GameBoard {
 
         square.innerHTML = content;
 
-        // Add property color strip for properties
+        // 只在有 colorGroup 的格子加色塊
         if (squareData.type === 'property' && squareData.colorGroup) {
+            const colorMap = {
+                yellow: '#FFD600',
+                green: '#43A047',
+                orange: '#FF9800',
+                blue: '#1976D2',
+                brown: '#795548'
+            };
             const colorStrip = document.createElement('div');
             colorStrip.className = 'property-color-strip';
-            colorStrip.style.backgroundColor = this.propertyColors[squareData.colorGroup];
+            colorStrip.style.backgroundColor = colorMap[squareData.colorGroup];
             square.appendChild(colorStrip);
         }
 
@@ -171,7 +178,7 @@ class GameBoard {
     createPropertySquare(squareData) {
         return `
             <div class="property-name">${squareData.name}</div>
-            <div class="property-price">$${squareData.price}</div>
+            ${squareData.toll ? `<div class="property-price">$${squareData.toll}</div>` : ''}
             <div class="houses-container"></div>
             <div class="players-on-square"></div>
         `;
@@ -331,13 +338,16 @@ class GameBoard {
                 if (playersContainer) {
                     const playerToken = document.createElement('div');
                     playerToken.className = 'player-token';
-                    playerToken.style.backgroundColor = player.color;
+                    playerToken.style.backgroundColor = 'transparent'; // 不要顏色底
                     playerToken.title = `${player.name} (${this.getCharacterName(player.character)})`;
 
-                    // Display character icon instead of color
+                    // 只顯示角色 emoji 並放大
                     playerToken.textContent = this.getCharacterIcon(player.character);
-                    playerToken.style.color = '#333';
-                    playerToken.style.fontSize = '0.8rem';
+                    playerToken.style.fontSize = '1.6rem'; // 200%
+                    playerToken.style.lineHeight = '1';
+                    playerToken.style.display = 'flex';
+                    playerToken.style.justifyContent = 'center';
+                    playerToken.style.alignItems = 'center';
 
                     // Add special styling for current player
                     if (player.id === gameState.currentPlayer) {
@@ -359,9 +369,14 @@ class GameBoard {
             'ship': '⛵',
             'plane': '✈️',
             'boot': '👢',
-            'thimble': '🔧'
+            'thimble': '🔧',
+            // 自訂角色
+            'plate': '🥄',      // 盤子
+            'candle': '🕯️',    // 蠟燭
+            'yam': '🍠',        // 番薯
+            'bow': '🏹',        // 弓箭
+            'noodle': '🍜'      // 麵條
         };
-
         return characterIcons[character] || '🎩';
     }
 
@@ -395,98 +410,6 @@ class GameBoard {
             `;
         }
     }
-
-    // Animation methods
-    animatePlayerMove(playerId, fromPosition, toPosition, gameState) {
-        const player = gameState.players.find(p => p.id === playerId);
-        if (!player) return;
-
-        // Create temporary animated token
-        const animatedToken = document.createElement('div');
-        animatedToken.className = 'player-token animated';
-        animatedToken.style.cssText = `
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background-color: ${player.color};
-            border: 2px solid #fff;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            z-index: 100;
-            transition: all 0.5s ease;
-        `;
-
-        // Position at starting square
-        const fromSquare = this.boardElement.querySelector(`[data-square-id="${fromPosition}"]`);
-        const fromRect = fromSquare.getBoundingClientRect();
-        const boardRect = this.boardElement.getBoundingClientRect();
-
-        animatedToken.style.left = (fromRect.left - boardRect.left + fromRect.width / 2 - 10) + 'px';
-        animatedToken.style.top = (fromRect.top - boardRect.top + fromRect.height / 2 - 10) + 'px';
-
-        this.boardElement.appendChild(animatedToken);
-
-        // Animate to destination
-        setTimeout(() => {
-            const toSquare = this.boardElement.querySelector(`[data-square-id="${toPosition}"]`);
-            const toRect = toSquare.getBoundingClientRect();
-
-            animatedToken.style.left = (toRect.left - boardRect.left + toRect.width / 2 - 10) + 'px';
-            animatedToken.style.top = (toRect.top - boardRect.top + toRect.height / 2 - 10) + 'px';
-        }, 100);
-
-        // Remove animated token and update positions
-        setTimeout(() => {
-            this.boardElement.removeChild(animatedToken);
-            this.updatePlayerPositions(gameState);
-        }, 600);
-    }
-
-    highlightSquare(squareId, duration = 2000) {
-        const square = this.boardElement.querySelector(`[data-square-id="${squareId}"]`);
-        if (!square) return;
-
-        square.style.boxShadow = '0 0 15px #667eea';
-        square.style.transform = 'scale(1.1)';
-
-        setTimeout(() => {
-            square.style.boxShadow = '';
-            square.style.transform = '';
-        }, duration);
-    }
-
-    // Utility methods
-    getSquarePosition(squareId) {
-        const squareData = this.boardLayout.find(s => s.id === squareId);
-        return squareData ? squareData.position : null;
-    }
-
-    getSquareData(squareId) {
-        return this.boardLayout.find(s => s.id === squareId);
-    }
-
-    calculateDistance(pos1, pos2) {
-        return Math.abs(pos1.row - pos2.row) + Math.abs(pos1.col - pos2.col);
-    }
-
-    // Mobile responsiveness
-    adjustForMobile() {
-        if (window.innerWidth <= 768) {
-            this.boardElement.style.fontSize = '0.7rem';
-
-            // Adjust square sizes
-            this.squares.forEach(square => {
-                square.style.padding = '1px';
-            });
-        } else {
-            this.boardElement.style.fontSize = '';
-
-            this.squares.forEach(square => {
-                square.style.padding = '';
-            });
-        }
-    }
 }
 
-// Make GameBoard available globally
 window.GameBoard = GameBoard;

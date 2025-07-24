@@ -11,6 +11,7 @@ class GameManager {
         const game = new MonopolyGame();
         game.hostId = playerId;
         game.hostIsObserver = (hostParticipation === 'observer');
+        game.ioRef = this.ioRef; // 在 rollDice、startGame、createRoom、joinRoom 等所有會用到 MonopolyGame 實例的地方，確保 game.ioRef = this.ioRef。
 
         // 檢查角色是否已被選走（理論上房主第一個進來不會重複，但保險起見）
         const takenCharacters = Array.from(game.players.values()).map(p => p.character);
@@ -44,6 +45,7 @@ class GameManager {
         if (!game) {
             return { success: false, message: 'Room not found' };
         }
+        game.ioRef = this.ioRef; // 在 rollDice、startGame、createRoom、joinRoom 等所有會用到 MonopolyGame 實例的地方，確保 game.ioRef = this.ioRef。
 
         if (game.players.size >= 5) {
             return { success: false, message: 'Room is full (max 5 players)' };
@@ -79,6 +81,7 @@ class GameManager {
         if (!game) {
             return { success: false, message: 'Room not found' };
         }
+        game.ioRef = this.ioRef; // 在 rollDice、startGame、createRoom、joinRoom 等所有會用到 MonopolyGame 實例的地方，確保 game.ioRef = this.ioRef。
 
         if (game.players.size < 2) {
             return { success: false, message: 'Need at least 2 players to start' };
@@ -107,6 +110,8 @@ class GameManager {
             console.log(`[${roomCode}] Room not found for player ${playerId}`);
             return { success: false, message: 'Room not found' };
         }
+        game.roomCode = roomCode;
+        game.ioRef = this.ioRef; // 在 rollDice、startGame、createRoom、joinRoom 等所有會用到 MonopolyGame 實例的地方，確保 game.ioRef = this.ioRef。
 
         if (!game.gameStarted) {
             console.log(`[${roomCode}] Game not started for player ${playerId}`);
@@ -124,43 +129,13 @@ class GameManager {
             return { success: false, message: 'You have already rolled dice this turn' };
         }
 
+        // 修正：記住 roomCode
+        // game.roomCode = roomCode; // This line is now handled above
         console.log(`[${roomCode}] Player ${playerId} rolling dice successfully`);
         const dice = game.rollDice();
         return {
             success: true,
             dice,
-            gameState: game.getGameState()
-        };
-    }
-
-    buyProperty(roomCode, playerId, propertyId) {
-        const game = this.rooms.get(roomCode);
-        if (!game) {
-            return { success: false, message: 'Room not found' };
-        }
-
-        if (game.currentPlayer !== playerId) {
-            return { success: false, message: 'Not your turn' };
-        }
-
-        const result = game.buyProperty(playerId, propertyId);
-        return {
-            success: result.success,
-            message: result.message,
-            gameState: game.getGameState()
-        };
-    }
-
-    buildHouse(roomCode, playerId, propertyId) {
-        const game = this.rooms.get(roomCode);
-        if (!game) {
-            return { success: false, message: 'Room not found' };
-        }
-
-        const result = game.buildHouse(playerId, propertyId);
-        return {
-            success: result.success,
-            message: result.message,
             gameState: game.getGameState()
         };
     }
@@ -247,7 +222,50 @@ class GameManager {
     }
 }
 
-// Monopoly Game Logic
+// === 台灣地圖 boardLayout ===
+const TAIWAN_BOARD_LAYOUT = [
+    { id: 0, name: '桃園國際機場（跳到「起飛」）✈️🔀', type: 'special', position: { row: 10, col: 10 } },
+    { id: 1, name: '新北中和華新街 🏮', type: 'property', colorGroup: 'yellow', toll: 500, ownerCharacter: 'noodle', position: { row: 10, col: 9 } },
+    { id: 2, name: '❓', type: 'property', colorGroup: 'red', position: { row: 10, col: 8 } },
+    { id: 3, name: '臺北龍山寺 🛕', type: 'property', colorGroup: 'green', toll: 500, ownerCharacter: 'yam', position: { row: 10, col: 7 } },
+    { id: 4, name: '新竹北埔峨眉湖 🏞️', type: 'property', colorGroup: 'orange', toll: 300, ownerCharacter: 'candle', position: { row: 10, col: 6 } },
+    { id: 5, name: '日月潭 🌊', type: 'property', position: { row: 10, col: 5 } },
+    { id: 6, name: '臺中美國學校 🏫', type: 'property', colorGroup: 'blue', toll: 300, ownerCharacter: 'plate', position: { row: 10, col: 4 } },
+    { id: 7, name: '❓', type: 'property', colorGroup: 'red', position: { row: 10, col: 3 } },
+    { id: 8, name: '嘉義達邦部落 🏕️', type: 'property', colorGroup: 'brown', toll: 200, ownerCharacter: 'bow', position: { row: 10, col: 2 } },
+    { id: 9, name: '台南安平古堡 🏯', type: 'property', position: { row: 10, col: 1 } },
+    { id: 10, name: '起點 🚩', type: 'corner', position: { row: 10, col: 0 } },
+    { id: 11, name: '臺北天母國際社區 🏘️', type: 'property', colorGroup: 'blue', toll: 500, ownerCharacter: 'plate', position: { row: 9, col: 0 } },
+    { id: 12, name: '彰化鹿港老街 🏮', type: 'property', colorGroup: 'green', toll: 200, ownerCharacter: 'yam', position: { row: 8, col: 0 } },
+    { id: 13, name: '❓', type: 'property', colorGroup: 'red', position: { row: 7, col: 0 } },
+    { id: 14, name: '臺中東協廣場 🏢', type: 'property', colorGroup: 'yellow', toll: 200, ownerCharacter: 'noodle', position: { row: 6, col: 0 } },
+    { id: 15, name: '高雄美濃 🍃', type: 'property', colorGroup: 'orange', toll: 500, ownerCharacter: 'candle', position: { row: 5, col: 0 } },
+    { id: 16, name: '❓', type: 'property', colorGroup: 'red', position: { row: 4, col: 0 } },
+    { id: 17, name: '花蓮奇美部落 🏞️', type: 'property', colorGroup: 'brown', toll: 300, ownerCharacter: 'bow', position: { row: 3, col: 0 } },
+    { id: 18, name: '台北101 🏙️', type: 'property', position: { row: 2, col: 0 } },
+    { id: 19, name: '彩虹眷村 🌈', type: 'property', position: { row: 1, col: 0 } },
+    { id: 20, name: '台中國家歌劇院（暫停一輪）🎭⏸️', type: 'special', position: { row: 0, col: 0 } },
+    { id: 21, name: '台北木柵動物園 🦁', type: 'property', position: { row: 0, col: 1 } },
+    { id: 22, name: '苗栗南庄桂花巷 🌼', type: 'property', colorGroup: 'orange', toll: 200, ownerCharacter: 'candle', position: { row: 0, col: 2 } },
+    { id: 23, name: '❓', type: 'property', colorGroup: 'red', position: { row: 0, col: 3 } },
+    { id: 24, name: '臺北火車站 🚉', type: 'property', colorGroup: 'yellow', toll: 300, ownerCharacter: 'noodle', position: { row: 0, col: 4 } },
+    { id: 25, name: '雲林北港朝天宮 🛕', type: 'property', colorGroup: 'green', toll: 400, ownerCharacter: 'yam', position: { row: 0, col: 5 } },
+    { id: 26, name: '❓', type: 'property', colorGroup: 'red', position: { row: 0, col: 6 } },
+    { id: 27, name: '高雄左營美軍基地 🪖', type: 'property', colorGroup: 'blue', toll: 200, ownerCharacter: 'plate', position: { row: 0, col: 7 } },
+    { id: 28, name: '臺東拉勞蘭部落 🏞️', type: 'property', colorGroup: 'brown', toll: 400, ownerCharacter: 'bow', position: { row: 0, col: 8 } },
+    { id: 29, name: '❓', type: 'property', colorGroup: 'red', position: { row: 0, col: 9 } },
+    { id: 30, name: '起飛 🛫', type: 'corner', position: { row: 0, col: 10 } },
+    { id: 31, name: '南投武界部落 🏞️', type: 'property', colorGroup: 'brown', toll: 500, ownerCharacter: 'bow', position: { row: 1, col: 10 } },
+    { id: 32, name: '屏東六堆客家園區 🏡', type: 'property', colorGroup: 'orange', toll: 400, ownerCharacter: 'candle', position: { row: 2, col: 10 } },
+    { id: 33, name: '❓', type: 'property', colorGroup: 'red', position: { row: 3, col: 10 } },
+    { id: 34, name: '屏東墾丁大街 🏖️', type: 'property', colorGroup: 'orange', position: { row: 4, col: 10 } },
+    { id: 35, name: '臺北國際教會 ⛪', type: 'property', colorGroup: 'blue', toll: 400, ownerCharacter: 'plate', position: { row: 5, col: 10 } },
+    { id: 36, name: '❓', type: 'property', colorGroup: 'red', position: { row: 6, col: 10 } },
+    { id: 37, name: '臺北清真大寺 🕌', type: 'property', colorGroup: 'yellow', toll: 400, ownerCharacter: 'noodle', position: { row: 7, col: 10 } },
+    { id: 38, name: '❓', type: 'property', colorGroup: 'red', position: { row: 8, col: 10 } },
+    { id: 39, name: '臺南孔廟 🏯', type: 'property', colorGroup: 'green', toll: 300, ownerCharacter: 'yam', position: { row: 9, col: 10 } },
+];
+
 class MonopolyGame {
     constructor() {
         this.players = new Map();
@@ -265,6 +283,7 @@ class MonopolyGame {
         this.hasRolledThisTurn = false; // 新增：追蹤是否已在本回合擲過骰子
         this.hostId = null;
         this.hostIsObserver = false;
+        this.boardLayout = TAIWAN_BOARD_LAYOUT;
     }
 
     addPlayer(playerId, playerName, character = 'candle') {
@@ -385,12 +404,12 @@ class MonopolyGame {
         }
 
         // Move player
-        this.movePlayer(this.currentPlayer, total);
+        this.movePlayer(this.currentPlayer, total, this.ioRef, this.roomCode);
 
         return this.currentRoll;
     }
 
-    movePlayer(playerId, spaces) {
+    movePlayer(playerId, spaces, io, roomCode) {
         const player = this.players.get(playerId);
         const oldPosition = player.position;
         player.position = (player.position + spaces) % 40;
@@ -401,10 +420,10 @@ class MonopolyGame {
         }
 
         // Handle landing on a space
-        this.handleSpaceLanding(playerId, player.position);
+        this.handleSpaceLanding(playerId, player.position, io, this.roomCode);
     }
 
-    handleSpaceLanding(playerId, position) {
+    handleSpaceLanding(playerId, position, io, roomCode) {
         const player = this.players.get(playerId);
         const space = this.getSpaceInfo(position);
 
@@ -412,7 +431,7 @@ class MonopolyGame {
             case 'property':
             case 'railroad':
             case 'utility':
-                this.handlePropertyLanding(playerId, position);
+                this.handlePropertyLanding(playerId, position, io, this.roomCode);
                 break;
             case 'chance':
                 this.drawChanceCard(playerId);
@@ -434,36 +453,59 @@ class MonopolyGame {
         }
     }
 
-    handlePropertyLanding(playerId, position) {
-        const property = this.properties.get(position);
+    handlePropertyLanding(playerId, position, io, roomCode) {
+        let property = null;
+        if (this.boardLayout && Array.isArray(this.boardLayout)) {
+            property = this.boardLayout.find(p => p.id == position);
+        } else if (this.properties && this.properties.get) {
+            property = this.properties.get(position);
+        }
         const player = this.players.get(playerId);
 
-        if (!property.owner) {
-            // Property is available for purchase
-            return;
+        // 新邏輯：依 ownerCharacter 分配過路費
+        if (property && property.ownerCharacter && property.toll) {
+            // 找到該角色的玩家
+            const ownerPlayer = Array.from(this.players.values()).find(p => p.character === property.ownerCharacter);
+            if (ownerPlayer) {
+                if (ownerPlayer.id === playerId) {
+                    // 玩家走到自己地，不收費
+                    return;
+                }
+                // 扣款與加款
+                const toll = property.toll;
+                player.money -= toll;
+                ownerPlayer.money += toll;
+                // 通知付款方
+                if (io && roomCode) {
+                    io.to(playerId).emit('payToll', {
+                        amount: toll,
+                        propertyName: property.name,
+                        ownerName: ownerPlayer.name,
+                        ownerCharacter: ownerPlayer.character
+                    });
+                    io.to(ownerPlayer.id).emit('receiveToll', {
+                        amount: toll,
+                        propertyName: property.name,
+                        payerName: player.name,
+                        payerCharacter: player.character
+                    });
+                }
+            } else if (!ownerPlayer) {
+                // 地主不在本場玩家名單，過路費充公
+                const toll = property.toll;
+                player.money -= toll;
+                if (io && roomCode) {
+                    io.to(playerId).emit('payToll', {
+                        amount: toll,
+                        propertyName: property.name,
+                        ownerName: null,
+                        ownerCharacter: property.ownerCharacter,
+                        confiscated: true
+                    });
+                }
+            }
         }
-
-        if (property.owner === playerId) {
-            // Player owns the property
-            return;
-        }
-
-        if (property.mortgaged) {
-            // No rent on mortgaged property
-            return;
-        }
-
-        // Pay rent
-        const rent = this.calculateRent(position, property.owner);
-        const owner = this.players.get(property.owner);
-
-        if (player.money >= rent) {
-            player.money -= rent;
-            owner.money += rent;
-        } else {
-            // Player can't afford rent - handle bankruptcy
-            this.handleBankruptcy(playerId, property.owner, rent);
-        }
+        // 其他格子不處理
     }
 
     calculateRent(position, ownerId) {
@@ -492,73 +534,6 @@ class MonopolyGame {
         }
 
         return property.rent[property.houses]; // House rent
-    }
-
-    buyProperty(playerId, propertyId) {
-        const property = this.properties.get(propertyId);
-        const player = this.players.get(playerId);
-
-        if (!property) {
-            return { success: false, message: 'Property not found' };
-        }
-
-        if (property.owner) {
-            return { success: false, message: 'Property already owned' };
-        }
-
-        if (player.money < property.price) {
-            return { success: false, message: 'Insufficient funds' };
-        }
-
-        player.money -= property.price;
-        property.owner = playerId;
-        player.properties.push(propertyId);
-
-        return { success: true };
-    }
-
-    buildHouse(playerId, propertyId) {
-        const property = this.properties.get(propertyId);
-        const player = this.players.get(playerId);
-
-        if (!property || property.owner !== playerId) {
-            return { success: false, message: 'You do not own this property' };
-        }
-
-        if (property.type !== 'property') {
-            return { success: false, message: 'Cannot build on this type of property' };
-        }
-
-        if (!this.hasMonopoly(playerId, property.colorGroup)) {
-            return { success: false, message: 'Need monopoly to build houses' };
-        }
-
-        if (property.hotels > 0) {
-            return { success: false, message: 'Property already has a hotel' };
-        }
-
-        if (property.houses >= 4) {
-            return { success: false, message: 'Maximum houses reached. Build hotel instead.' };
-        }
-
-        if (this.houses <= 0) {
-            return { success: false, message: 'No houses available' };
-        }
-
-        if (player.money < property.housePrice) {
-            return { success: false, message: 'Insufficient funds' };
-        }
-
-        // Check even building rule
-        if (!this.canBuildEvenly(playerId, property.colorGroup, propertyId)) {
-            return { success: false, message: 'Must build evenly across color group' };
-        }
-
-        player.money -= property.housePrice;
-        property.houses++;
-        this.houses--;
-
-        return { success: true };
     }
 
     endTurn() {
@@ -774,10 +749,10 @@ class MonopolyGame {
         switch (card.action) {
             case 'move':
                 player.position = card.target;
-                this.handleSpaceLanding(playerId, card.target);
+                this.handleSpaceLanding(playerId, card.target, this.ioRef, this.roomCode);
                 break;
             case 'moveRelative':
-                this.movePlayer(playerId, card.spaces);
+                this.movePlayer(playerId, card.spaces, this.ioRef, this.roomCode);
                 break;
             case 'pay':
                 player.money -= card.amount;
