@@ -427,6 +427,7 @@ class MonopolyClient {
         this.updateCurrentPlayerInfo();
         this.updatePlayersPanel();
         this.updateGameBoard();
+        this.updatePublicFundDisplay(); // 右上角同步顯示公費
         // 新增：檢查自己是否在問號格
         const me = this.gameState.players.find(p => p.id === this.playerId);
         if (me) {
@@ -965,6 +966,27 @@ class MonopolyClient {
     }
 
     showTagRemoveModal(player) {
+        if (!player || !player.tags || player.tags.length === 0) return;
+        // 取得目前國家（根據棋盤格地名）
+        const currentSquare = window.game && window.game.gameBoard && window.game.gameBoard.boardLayout
+            ? window.game.gameBoard.boardLayout.find(sq => sq.id == player.position)
+            : null;
+        let country = '';
+        if (currentSquare) {
+            // 以地名判斷國家關鍵字
+            if (currentSquare.name.includes('日本') || currentSquare.name.includes('Tokyo') || currentSquare.name.includes('京都') || currentSquare.name.includes('大阪') || currentSquare.name.includes('札幌')) country = 'japan';
+            else if (currentSquare.name.includes('法國') || currentSquare.name.includes('Paris') || currentSquare.name.includes('馬賽') || currentSquare.name.includes('尼斯') || currentSquare.name.includes('里昂')) country = 'france';
+            else if (currentSquare.name.includes('美國') || currentSquare.name.includes('Chicago') || currentSquare.name.includes('New York') || currentSquare.name.includes('Miami') || currentSquare.name.includes('San Francisco')) country = 'usa';
+            else if (currentSquare.name.includes('中國') || currentSquare.name.includes('北京') || currentSquare.name.includes('上海') || currentSquare.name.includes('廣州') || currentSquare.name.includes('福建') || currentSquare.name.includes('台北') || currentSquare.name.includes('Taipei')) country = 'china';
+            else if (currentSquare.name.includes('墨西哥') || currentSquare.name.includes('Mexico') || currentSquare.name.includes('瓜達拉哈拉') || currentSquare.name.includes('普埃布拉') || currentSquare.name.includes('埃卡提佩')) country = 'mexico';
+            else country = 'other';
+        }
+        // 初始化 deletedTagsByCountry
+        if (!player.deletedTagsByCountry) player.deletedTagsByCountry = {};
+        if (!player.deletedTagsByCountry[country]) player.deletedTagsByCountry[country] = [];
+        // 過濾掉已刪除的標籤
+        const availableTags = player.tags.filter(tag => !player.deletedTagsByCountry[country].includes(tag));
+        if (availableTags.length === 0) return;
         // 建立 modal
         let modal = document.getElementById('tagRemoveModal');
         if (!modal) {
@@ -988,7 +1010,7 @@ class MonopolyClient {
             <button id='tagRemoveCancel' style='margin-top:18px;padding:4px 18px;border-radius:8px;'>取消</button>
         </div>`;
         const btns = modal.querySelector('#tagRemoveBtns');
-        player.tags.forEach((tag, idx) => {
+        availableTags.forEach((tag, idx) => {
             const btn = document.createElement('button');
             btn.textContent = tag;
             btn.style.margin = '4px 8px';
@@ -998,10 +1020,15 @@ class MonopolyClient {
             btn.style.background = '#f5f5f5';
             btn.style.cursor = 'pointer';
             btn.onclick = () => {
-                player.tags.splice(idx, 1);
+                // 通知伺服器刪除標籤
+                this.socket.emit('removeTag', {
+                    playerId: player.id,
+                    country,
+                    tag
+                });
                 modal.remove();
                 this.hasRemovedTagThisTurn = true;
-                this.updatePlayersPanel();
+                // 不再直接改 player.tags，等伺服器 gameState
             };
             btns.appendChild(btn);
         });
@@ -1025,6 +1052,13 @@ class MonopolyClient {
             if (currentSquare && currentSquare.name.includes('❓')) {
                 this.handleQuestionMark(me);
             }
+        }
+    }
+
+    updatePublicFundDisplay() {
+        const fundDiv = document.getElementById('publicFundDisplay');
+        if (fundDiv && this.gameState && typeof this.gameState.publicFund === 'number') {
+            fundDiv.textContent = `公費：$${this.gameState.publicFund}`;
         }
     }
 }

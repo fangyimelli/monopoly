@@ -18,6 +18,8 @@ document.addEventListener('DOMContentLoaded', function () {
     window.game = new MonopolyClient();
     window.game.init();
 
+    // （已移除測試用自動顯示遊戲畫面程式碼）
+
     // Wait for game object to be available
     function waitForGame() {
         if (window.game && window.game.socket) {

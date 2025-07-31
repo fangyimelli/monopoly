@@ -1,3 +1,4 @@
+console.log('=== GameManager.js 已載入 ===');
 const { v4: uuidv4 } = require('uuid');
 
 class GameManager {
@@ -226,43 +227,43 @@ class GameManager {
 const TAIWAN_BOARD_LAYOUT = [
     { id: 0, name: '桃園國際機場（跳到「起飛」）✈️🔀', type: 'special', position: { row: 10, col: 10 } },
     { id: 1, name: '新北中和華新街 🏮', type: 'property', colorGroup: 'yellow', toll: 500, ownerCharacter: 'noodle', position: { row: 10, col: 9 } },
-    { id: 2, name: '❓', type: 'property', colorGroup: 'red', position: { row: 10, col: 8 } },
+    { id: 2, name: '❓', type: 'chance', position: { row: 10, col: 8 } },
     { id: 3, name: '臺北龍山寺 🛕', type: 'property', colorGroup: 'green', toll: 500, ownerCharacter: 'yam', position: { row: 10, col: 7 } },
     { id: 4, name: '新竹北埔峨眉湖 🏞️', type: 'property', colorGroup: 'orange', toll: 300, ownerCharacter: 'candle', position: { row: 10, col: 6 } },
     { id: 5, name: '日月潭 🌊', type: 'property', position: { row: 10, col: 5 } },
     { id: 6, name: '臺中美國學校 🏫', type: 'property', colorGroup: 'blue', toll: 300, ownerCharacter: 'plate', position: { row: 10, col: 4 } },
-    { id: 7, name: '❓', type: 'property', colorGroup: 'red', position: { row: 10, col: 3 } },
+    { id: 7, name: '❓', type: 'chance', position: { row: 10, col: 3 } },
     { id: 8, name: '嘉義達邦部落 🏕️', type: 'property', colorGroup: 'brown', toll: 200, ownerCharacter: 'bow', position: { row: 10, col: 2 } },
     { id: 9, name: '台南安平古堡 🏯', type: 'property', position: { row: 10, col: 1 } },
     { id: 10, name: '起點 🚩', type: 'corner', position: { row: 10, col: 0 } },
     { id: 11, name: '臺北天母國際社區 🏘️', type: 'property', colorGroup: 'blue', toll: 500, ownerCharacter: 'plate', position: { row: 9, col: 0 } },
     { id: 12, name: '彰化鹿港老街 🏮', type: 'property', colorGroup: 'green', toll: 200, ownerCharacter: 'yam', position: { row: 8, col: 0 } },
-    { id: 13, name: '❓', type: 'property', colorGroup: 'red', position: { row: 7, col: 0 } },
+    { id: 13, name: '❓', type: 'chance', position: { row: 7, col: 0 } },
     { id: 14, name: '臺中東協廣場 🏢', type: 'property', colorGroup: 'yellow', toll: 200, ownerCharacter: 'noodle', position: { row: 6, col: 0 } },
     { id: 15, name: '高雄美濃 🍃', type: 'property', colorGroup: 'orange', toll: 500, ownerCharacter: 'candle', position: { row: 5, col: 0 } },
-    { id: 16, name: '❓', type: 'property', colorGroup: 'red', position: { row: 4, col: 0 } },
+    { id: 16, name: '❓', type: 'chance', position: { row: 4, col: 0 } },
     { id: 17, name: '花蓮奇美部落 🏞️', type: 'property', colorGroup: 'brown', toll: 300, ownerCharacter: 'bow', position: { row: 3, col: 0 } },
     { id: 18, name: '台北101 🏙️', type: 'property', position: { row: 2, col: 0 } },
     { id: 19, name: '彩虹眷村 🌈', type: 'property', position: { row: 1, col: 0 } },
     { id: 20, name: '台中國家歌劇院（暫停一輪）🎭⏸️', type: 'special', position: { row: 0, col: 0 } },
     { id: 21, name: '台北木柵動物園 🦁', type: 'property', position: { row: 0, col: 1 } },
     { id: 22, name: '苗栗南庄桂花巷 🌼', type: 'property', colorGroup: 'orange', toll: 200, ownerCharacter: 'candle', position: { row: 0, col: 2 } },
-    { id: 23, name: '❓', type: 'property', colorGroup: 'red', position: { row: 0, col: 3 } },
+    { id: 23, name: '❓', type: 'chance', position: { row: 0, col: 3 } },
     { id: 24, name: '臺北火車站 🚉', type: 'property', colorGroup: 'yellow', toll: 300, ownerCharacter: 'noodle', position: { row: 0, col: 4 } },
     { id: 25, name: '雲林北港朝天宮 🛕', type: 'property', colorGroup: 'green', toll: 400, ownerCharacter: 'yam', position: { row: 0, col: 5 } },
-    { id: 26, name: '❓', type: 'property', colorGroup: 'red', position: { row: 0, col: 6 } },
+    { id: 26, name: '❓', type: 'chance', position: { row: 0, col: 6 } },
     { id: 27, name: '高雄左營美軍基地 🪖', type: 'property', colorGroup: 'blue', toll: 200, ownerCharacter: 'plate', position: { row: 0, col: 7 } },
     { id: 28, name: '臺東拉勞蘭部落 🏞️', type: 'property', colorGroup: 'brown', toll: 400, ownerCharacter: 'bow', position: { row: 0, col: 8 } },
-    { id: 29, name: '❓', type: 'property', colorGroup: 'red', position: { row: 0, col: 9 } },
+    { id: 29, name: '❓', type: 'chance', position: { row: 0, col: 9 } },
     { id: 30, name: '起飛 🛫', type: 'corner', position: { row: 0, col: 10 } },
     { id: 31, name: '南投武界部落 🏞️', type: 'property', colorGroup: 'brown', toll: 500, ownerCharacter: 'bow', position: { row: 1, col: 10 } },
     { id: 32, name: '屏東六堆客家園區 🏡', type: 'property', colorGroup: 'orange', toll: 400, ownerCharacter: 'candle', position: { row: 2, col: 10 } },
-    { id: 33, name: '❓', type: 'property', colorGroup: 'red', position: { row: 3, col: 10 } },
+    { id: 33, name: '❓', type: 'chance', position: { row: 3, col: 10 } },
     { id: 34, name: '屏東墾丁大街 🏖️', type: 'property', colorGroup: 'orange', position: { row: 4, col: 10 } },
     { id: 35, name: '臺北國際教會 ⛪', type: 'property', colorGroup: 'blue', toll: 400, ownerCharacter: 'plate', position: { row: 5, col: 10 } },
-    { id: 36, name: '❓', type: 'property', colorGroup: 'red', position: { row: 6, col: 10 } },
+    { id: 36, name: '❓', type: 'chance', position: { row: 6, col: 10 } },
     { id: 37, name: '臺北清真大寺 🕌', type: 'property', colorGroup: 'yellow', toll: 400, ownerCharacter: 'noodle', position: { row: 7, col: 10 } },
-    { id: 38, name: '❓', type: 'property', colorGroup: 'red', position: { row: 8, col: 10 } },
+    { id: 38, name: '❓', type: 'chance', position: { row: 8, col: 10 } },
     { id: 39, name: '臺南孔廟 🏯', type: 'property', colorGroup: 'green', toll: 300, ownerCharacter: 'yam', position: { row: 9, col: 10 } },
 ];
 
@@ -284,6 +285,7 @@ class MonopolyGame {
         this.hostId = null;
         this.hostIsObserver = false;
         this.boardLayout = TAIWAN_BOARD_LAYOUT;
+        this.publicFund = 20000; // 公費初始值
     }
 
     addPlayer(playerId, playerName, character = 'candle') {
@@ -445,6 +447,14 @@ class MonopolyGame {
             case 'go_to_jail':
                 this.sendPlayerToJail(playerId);
                 break;
+            case 'special':
+                if (space.name && space.name.includes('Special Bonus')) {
+                    player.money += 500;
+                    if (io && roomCode) {
+                        io.to(playerId).emit('showSuccess', { message: '獲得 Special Bonus +500！' });
+                    }
+                }
+                break;
             case 'jail':
             case 'free_parking':
             case 'go':
@@ -454,55 +464,36 @@ class MonopolyGame {
     }
 
     handlePropertyLanding(playerId, position, io, roomCode) {
-        let property = null;
-        if (this.boardLayout && Array.isArray(this.boardLayout)) {
-            property = this.boardLayout.find(p => p.id == position);
-        } else if (this.properties && this.properties.get) {
-            property = this.properties.get(position);
-        }
+        const property = this.properties.get(position);
         const player = this.players.get(playerId);
 
-        // 新邏輯：依 ownerCharacter 分配過路費
+        // 只要有 ownerCharacter 且不是自己顏色就收錢
         if (property && property.ownerCharacter && property.toll) {
-            // 找到該角色的玩家
-            const ownerPlayer = Array.from(this.players.values()).find(p => p.character === property.ownerCharacter);
-            if (ownerPlayer) {
-                if (ownerPlayer.id === playerId) {
-                    // 玩家走到自己地，不收費
-                    return;
-                }
-                // 扣款與加款
-                const toll = property.toll;
+            if (player.character === property.ownerCharacter) {
+                // 地主自己走到自己地，不收費
+                console.log('地主自己走到自己地，不收費');
+                return;
+            }
+            const toll = property.toll;
+            console.log('property.toll', property.toll, 'player.money(before)', player.money);
+            if (player.money >= toll) {
                 player.money -= toll;
-                ownerPlayer.money += toll;
-                // 通知付款方
-                if (io && roomCode) {
-                    io.to(playerId).emit('payToll', {
-                        amount: toll,
-                        propertyName: property.name,
-                        ownerName: ownerPlayer.name,
-                        ownerCharacter: ownerPlayer.character
-                    });
-                    io.to(ownerPlayer.id).emit('receiveToll', {
-                        amount: toll,
-                        propertyName: property.name,
-                        payerName: player.name,
-                        payerCharacter: player.character
-                    });
-                }
-            } else if (!ownerPlayer) {
-                // 地主不在本場玩家名單，過路費充公
-                const toll = property.toll;
-                player.money -= toll;
-                if (io && roomCode) {
-                    io.to(playerId).emit('payToll', {
-                        amount: toll,
-                        propertyName: property.name,
-                        ownerName: null,
-                        ownerCharacter: property.ownerCharacter,
-                        confiscated: true
-                    });
-                }
+                this.publicFund += toll;
+                console.log('扣錢成功', { playerMoney: player.money, publicFund: this.publicFund });
+            } else {
+                this.publicFund += player.money;
+                player.money = 0;
+                console.log('玩家破產，全部進公費', { publicFund: this.publicFund });
+            }
+            console.log('player.money(after)', player.money);
+            // 通知玩家
+            if (io && roomCode) {
+                io.to(playerId).emit('payToll', {
+                    amount: toll,
+                    propertyName: property.name,
+                    ownerCharacter: property.ownerCharacter,
+                    toPublicFund: true
+                });
             }
         }
         // 其他格子不處理
@@ -556,6 +547,7 @@ class MonopolyGame {
     }
 
     getGameState() {
+        console.log('getGameState', { publicFund: this.publicFund, players: Array.from(this.players.values()) });
         return {
             players: Array.from(this.players.values()),
             properties: Array.from(this.properties.entries()).map(([id, prop]) => ({ id, ...prop })),
@@ -566,7 +558,8 @@ class MonopolyGame {
             houses: this.houses,
             hotels: this.hotels,
             hostId: this.hostId,
-            hostIsObserver: this.hostIsObserver
+            hostIsObserver: this.hostIsObserver,
+            publicFund: this.publicFund // 回傳公費
         };
     }
 
@@ -577,85 +570,70 @@ class MonopolyGame {
     }
 
     getSpaceInfo(position) {
-        const spaces = [
-            { type: 'go', name: 'GO' },
-            { type: 'property', name: 'Mediterranean Avenue' },
-            { type: 'community_chest', name: 'Community Chest' },
-            { type: 'property', name: 'Baltic Avenue' },
-            { type: 'tax', name: 'Income Tax', amount: 200 },
-            { type: 'railroad', name: 'Reading Railroad' },
-            { type: 'property', name: 'Oriental Avenue' },
-            { type: 'chance', name: 'Chance' },
-            { type: 'property', name: 'Vermont Avenue' },
-            { type: 'property', name: 'Connecticut Avenue' },
-            { type: 'jail', name: 'Jail' },
-            { type: 'property', name: 'St. Charles Place' },
-            { type: 'utility', name: 'Electric Company' },
-            { type: 'property', name: 'States Avenue' },
-            { type: 'property', name: 'Virginia Avenue' },
-            { type: 'railroad', name: 'Pennsylvania Railroad' },
-            { type: 'property', name: 'St. James Place' },
-            { type: 'community_chest', name: 'Community Chest' },
-            { type: 'property', name: 'Tennessee Avenue' },
-            { type: 'property', name: 'New York Avenue' },
-            { type: 'free_parking', name: 'Free Parking' },
-            { type: 'property', name: 'Kentucky Avenue' },
-            { type: 'chance', name: 'Chance' },
-            { type: 'property', name: 'Indiana Avenue' },
-            { type: 'property', name: 'Illinois Avenue' },
-            { type: 'railroad', name: 'B&O Railroad' },
-            { type: 'property', name: 'Atlantic Avenue' },
-            { type: 'property', name: 'Ventnor Avenue' },
-            { type: 'utility', name: 'Water Works' },
-            { type: 'property', name: 'Marvin Gardens' },
-            { type: 'go_to_jail', name: 'Go To Jail' },
-            { type: 'property', name: 'Pacific Avenue' },
-            { type: 'property', name: 'North Carolina Avenue' },
-            { type: 'community_chest', name: 'Community Chest' },
-            { type: 'property', name: 'Pennsylvania Avenue' },
-            { type: 'railroad', name: 'Short Line' },
-            { type: 'chance', name: 'Chance' },
-            { type: 'property', name: 'Park Place' },
-            { type: 'tax', name: 'Luxury Tax', amount: 100 },
-            { type: 'property', name: 'Boardwalk' }
-        ];
-
-        return spaces[position] || { type: 'unknown', name: 'Unknown' };
+        // 直接回傳 this.properties 的格子資料，確保 type 正確
+        return this.properties.get(position) || { type: 'unknown', name: 'Unknown' };
     }
 
     initializeProperties() {
         const properties = new Map();
 
-        // Property data with prices, rents, etc. - 台灣主題
+        // 國家對角色顏色隨機分配
+        const countryCharacterMap = {
+            japan: 'plate',      // 東京、京都、大阪、札幌
+            france: 'candle',    // 巴黎、馬賽、尼斯、里昂
+            china: 'noodle',     // 北京、上海、廣州、福建、台北、桃園
+            usa: 'yam',          // 芝加哥、紐約、邁阿密、舊金山
+            mexico: 'bow',       // 墨西哥城、瓜達拉哈拉、普埃布拉、埃卡提佩
+            thailand: 'car',     // 曼谷
+            italy: 'dog',        // 羅馬
+            brazil: 'cat',       // 巴西
+            australia: 'ship',   // 雪梨
+        };
         const propertyData = [
-            { id: 1, name: '台北101', price: 60, rent: [2, 10, 30, 90, 160, 250], colorGroup: 'brown', housePrice: 50 },
-            { id: 3, name: '信義區', price: 60, rent: [4, 20, 60, 180, 320, 450], colorGroup: 'brown', housePrice: 50 },
-            { id: 5, name: '台灣高鐵', price: 200, rent: [25, 50, 100, 200], type: 'railroad' },
-            { id: 6, name: '士林夜市', price: 100, rent: [6, 30, 90, 270, 400, 550], colorGroup: 'lightblue', housePrice: 50 },
-            { id: 8, name: '九份老街', price: 100, rent: [6, 30, 90, 270, 400, 550], colorGroup: 'lightblue', housePrice: 50 },
-            { id: 9, name: '西門町', price: 120, rent: [8, 40, 100, 300, 450, 600], colorGroup: 'lightblue', housePrice: 50 },
-            { id: 11, name: '日月潭', price: 140, rent: [10, 50, 150, 450, 625, 750], colorGroup: 'pink', housePrice: 100 },
-            { id: 12, name: '台電公司', price: 150, type: 'utility' },
-            { id: 13, name: '阿里山', price: 140, rent: [10, 50, 150, 450, 625, 750], colorGroup: 'pink', housePrice: 100 },
-            { id: 14, name: '太魯閣', price: 160, rent: [12, 60, 180, 500, 700, 900], colorGroup: 'pink', housePrice: 100 },
-            { id: 15, name: '中華航空', price: 200, rent: [25, 50, 100, 200], type: 'railroad' },
-            { id: 16, name: '墾丁', price: 180, rent: [14, 70, 200, 550, 750, 950], colorGroup: 'orange', housePrice: 100 },
-            { id: 18, name: '清境農場', price: 180, rent: [14, 70, 200, 550, 750, 950], colorGroup: 'orange', housePrice: 100 },
-            { id: 19, name: '淡水老街', price: 200, rent: [16, 80, 220, 600, 800, 1000], colorGroup: 'orange', housePrice: 100 },
-            { id: 21, name: '故宮博物院', price: 220, rent: [18, 90, 250, 700, 875, 1050], colorGroup: 'red', housePrice: 150 },
-            { id: 23, name: '中正紀念堂', price: 220, rent: [18, 90, 250, 700, 875, 1050], colorGroup: 'red', housePrice: 150 },
-            { id: 24, name: '龍山寺', price: 240, rent: [20, 100, 300, 750, 925, 1100], colorGroup: 'red', housePrice: 150 },
-            { id: 25, name: '台鐵', price: 200, rent: [25, 50, 100, 200], type: 'railroad' },
-            { id: 26, name: '野柳地質公園', price: 260, rent: [22, 110, 330, 800, 975, 1150], colorGroup: 'yellow', housePrice: 150 },
-            { id: 27, name: '平溪天燈', price: 260, rent: [22, 110, 330, 800, 975, 1150], colorGroup: 'yellow', housePrice: 150 },
-            { id: 28, name: '自來水公司', price: 150, type: 'utility' },
-            { id: 29, name: '陽明山', price: 280, rent: [24, 120, 360, 850, 1025, 1200], colorGroup: 'yellow', housePrice: 150 },
-            { id: 31, name: '高雄愛河', price: 300, rent: [26, 130, 390, 900, 1100, 1275], colorGroup: 'green', housePrice: 200 },
-            { id: 32, name: '台中逢甲', price: 300, rent: [26, 130, 390, 900, 1100, 1275], colorGroup: 'green', housePrice: 200 },
-            { id: 34, name: '嘉義雞肉飯', price: 320, rent: [28, 150, 450, 1000, 1200, 1400], colorGroup: 'green', housePrice: 200 },
-            { id: 35, name: '長榮航空', price: 200, rent: [25, 50, 100, 200], type: 'railroad' },
-            { id: 37, name: '花蓮太魯閣', price: 350, rent: [35, 175, 500, 1100, 1300, 1500], colorGroup: 'darkblue', housePrice: 200 },
-            { id: 39, name: '台東熱氣球', price: 400, rent: [50, 200, 600, 1400, 1700, 2000], colorGroup: 'darkblue', housePrice: 200 }
+            // 下排
+            { id: 0, name: '桃園國際機場 Taiwan Taoyuan International Airport', type: 'special', position: { row: 10, col: 0 } },
+            { id: 1, name: '東京 Tokyo', type: 'property', toll: 600, ownerCharacter: 'plate', position: { row: 10, col: 1 } },
+            { id: 2, name: '❓', type: 'chance', position: { row: 10, col: 2 } },
+            { id: 3, name: '巴黎 Paris', type: 'property', toll: 600, ownerCharacter: 'candle', position: { row: 10, col: 3 } },
+            { id: 4, name: '瓜達拉哈拉 Guadalajara', type: 'property', toll: 200, ownerCharacter: 'bow', position: { row: 10, col: 4 } },
+            { id: 5, name: '芝加哥 Chicago', type: 'property', toll: 200, ownerCharacter: 'yam', position: { row: 10, col: 5 } },
+            { id: 6, name: '臺北 Taipei', type: 'property', toll: 200, ownerCharacter: 'noodle', position: { row: 10, col: 6 } },
+            { id: 7, name: '❓', type: 'chance', position: { row: 10, col: 7 } },
+            { id: 8, name: '福建 Fujian', type: 'property', toll: 200, ownerCharacter: 'noodle', position: { row: 10, col: 8 } },
+            { id: 9, name: 'Special Bonus +500', type: 'special', position: { row: 10, col: 9 } },
+            { id: 10, name: '起點 Start', type: 'corner', position: { row: 10, col: 10 } },
+            // 上排
+            { id: 11, name: '參加巴西狂歡節 Join the Brazilian Carnival', type: 'special', position: { row: 0, col: 0 } },
+            { id: 12, name: '雪梨 Sydney', type: 'property', toll: 200, position: { row: 0, col: 1 } },
+            { id: 13, name: '普埃布拉 Puebla', type: 'property', toll: 200, ownerCharacter: 'bow', position: { row: 0, col: 2 } },
+            { id: 14, name: '❓', type: 'chance', position: { row: 0, col: 3 } },
+            { id: 15, name: '京都 Kyoto', type: 'property', toll: 200, ownerCharacter: 'plate', position: { row: 0, col: 4 } },
+            { id: 16, name: '馬賽 Marseille', type: 'property', toll: 400, ownerCharacter: 'candle', position: { row: 0, col: 5 } },
+            { id: 17, name: '羅馬 Rome', type: 'property', toll: 400, position: { row: 0, col: 6 } },
+            { id: 18, name: '邁阿密 Miami', type: 'property', toll: 200, ownerCharacter: 'yam', position: { row: 0, col: 7 } },
+            { id: 19, name: '北京 Beijing', type: 'property', toll: 400, ownerCharacter: 'noodle', position: { row: 0, col: 8 } },
+            { id: 20, name: '❓', type: 'chance', position: { row: 0, col: 9 } },
+            { id: 21, name: '起飛 Take off', type: 'corner', position: { row: 0, col: 10 } },
+            // 左排
+            { id: 22, name: '首爾 Seoul', type: 'property', toll: 200, position: { row: 1, col: 0 } },
+            { id: 23, name: '紐約 New York', type: 'property', toll: 600, ownerCharacter: 'yam', position: { row: 2, col: 0 } },
+            { id: 24, name: '尼斯 Nice', type: 'property', toll: 200, ownerCharacter: 'candle', position: { row: 3, col: 0 } },
+            { id: 25, name: '❓', type: 'chance', position: { row: 4, col: 0 } },
+            { id: 26, name: '札幌 Sapporo', type: 'property', toll: 200, ownerCharacter: 'plate', position: { row: 5, col: 0 } },
+            { id: 27, name: '墨西哥城 Mexico City', type: 'property', toll: 600, ownerCharacter: 'bow', position: { row: 6, col: 0 } },
+            { id: 28, name: '❓', type: 'chance', position: { row: 7, col: 0 } },
+            { id: 29, name: '廣州 Guangzhou', type: 'property', toll: 200, ownerCharacter: 'noodle', position: { row: 8, col: 0 } },
+            { id: 30, name: 'Special Bonus +500', type: 'special', position: { row: 9, col: 0 } },
+            // 右排
+            { id: 31, name: '曼谷 Bangkok', type: 'property', toll: 200, position: { row: 1, col: 10 } },
+            { id: 32, name: '上海 Shanghai', type: 'property', toll: 600, ownerCharacter: 'noodle', position: { row: 2, col: 10 } },
+            { id: 33, name: '埃卡提佩 Ecatepec', type: 'property', toll: 400, ownerCharacter: 'bow', position: { row: 3, col: 10 } },
+            { id: 34, name: '❓', type: 'chance', position: { row: 4, col: 10 } },
+            { id: 35, name: '舊金山 San Francisco', type: 'property', toll: 400, ownerCharacter: 'yam', position: { row: 5, col: 10 } },
+            { id: 36, name: '倫敦 London', type: 'property', toll: 400, position: { row: 6, col: 10 } },
+            { id: 37, name: '大阪 Osaka', type: 'property', toll: 400, ownerCharacter: 'plate', position: { row: 7, col: 10 } },
+            { id: 38, name: '❓', type: 'chance', position: { row: 8, col: 10 } },
+            { id: 39, name: '里昂 Lyon', type: 'property', toll: 200, ownerCharacter: 'candle', position: { row: 9, col: 10 } },
         ];
 
         propertyData.forEach(prop => {
@@ -732,9 +710,7 @@ class MonopolyGame {
     }
 
     drawChanceCard(playerId) {
-        // Implementation for drawing and executing chance cards
-        const card = this.chanceCards[Math.floor(Math.random() * this.chanceCards.length)];
-        this.executeCard(playerId, card);
+        // 問號格不做任何金錢變動，只觸發前端標籤刪除
     }
 
     drawCommunityChestCard(playerId) {
@@ -812,6 +788,33 @@ class MonopolyGame {
             this.removePlayer(playerId);
         }
     }
+}
+
+// === Socket.io 事件註冊區（請加在 module.exports = GameManager; 之前） ===
+if (typeof global.io !== 'undefined') {
+    global.io.on('connection', (socket) => {
+        socket.on('removeTag', ({ playerId, country, tag }) => {
+            // 找到該玩家所在房間
+            let game = null, roomCode = null;
+            for (const [code, g] of global.gameManager.rooms.entries()) {
+                if (g.players.has(playerId)) {
+                    game = g;
+                    roomCode = code;
+                    break;
+                }
+            }
+            if (!game || !roomCode) return;
+            const player = game.players.get(playerId);
+            if (!player.deletedTagsByCountry) player.deletedTagsByCountry = {};
+            if (!player.deletedTagsByCountry[country]) player.deletedTagsByCountry[country] = [];
+            if (!player.deletedTagsByCountry[country].includes(tag)) player.deletedTagsByCountry[country].push(tag);
+            // 從 tags 移除
+            const idx = player.tags.indexOf(tag);
+            if (idx !== -1) player.tags.splice(idx, 1);
+            // 廣播新 gameState
+            global.io.to(roomCode).emit('turnEnded', { gameState: game.getGameState() });
+        });
+    });
 }
 
 module.exports = GameManager;
