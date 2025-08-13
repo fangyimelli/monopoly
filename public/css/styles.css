@@ -668,6 +668,14 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    /* 國旗 emoji 優化 */
+    font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Android Emoji", "EmojiSymbols", "EmojiOne Mozilla", "Twemoji Mozilla", "Segoe UI Symbol", Arial, sans-serif;
+    /* 確保 emoji 正確渲染 */
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* 防止 emoji 被壓縮 */
+    font-variant-emoji: emoji;
 }
 
 /* Players Panel */
@@ -1000,6 +1008,14 @@ body {
     font-size: 1.8rem;
     margin-bottom: 5px;
     filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.1));
+    /* 國旗 emoji 優化 */
+    font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Android Emoji", "EmojiSymbols", "EmojiOne Mozilla", "Twemoji Mozilla", "Segoe UI Symbol", Arial, sans-serif;
+    /* 確保 emoji 正確渲染 */
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* 防止 emoji 被壓縮 */
+    font-variant-emoji: emoji;
 }
 
 .character-name {
