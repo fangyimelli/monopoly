@@ -478,17 +478,14 @@ class MonopolyClient {
         const playersList = document.getElementById('gamePlayersList');
         playersList.innerHTML = '';
 
-        // 角色對應族群
+        // 角色對應國家
         const characterEthnicMap = {
-            plate: '歐美新住民',
-            candle: '客家人',
-            yam: '閩南人',
-            bow: '原住民',
-            noodle: '東南亞新住民'
+            american: '美國人',
+            french: '法國人',
+            japanese: '日本人',
+            indian: '印度人',
+            thai: '泰國人'
         };
-        // 客家人標籤
-        const hakkaTags = ["小氣", "生活保守", "不懂時尚", "標準乖寶寶", "不能出門玩"];
-
         this.gameState.players.forEach(player => {
             const playerItem = document.createElement('div');
             playerItem.className = 'game-player-item';
@@ -504,11 +501,11 @@ class MonopolyClient {
             // 地主顏色色條
             let ownerColorHex = '';
             const colorMap = {
-                noodle: '#FFD600',
-                yam: '#43A047',
-                candle: '#FF9800',
-                plate: '#1976D2',
-                bow: '#795548'
+                thai: '#FFD600',      // 泰國人 - 黃色
+                japanese: '#43A047',  // 日本人 - 綠色
+                french: '#FF9800',    // 法國人 - 橙色
+                american: '#1976D2',  // 美國人 - 藍色
+                indian: '#795548'     // 印度人 - 棕色
             };
             if (colorMap[player.character]) {
                 ownerColorHex = colorMap[player.character];
@@ -523,25 +520,8 @@ class MonopolyClient {
                 }
             }
 
-            // 族群名稱
-            const ethnicName = characterEthnicMap[player.character] ? `族群：${characterEthnicMap[player.character]}` : '';
-
-            // 預設標籤（只針對客家人）
-            if (!player.tags) {
-                if (player.character === 'candle') {
-                    player.tags = [...hakkaTags];
-                } else {
-                    player.tags = [];
-                }
-            }
-
-            // 標籤按鈕
-            let tagsHtml = '';
-            if (player.tags && player.tags.length > 0) {
-                tagsHtml = `<div class="player-tags" style="margin-top:4px;">` +
-                    player.tags.map((tag, idx) => `<button class="player-tag-btn" data-player-id="${player.id}" data-tag-idx="${idx}" style="margin:2px 4px 2px 0;padding:2px 10px;border-radius:12px;border:1px solid #bbb;background:#f5f5f5;cursor:pointer;font-size:0.95em;">${tag}</button>`).join('') +
-                    `</div>`;
-            }
+            // 國家名稱
+            const ethnicName = characterEthnicMap[player.character] ? `國家：${characterEthnicMap[player.character]}` : '';
 
             // 計算得分（暫以現金 player.money 為分數）
             const score = player.money;
@@ -556,7 +536,6 @@ class MonopolyClient {
                 <div class="game-player-ethnic" style="font-size: 0.95em; color: #666; margin-bottom: 2px;">${ethnicName}</div>
                 <div class="game-player-position">位置: ${positionName}${dotHtml}</div>
                 <div class="game-player-score" style="margin-top:2px;font-size:1em;color:#333;">得分：${score}</div>
-                ${tagsHtml}
                 ${ownerColorHex ? `<div class="owner-color-strip" style="height: 8px; border-radius: 4px; margin: 4px 0 0 0; background: ${ownerColorHex};"></div>` : ''}
             `;
 
@@ -822,24 +801,24 @@ class MonopolyClient {
 
     getCharacterIcon(character) {
         const characterIcons = {
-            'candle': '🕯️',
-            'bow': '🏹',
-            'plate': '🍽️',
-            'noodle': '🍜',
-            'yam': '🍠'
+            'french': '🇫🇷',   // 法國國旗
+            'indian': '🇮🇳',   // 印度國旗
+            'american': '🇺🇸', // 美國國旗
+            'thai': '🇹🇭',     // 泰國國旗
+            'japanese': '🇯🇵'  // 日本國旗
         };
-        return characterIcons[character] || '🕯️';
+        return characterIcons[character] || '🇫🇷';
     }
 
     getCharacterName(character) {
         const characterNames = {
-            'candle': '蠟燭',
-            'bow': '弓箭',
-            'plate': '盤子',
-            'noodle': '麵條',
-            'yam': '番薯'
+            'french': '法國人',
+            'indian': '印度人',
+            'american': '美國人',
+            'thai': '泰國人',
+            'japanese': '日本人'
         };
-        return characterNames[character] || '蠟燭';
+        return characterNames[character] || '法國人';
     }
 
     // Message system

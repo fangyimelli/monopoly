@@ -38,39 +38,40 @@ class GameBoard {
             { id: 9, name: '❓', type: 'chance', position: { row: 0, col: 9 } },
             { id: 10, name: '起飛 Take off 🛫', type: 'corner', position: { row: 0, col: 10 } },
 
-            // 右排（從上到下，8個非角落格子 = 8個）
-            { id: 11, name: '曼谷 Bangkok 600 🛕', type: 'property', toll: 600, position: { row: 1, col: 10 } },
-            { id: 12, name: '孟買 Mumbai 400 🏢', type: 'property', toll: 400, position: { row: 2, col: 10 } },
-            { id: 13, name: '❓', type: 'chance', position: { row: 3, col: 10 } },
-            { id: 14, name: '舊金山 San Francisco 400 🌉', type: 'property', toll: 400, position: { row: 4, col: 10 } },
-            { id: 15, name: '倫敦 London 🎡', type: 'property', toll: 400, position: { row: 5, col: 10 } },
-            { id: 16, name: '大阪 Osaka 400 🍣', type: 'property', toll: 400, position: { row: 6, col: 10 } },
+            // 右排（從上到下，9個非角落格子 = 9個）
+            { id: 11, name: '紐約 New York 600 🗽', type: 'property', toll: 600, position: { row: 1, col: 10 } },
+            { id: 12, name: '柏林 Berlin 🏰', type: 'property', toll: 400, position: { row: 2, col: 10 } },
+            { id: 13, name: '尼斯 Nice 200 🌊', type: 'property', toll: 200, position: { row: 3, col: 10 } },
+            { id: 14, name: '曼谷 Bangkok 600 🛕', type: 'property', toll: 600, position: { row: 4, col: 10 } },
+            { id: 15, name: '首爾 Seoul 🏙️', type: 'property', toll: 200, position: { row: 5, col: 10 } },
+            { id: 16, name: '孟買 Mumbai 400 🏢', type: 'property', toll: 400, position: { row: 6, col: 10 } },
             { id: 17, name: '❓', type: 'chance', position: { row: 7, col: 10 } },
-            { id: 18, name: '里昂 Lyon 200 🧀', type: 'property', toll: 200, position: { row: 8, col: 10 } },
+            { id: 18, name: '❓', type: 'chance', position: { row: 8, col: 10 } },
+            { id: 19, name: '札幌 Sapporo 200 ⛄', type: 'property', toll: 200, position: { row: 9, col: 10 } },
 
             // 下排（從右到左，9個非角落格子 + 2個角落 = 11個）
-            { id: 19, name: '起點 Start 🚩', type: 'corner', position: { row: 10, col: 10 } },
-            { id: 20, name: 'Special Bonus +500 🎁', type: 'special', position: { row: 10, col: 9 } },
-            { id: 21, name: '普吉島 Phuket 200 🏖️', type: 'property', toll: 200, position: { row: 10, col: 8 } },
-            { id: 22, name: '❓', type: 'chance', position: { row: 10, col: 7 } },
-            { id: 23, name: '臺北 Taipei 🏙️', type: 'property', toll: 200, position: { row: 10, col: 6 } },
-            { id: 24, name: '芝加哥 Chicago 200 🌃', type: 'property', toll: 200, position: { row: 10, col: 5 } },
-            { id: 25, name: '清奈 Chennai 200 🏛️', type: 'property', toll: 200, position: { row: 10, col: 4 } },
-            { id: 26, name: '巴黎 Paris 600 🥐', type: 'property', toll: 600, position: { row: 10, col: 3 } },
-            { id: 27, name: '❓', type: 'chance', position: { row: 10, col: 2 } },
-            { id: 28, name: '東京 Tokyo 600 🗼', type: 'property', toll: 600, position: { row: 10, col: 1 } },
-            { id: 29, name: '桃園國際機場 Taiwan Taoyuan International Airport （跳到「起飛」）✈️', type: 'special', position: { row: 10, col: 0 } },
+            { id: 20, name: '舊金山 San Francisco 400 🌉', type: 'property', toll: 400, position: { row: 10, col: 10 } },
+            { id: 21, name: '德里 Delhi 600 🕌', type: 'property', toll: 600, position: { row: 10, col: 9 } },
+            { id: 22, name: '❓', type: 'chance', position: { row: 10, col: 8 } },
+            { id: 23, name: '倫敦 London 🎡', type: 'property', toll: 400, position: { row: 10, col: 7 } },
+            { id: 24, name: '大阪 Osaka 400 🍣', type: 'property', toll: 400, position: { row: 10, col: 6 } },
+            { id: 25, name: '芭達雅 Pattaya 200 🏖️', type: 'property', toll: 200, position: { row: 10, col: 5 } },
+            { id: 26, name: '❓', type: 'chance', position: { row: 10, col: 4 } },
+            { id: 27, name: 'Special Bonus +500 🎁', type: 'special', position: { row: 10, col: 3 } },
+            { id: 28, name: '里昂 Lyon 200 🧀', type: 'property', toll: 200, position: { row: 10, col: 2 } },
+            { id: 29, name: '桃園國際機場 Taiwan Taoyuan International Airport （跳到「起飛」）✈️', type: 'special', position: { row: 10, col: 1 } },
+            { id: 30, name: '起點 Start 🚩', type: 'corner', position: { row: 10, col: 0 } },
 
-            // 左排（從下到上，8個非角落格子 = 8個）
-            { id: 30, name: 'Special Bonus +500 🎁', type: 'special', position: { row: 9, col: 0 } },
-            { id: 31, name: '芭達雅 Pattaya 200 🏖️', type: 'property', toll: 200, position: { row: 8, col: 0 } },
-            { id: 32, name: '❓', type: 'chance', position: { row: 7, col: 0 } },
-            { id: 33, name: '德里 Delhi 600 🕌', type: 'property', toll: 600, position: { row: 6, col: 0 } },
-            { id: 34, name: '札幌 Sapporo 200 ⛄', type: 'property', toll: 200, position: { row: 5, col: 0 } },
-            { id: 35, name: '❓', type: 'chance', position: { row: 4, col: 0 } },
-            { id: 36, name: '首爾 Seoul 🏙️', type: 'property', toll: 200, position: { row: 3, col: 0 } },
-            { id: 37, name: '尼斯 Nice 200 🌊', type: 'property', toll: 200, position: { row: 2, col: 0 } },
-            { id: 38, name: '紐約 New York 600 🗽', type: 'property', toll: 600, position: { row: 1, col: 0 } }
+            // 左排（從下到上，9個非角落格子 = 9個）
+            { id: 31, name: '東京 Tokyo 600 🗼', type: 'property', toll: 600, position: { row: 9, col: 0 } },
+            { id: 32, name: '❓', type: 'chance', position: { row: 8, col: 0 } },
+            { id: 33, name: '巴黎 Paris 600 🥐', type: 'property', toll: 600, position: { row: 7, col: 0 } },
+            { id: 34, name: '清奈 Chennai 200 🏛️', type: 'property', toll: 200, position: { row: 6, col: 0 } },
+            { id: 35, name: '芝加哥 Chicago 200 🌃', type: 'property', toll: 200, position: { row: 5, col: 0 } },
+            { id: 36, name: '臺北 Taipei 🏙️', type: 'property', toll: 200, position: { row: 4, col: 0 } },
+            { id: 37, name: '❓', type: 'chance', position: { row: 3, col: 0 } },
+            { id: 38, name: '普吉島 Phuket 200 🏖️', type: 'property', toll: 200, position: { row: 2, col: 0 } },
+            { id: 39, name: 'Special Bonus +500 🎁', type: 'special', position: { row: 1, col: 0 } }
         ];
     }
 
@@ -369,12 +370,12 @@ class GameBoard {
             'plane': '✈️',
             'boot': '👢',
             'thimble': '🔧',
-            // 自訂角色
-            'plate': '🥄',      // 盤子
-            'candle': '🕯️',    // 蠟燭
-            'yam': '🍠',        // 番薯
-            'bow': '🏹',        // 弓箭
-            'noodle': '🍜'      // 麵條
+            // 國家角色
+            'american': '🇺🇸',  // 美國人
+            'french': '🇫🇷',    // 法國人
+            'japanese': '🇯🇵',  // 日本人
+            'indian': '🇮🇳',    // 印度人
+            'thai': '🇹🇭'       // 泰國人
         };
         return characterIcons[character] || '🎩';
     }
@@ -388,7 +389,13 @@ class GameBoard {
             'ship': '帆船',
             'plane': '飛機',
             'boot': '靴子',
-            'thimble': '頂針'
+            'thimble': '頂針',
+            // 國家角色
+            'american': '美國人',
+            'french': '法國人',
+            'japanese': '日本人',
+            'indian': '印度人',
+            'thai': '泰國人'
         };
 
         return characterNames[character] || '紳士帽';
