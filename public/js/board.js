@@ -157,19 +157,23 @@ class GameBoard {
 
         square.innerHTML = content;
 
-        // 只在有 colorGroup 的格子加色塊
-        if (squareData.type === 'property' && squareData.colorGroup) {
-            const colorMap = {
-                yellow: '#FFD600',
-                green: '#43A047',
-                orange: '#FF9800',
-                blue: '#1976D2',
-                brown: '#795548'
+        // 顏色條：代表國家地塊配色
+        if (squareData.type === 'property') {
+            const countryColorMap = {
+                american: '#1976D2', // 藍色
+                japanese: '#43A047', // 綠色
+                french: '#FFD600',   // 黃色
+                indian: '#FF9800',   // 橘色
+                thai: '#9E9E9E'      // 灰色
             };
-            const colorStrip = document.createElement('div');
-            colorStrip.className = 'property-color-strip';
-            colorStrip.style.backgroundColor = colorMap[squareData.colorGroup];
-            square.appendChild(colorStrip);
+            const ownerToCountry = squareData.ownerCharacter; // 後端以角色代碼標示所有權國家
+            const colorHex = countryColorMap[ownerToCountry];
+            if (colorHex) {
+                const colorStrip = document.createElement('div');
+                colorStrip.className = 'property-color-strip';
+                colorStrip.style.backgroundColor = colorHex;
+                square.appendChild(colorStrip);
+            }
         }
 
         return square;

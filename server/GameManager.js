@@ -436,6 +436,7 @@ class MonopolyGame {
                 this.handlePropertyLanding(playerId, position, io, this.roomCode);
                 break;
             case 'chance':
+                // 問號格：從「機會卡 + 命運卡」混合堆中抽一張
                 this.drawChanceCard(playerId);
                 break;
             case 'community_chest':
@@ -448,10 +449,32 @@ class MonopolyGame {
                 this.sendPlayerToJail(playerId);
                 break;
             case 'special':
-                if (space.name && space.name.includes('Special Bonus')) {
-                    player.money += 500;
-                    if (io && roomCode) {
-                        io.to(playerId).emit('showSuccess', { message: '獲得 Special Bonus +500！' });
+                if (space.name) {
+                    // Special Bonus +500
+                    if (space.name.includes('Special Bonus')) {
+                        player.money += 500;
+                        if (io && roomCode) {
+                            io.to(playerId).emit('showSuccess', { message: '獲得 Special Bonus +500！' });
+                        }
+                    }
+                    // 狂歡節：下回合跳過一次
+                    if (space.name.includes('狂歡')) {
+                        player.skipTurns = (player.skipTurns || 0) + 1;
+                        if (io && roomCode) {
+                            io.to(roomCode).emit('turnInfo', { message: `${player.name} 參加狂歡節，下回合將被跳過一次` });
+                        }
+                    }
+                    // 桃園國際機場：直接前往「起飛」格
+                    if (space.name.includes('桃園國際機場') || space.name.includes('機場') || space.name.includes('起飛')) {
+                        const takeOff = Array.from(this.properties.entries()).find(([id, s]) => (s.name && s.name.includes('起飛')));
+                        if (takeOff) {
+                            const [targetId] = takeOff;
+                            player.position = targetId;
+                            // 抵達起飛格，通常無其他處理
+                            if (io && roomCode) {
+                                io.to(roomCode).emit('turnInfo', { message: `${player.name} 抵達機場並前往「起飛」格` });
+                            }
+                        }
                     }
                 }
                 break;
@@ -542,8 +565,21 @@ class MonopolyGame {
         this.hasRolledThisTurn = false;
 
         // Move to next player
-        this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.playerOrder.length;
-        this.currentPlayer = this.playerOrder[this.currentPlayerIndex];
+        const playersCount = this.playerOrder.length;
+        if (playersCount === 0) return;
+        let safety = playersCount; // 避免理論上的無限迴圈
+        do {
+            this.currentPlayerIndex = (this.currentPlayerIndex + 1) % playersCount;
+            this.currentPlayer = this.playerOrder[this.currentPlayerIndex];
+            const p = this.players.get(this.currentPlayer);
+            if (p && p.skipTurns && p.skipTurns > 0) {
+                p.skipTurns--;
+                // 繼續往下一位
+                safety--;
+                continue;
+            }
+            break;
+        } while (safety > 0);
     }
 
     getGameState() {
@@ -710,7 +746,11 @@ class MonopolyGame {
     }
 
     drawChanceCard(playerId) {
-        // 問號格不做任何金錢變動，只觸發前端標籤刪除
+        // 從機會卡與命運卡合併堆抽一張
+        const pool = [...this.chanceCards, ...this.communityChestCards];
+        if (pool.length === 0) return;
+        const card = pool[Math.floor(Math.random() * pool.length)];
+        this.executeCard(playerId, card);
     }
 
     drawCommunityChestCard(playerId) {
