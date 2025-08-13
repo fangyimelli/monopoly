@@ -25,53 +25,61 @@ class GameBoard {
 
     createBoardLayout() {
         return [
-            // 上排（從左到右，9個非角落格子 + 2個角落 = 11個）
-            { id: 0, name: '參加巴西狂歡節 Join the Brazilian Carnival （暫停一輪）🎉', type: 'special', position: { row: 0, col: 0 } },
-            { id: 1, name: '雪梨 Sydney 🦘', type: 'property', toll: 200, position: { row: 0, col: 1 } },
-            { id: 2, name: '加爾各答 Kolkata 200 🏛️', type: 'property', toll: 200, position: { row: 0, col: 2 } },
-            { id: 3, name: '❓', type: 'chance', position: { row: 0, col: 3 } },
-            { id: 4, name: '京都 Kyoto 200 🏯', type: 'property', toll: 200, position: { row: 0, col: 4 } },
-            { id: 5, name: '馬賽 Marseille 400 ⚓', type: 'property', toll: 400, position: { row: 0, col: 5 } },
-            { id: 6, name: '羅馬 Rome 🏛️', type: 'property', toll: 400, position: { row: 0, col: 6 } },
-            { id: 7, name: '邁阿密 Miami 200 🏝️', type: 'property', toll: 200, position: { row: 0, col: 7 } },
-            { id: 8, name: '清邁 ChiangMai 400 🏮', type: 'property', toll: 400, position: { row: 0, col: 8 } },
-            { id: 9, name: '❓', type: 'chance', position: { row: 0, col: 9 } },
-            { id: 10, name: '起飛 Take off 🛫', type: 'corner', position: { row: 0, col: 10 } },
+            // 起點 Start (ID 0) - 右下角
+            { id: 0, name: '起點 Start 🚩', type: 'corner', position: { row: 10, col: 10 } },
 
-            // 右排（從上到下，9個非角落格子 = 9個）
-            { id: 11, name: '起飛 Take off 🛫', type: 'corner', position: { row: 1, col: 10 } },
-            { id: 12, name: '柏林 Berlin 🏰', type: 'property', toll: 400, position: { row: 2, col: 10 } },
-            { id: 13, name: '曼谷 Bangkok 600 🛕', type: 'property', toll: 600, position: { row: 3, col: 10 } },
-            { id: 14, name: '孟買 Mumbai 400 🏢', type: 'property', toll: 400, position: { row: 4, col: 10 } },
-            { id: 15, name: '❓', type: 'chance', position: { row: 5, col: 10 } },
-            { id: 16, name: '舊金山 San Francisco 400 🌉', type: 'property', toll: 400, position: { row: 6, col: 10 } },
-            { id: 17, name: '倫敦 London 🎡', type: 'property', toll: 400, position: { row: 7, col: 10 } },
-            { id: 18, name: '大阪 Osaka 400 🍣', type: 'property', toll: 400, position: { row: 8, col: 10 } },
-            { id: 19, name: '❓', type: 'chance', position: { row: 9, col: 10 } },
+            // 下排（從右到左，9個格子）
+            { id: 1, name: '里昂 Lyon 200 🧀', type: 'property', toll: 200, position: { row: 10, col: 9 } },
+            { id: 2, name: 'Special Bonus +500 🎁', type: 'special', position: { row: 10, col: 8 } },
+            { id: 3, name: '普吉島 Phuket 200 🏖️', type: 'property', toll: 200, position: { row: 10, col: 7 } },
+            { id: 4, name: '❓', type: 'chance', position: { row: 10, col: 6 } },
+            { id: 5, name: '臺北 Taipei 🏙️', type: 'property', toll: 200, position: { row: 10, col: 5 } },
+            { id: 6, name: '芝加哥 Chicago 200 🌃', type: 'property', toll: 200, position: { row: 10, col: 4 } },
+            { id: 7, name: '清奈 Chennai 200 🏛️', type: 'property', toll: 200, position: { row: 10, col: 3 } },
+            { id: 8, name: '巴黎 Paris 600 🥐', type: 'property', toll: 600, position: { row: 10, col: 2 } },
+            { id: 9, name: '❓', type: 'chance', position: { row: 10, col: 1 } },
 
-            // 下排（從右到左，9個非角落格子 + 2個角落 = 11個）
-            { id: 20, name: '里昂 Lyon 200 🧀', type: 'property', toll: 200, position: { row: 10, col: 10 } },
-            { id: 21, name: '德里 Delhi 600 🕌', type: 'property', toll: 600, position: { row: 10, col: 9 } },
-            { id: 22, name: '❓', type: 'chance', position: { row: 10, col: 8 } },
-            { id: 23, name: '倫敦 London 🎡', type: 'property', toll: 400, position: { row: 10, col: 7 } },
-            { id: 24, name: '大阪 Osaka 400 🍣', type: 'property', toll: 400, position: { row: 10, col: 6 } },
-            { id: 25, name: '芭達雅 Pattaya 200 🏖️', type: 'property', toll: 200, position: { row: 10, col: 5 } },
-            { id: 26, name: '❓', type: 'chance', position: { row: 10, col: 4 } },
-            { id: 27, name: 'Special Bonus +500 🎁', type: 'special', position: { row: 10, col: 3 } },
-            { id: 28, name: '桃園國際機場 Taiwan Taoyuan International Airport （跳到「起飛」）✈️', type: 'special', position: { row: 10, col: 2 } },
-            { id: 29, name: '起點 Start 🚩', type: 'corner', position: { row: 10, col: 1 } },
-            { id: 30, name: 'Special Bonus +500 🎁', type: 'special', position: { row: 10, col: 0 } },
+            // 左下角 - 桃園國際機場
+            { id: 10, name: '桃園國際機場 Taiwan Taoyuan International Airport （跳到「起飛」）✈️', type: 'special', position: { row: 10, col: 0 } },
 
-            // 左排（從下到上，9個非角落格子 = 9個）
-            { id: 31, name: '東京 Tokyo 600 🗼', type: 'property', toll: 600, position: { row: 9, col: 0 } },
-            { id: 32, name: '❓', type: 'chance', position: { row: 8, col: 0 } },
-            { id: 33, name: '巴黎 Paris 600 🥐', type: 'property', toll: 600, position: { row: 7, col: 0 } },
-            { id: 34, name: '清奈 Chennai 200 🏛️', type: 'property', toll: 200, position: { row: 6, col: 0 } },
-            { id: 35, name: '芝加哥 Chicago 200 🌃', type: 'property', toll: 200, position: { row: 5, col: 0 } },
-            { id: 36, name: '臺北 Taipei 🏙️', type: 'property', toll: 200, position: { row: 4, col: 0 } },
-            { id: 37, name: '❓', type: 'chance', position: { row: 3, col: 0 } },
-            { id: 38, name: '普吉島 Phuket 200 🏖️', type: 'property', toll: 200, position: { row: 2, col: 0 } },
-            { id: 39, name: '紐約 New York 600 🗽', type: 'property', toll: 600, position: { row: 1, col: 0 } }
+            // 左排（從下到上，10個格子）
+            { id: 11, name: '東京 Tokyo 600 🗼', type: 'property', toll: 600, position: { row: 9, col: 0 } },
+            { id: 12, name: '芭達雅 Pattaya 200 🏖️', type: 'property', toll: 200, position: { row: 8, col: 0 } },
+            { id: 13, name: 'Special Bonus +500 🎁', type: 'special', position: { row: 7, col: 0 } },
+            { id: 14, name: '❓', type: 'chance', position: { row: 6, col: 0 } },
+            { id: 15, name: '德里 Delhi 600 🕌', type: 'property', toll: 600, position: { row: 5, col: 0 } },
+            { id: 16, name: '札幌 Sapporo 200 ⛄', type: 'property', toll: 200, position: { row: 4, col: 0 } },
+            { id: 17, name: '❓', type: 'chance', position: { row: 3, col: 0 } },
+            { id: 18, name: '首爾 Seoul 🏙️', type: 'property', toll: 200, position: { row: 2, col: 0 } },
+            { id: 19, name: '尼斯 Nice 200 🌊', type: 'property', toll: 200, position: { row: 1, col: 0 } },
+            { id: 20, name: '紐約 New York 600 🗽', type: 'property', toll: 600, position: { row: 0, col: 0 } },
+
+            // 左上角 - 參加巴西狂歡節
+            { id: 21, name: '參加巴西狂歡節 Join the Brazilian Carnival （暫停一輪）🎉', type: 'special', position: { row: 0, col: 1 } },
+
+            // 上排（從左到右，9個格子）
+            { id: 22, name: '雪梨 Sydney 🦘', type: 'property', toll: 200, position: { row: 0, col: 2 } },
+            { id: 23, name: '加爾各答 Kolkata 200 🏛️', type: 'property', toll: 200, position: { row: 0, col: 3 } },
+            { id: 24, name: '❓', type: 'chance', position: { row: 0, col: 4 } },
+            { id: 25, name: '京都 Kyoto 200 🏯', type: 'property', toll: 200, position: { row: 0, col: 5 } },
+            { id: 26, name: '馬賽 Marseille 400 ⚓', type: 'property', toll: 400, position: { row: 0, col: 6 } },
+            { id: 27, name: '羅馬 Rome 🏛️', type: 'property', toll: 400, position: { row: 0, col: 7 } },
+            { id: 28, name: '邁阿密 Miami 200 🏝️', type: 'property', toll: 200, position: { row: 0, col: 8 } },
+            { id: 29, name: '清邁 ChiangMai 400 🏮', type: 'property', toll: 400, position: { row: 0, col: 9 } },
+            { id: 30, name: '❓', type: 'chance', position: { row: 0, col: 10 } },
+
+            // 右上角 - 起飛
+            { id: 31, name: '起飛 Take off 🛫', type: 'corner', position: { row: 1, col: 10 } },
+
+            // 右排（從上到下，8個格子）
+            { id: 32, name: '柏林 Berlin 🏰', type: 'property', toll: 400, position: { row: 2, col: 10 } },
+            { id: 33, name: '曼谷 Bangkok 600 🛕', type: 'property', toll: 600, position: { row: 3, col: 10 } },
+            { id: 34, name: '孟買 Mumbai 400 🏢', type: 'property', toll: 400, position: { row: 4, col: 10 } },
+            { id: 35, name: '❓', type: 'chance', position: { row: 5, col: 10 } },
+            { id: 36, name: '舊金山 San Francisco 400 🌉', type: 'property', toll: 400, position: { row: 6, col: 10 } },
+            { id: 37, name: '倫敦 London 🎡', type: 'property', toll: 400, position: { row: 7, col: 10 } },
+            { id: 38, name: '大阪 Osaka 400 🍣', type: 'property', toll: 400, position: { row: 8, col: 10 } },
+            { id: 39, name: '❓', type: 'chance', position: { row: 9, col: 10 } }
         ];
     }
 
