@@ -530,7 +530,7 @@ body {
     border-radius: 10px;
     display: grid;
     grid-template-columns: repeat(11, 1fr);
-    grid-template-rows: repeat(11, 1fr);
+    grid-template-rows: repeat(13, 1fr);
 }
 
 .board-square {
