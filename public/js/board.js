@@ -25,23 +25,20 @@ class GameBoard {
 
     createBoardLayout() {
         return [
-            // bottom (右→左)
-            { id: 0, name: '起點 Start 🚩', type: 'corner', position: { row: 12, col: 10 } },
-            { id: 1, name: 'Special Bonus +500 🎁', type: 'special', position: { row: 12, col: 9 } },
-            { id: 2, name: '普吉島 Phuket 200 🏖️', type: 'property', toll: 200, position: { row: 12, col: 8 } },
-            { id: 3, name: '❓', type: 'chance', position: { row: 12, col: 7 } },
-            { id: 4, name: '臺北 Taipei 🏙️', type: 'property', toll: 200, position: { row: 12, col: 6 } },
-            { id: 5, name: '芝加哥 Chicago 200 🌃', type: 'property', toll: 200, position: { row: 12, col: 5 } },
-            { id: 6, name: '清奈 Chennai 200 🏛️', type: 'property', toll: 200, position: { row: 12, col: 4 } },
-            { id: 7, name: '巴黎 Paris 600 🥐', type: 'property', toll: 600, position: { row: 12, col: 3 } },
-            { id: 8, name: '❓', type: 'chance', position: { row: 12, col: 2 } },
-            { id: 9, name: '東京 Tokyo 600 🗼', type: 'property', toll: 600, position: { row: 12, col: 1 } },
-            { id: 10, name: '桃園國際機場 Taiwan Taoyuan International Airport （跳到「起飛」）✈️', type: 'special', position: { row: 12, col: 0 } },
+            // 🔵 BOTTOM ROW (右→左) - Row 10
+            { id: 0, name: '起點 Start 🚩', type: 'corner', position: { row: 10, col: 10 } },
+            { id: 1, name: 'Special Bonus +500 🎁', type: 'special', position: { row: 10, col: 9 } },
+            { id: 2, name: '普吉島 Phuket 200 🏖️', type: 'property', toll: 200, position: { row: 10, col: 8 } },
+            { id: 3, name: '❓', type: 'chance', position: { row: 10, col: 7 } },
+            { id: 4, name: '臺北 Taipei 🏙️', type: 'property', toll: 200, position: { row: 10, col: 6 } },
+            { id: 5, name: '芝加哥 Chicago 200 🌃', type: 'property', toll: 200, position: { row: 10, col: 5 } },
+            { id: 6, name: '清奈 Chennai 200 🏛️', type: 'property', toll: 200, position: { row: 10, col: 4 } },
+            { id: 7, name: '巴黎 Paris 600 🥐', type: 'property', toll: 600, position: { row: 10, col: 3 } },
+            { id: 8, name: '❓', type: 'chance', position: { row: 10, col: 2 } },
+            { id: 9, name: '東京 Tokyo 600 🗼', type: 'property', toll: 600, position: { row: 10, col: 1 } },
+            { id: 10, name: '桃園國際機場 Taiwan Taoyuan International Airport （跳到「起飛」）✈️', type: 'special', position: { row: 10, col: 0 } },
 
-            // left (上→下的顯示；路徑仍從下往上)
-            // 按您要求的顯示順序（上→下）：
-            // New York → Nice → Seoul → ？ → Sapporo → Delhi → ？ → Pattaya → Special Bonus → Airport（角落）
-            // 為了符合路徑順序（Airport 之後往上走），我們將 id 11..19 依序對應 row: 9..1 的反向內容。
+            // 🟢 LEFT COLUMN (下→上) - Col 0
             { id: 11, name: 'Special Bonus +500 🎁', type: 'special', position: { row: 9, col: 0 } },
             { id: 12, name: '芭達雅 Pattaya 200 🏖️', type: 'property', toll: 200, position: { row: 8, col: 0 } },
             { id: 13, name: '❓', type: 'chance', position: { row: 7, col: 0 } },
@@ -53,7 +50,7 @@ class GameBoard {
             { id: 19, name: '紐約 New York 600 🗽', type: 'property', toll: 600, position: { row: 1, col: 0 } },
             { id: 20, name: '參加巴西狂歡節 Join the Brazilian Carnival （暫停一輪）🎉', type: 'special', position: { row: 0, col: 0 } },
 
-            // top (左→右)
+            // 🟡 TOP ROW (左→右) - Row 0
             { id: 21, name: '雪梨 Sydney 🦘', type: 'property', toll: 200, position: { row: 0, col: 1 } },
             { id: 22, name: '加爾各答 Kolkata 200 🏛️', type: 'property', toll: 200, position: { row: 0, col: 2 } },
             { id: 23, name: '❓', type: 'chance', position: { row: 0, col: 3 } },
@@ -65,7 +62,7 @@ class GameBoard {
             { id: 29, name: '❓', type: 'chance', position: { row: 0, col: 9 } },
             { id: 30, name: '起飛 Take off 🛫', type: 'corner', position: { row: 0, col: 10 } },
 
-            // right (上→下)
+            // 🔴 RIGHT COLUMN (上→下) - Col 10
             { id: 31, name: '柏林 Berlin 🏰', type: 'property', toll: 400, position: { row: 1, col: 10 } },
             { id: 32, name: '曼谷 Bangkok 600 🛕', type: 'property', toll: 600, position: { row: 2, col: 10 } },
             { id: 33, name: '孟買 Mumbai 400 🏢', type: 'property', toll: 400, position: { row: 3, col: 10 } },
@@ -87,8 +84,8 @@ class GameBoard {
         const centerSpace = document.createElement('div');
         centerSpace.className = 'board-center';
         centerSpace.style.cssText = `
-            grid-row: 2 / 12;
-            grid-column: 2 / 10;
+            grid-row: 1 / 10;
+            grid-column: 1 / 10;
             background: linear-gradient(45deg, #f0f8f0, #e8f5e8);
             display: flex;
             flex-direction: column;
@@ -142,13 +139,13 @@ class GameBoard {
                 content = this.createUtilitySquare(squareData);
                 break;
             case 'chance':
-                content = `<div class="square-icon">?</div><div class="square-name">機會</div>`;
+                content = `<div class="square-icon">?</div><div class="square-name">機會</div><div class="players-on-square"></div>`;
                 break;
             case 'community_chest':
-                content = `<div class="square-icon">♦</div><div class="square-name">公益福利</div>`;
+                content = `<div class="square-icon">♦</div><div class="square-name">公益福利</div><div class="players-on-square"></div>`;
                 break;
             case 'tax':
-                content = `<div class="square-name">${squareData.name}</div><div class="square-price">$${squareData.amount}</div>`;
+                content = `<div class="square-name">${squareData.name}</div><div class="square-price">$${squareData.amount}</div><div class="players-on-square"></div>`;
                 break;
             case 'corner':
                 content = this.createCornerSquare(squareData);
@@ -226,6 +223,7 @@ class GameBoard {
         return `
             <div class="corner-icon">${icons[squareData.name] || ''}</div>
             <div class="corner-name">${squareData.name}</div>
+            <div class="players-on-square"></div>
         `;
     }
 
@@ -236,6 +234,7 @@ class GameBoard {
         return `
             <div class="special-icon">${icons[squareData.name] || ''}</div>
             <div class="special-name">${squareData.name}</div>
+            <div class="players-on-square"></div>
         `;
     }
 
@@ -373,22 +372,24 @@ class GameBoard {
     }
 
     // 新增：逐步移動玩家的動畫效果
-    async animatePlayerMovement(playerId, oldPosition, newPosition, steps) {
+    async animatePlayerMovement(playerId, oldPosition, newPosition, steps, fullGameState) {
         const totalSquares = 40;
         let currentPos = oldPosition;
 
-        // 計算移動路徑
+        // 計算移動路徑 - 每一步都前進一格
         for (let i = 0; i < steps; i++) {
-            await new Promise(resolve => setTimeout(resolve, 300)); // 每步延遲 300ms
             currentPos = (currentPos + 1) % totalSquares;
 
-            // 更新玩家位置（臨時）
-            const tempGameState = { ...window.game.gameState };
+            // 創建臨時 gameState，只修改移動中玩家的位置
+            const tempGameState = JSON.parse(JSON.stringify(fullGameState));
             const playerIndex = tempGameState.players.findIndex(p => p.id === playerId);
             if (playerIndex !== -1) {
                 tempGameState.players[playerIndex].position = currentPos;
                 this.updatePlayerPositions(tempGameState, playerId);
             }
+
+            // 等待 300ms 再移動到下一格
+            await new Promise(resolve => setTimeout(resolve, 300));
         }
     }
 
@@ -446,6 +447,15 @@ class GameBoard {
                     '<div>等待擲骰子...</div>'
                 }
             `;
+        }
+    }
+
+    adjustForMobile() {
+        // 手機版調整（可根據需要擴展）
+        const isMobile = window.innerWidth <= 768;
+        if (isMobile && this.boardElement) {
+            this.boardElement.style.width = '480px';
+            this.boardElement.style.height = '480px';
         }
     }
 }

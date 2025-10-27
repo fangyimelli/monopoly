@@ -1,6 +1,88 @@
 console.log('=== GameManager.js 已載入 ===');
 const { v4: uuidv4 } = require('uuid');
 
+// 國家標籤數據
+const COUNTRY_TAGS = {
+    american: [
+        { id: 'us1', zh: '愛吃漢堡', en: 'love to eat hamburgers' },
+        { id: 'us2', zh: '擅長打籃球', en: 'good at playing basketball' },
+        { id: 'us3', zh: '很有自信', en: 'confident' },
+        { id: 'us4', zh: '喜歡看超級英雄電影', en: 'love to watch superhero movies' },
+        { id: 'us5', zh: '活潑外向', en: 'outgoing' },
+        { id: 'us6', zh: '金髮', en: 'blonde hair' },
+        { id: 'us7', zh: '喜歡過萬聖節', en: 'love Halloween' },
+        { id: 'us8', zh: '很年輕就能開車', en: 'drive at the young age' }
+    ],
+    japanese: [
+        { id: 'jp1', zh: '愛吃壽司', en: 'love to eat sushi' },
+        { id: 'jp2', zh: '喜歡看動漫', en: 'love to watch anime and mangas' },
+        { id: 'jp3', zh: '很有禮貌', en: 'polite' },
+        { id: 'jp4', zh: '擅長畫漫畫', en: 'good at drawing comics' },
+        { id: 'jp5', zh: '安靜內向', en: 'quite' },
+        { id: 'jp6', zh: '很會打棒球', en: 'good at playing baseball' },
+        { id: 'jp7', zh: '守規矩的', en: 'disciplined' },
+        { id: 'jp8', zh: '喜歡櫻花', en: 'love cherry blossom' }
+    ],
+    french: [
+        { id: 'fr1', zh: '愛吃長棍麵包', en: 'love to eat Baguette' },
+        { id: 'fr2', zh: '喜歡去美術館', en: 'love to visit art museums' },
+        { id: 'fr3', zh: '生性浪漫', en: 'romantic' },
+        { id: 'fr4', zh: '時尚', en: 'fashionable' },
+        { id: 'fr5', zh: '吃飯時間長', en: 'have long meals' },
+        { id: 'fr6', zh: '擅長美術', en: 'good at art' },
+        { id: 'fr7', zh: '喜歡戴貝蕾帽', en: 'love to wear beret' },
+        { id: 'fr8', zh: '舉止優雅', en: 'elegant' }
+    ],
+    indian: [
+        { id: 'in1', zh: '愛吃咖哩飯', en: 'love to eat curry rice' },
+        { id: 'in2', zh: '待人熱情', en: 'passionate' },
+        { id: 'in3', zh: '擅長數學', en: 'good at math' },
+        { id: 'in4', zh: '重視家庭關係', en: 'care a lot about family' },
+        { id: 'in5', zh: '擅長唱歌跳舞', en: 'good at singing and dancing' },
+        { id: 'in6', zh: '努力勤奮', en: 'hardworking' },
+        { id: 'in7', zh: '路上可見牛', en: 'see cows on the street' },
+        { id: 'in8', zh: '很多人戴頭巾', en: 'wear turban' }
+    ],
+    thai: [
+        { id: 'th1', zh: '愛吃辣', en: 'love to eat spicy food' },
+        { id: 'th2', zh: '喜歡看恐怖片', en: 'love to watch horror movies' },
+        { id: 'th3', zh: '樂觀開朗', en: 'optimistic' },
+        { id: 'th4', zh: '尊敬大象', en: 'respect elephants' },
+        { id: 'th5', zh: '重視人際關係', en: 'care about relationships' },
+        { id: 'th6', zh: '擅長泰拳', en: 'good at Thai boxing' },
+        { id: 'th7', zh: '喜歡穿鮮豔的衣服', en: 'love to wear colorful clothes' },
+        { id: 'th8', zh: '喜歡潑水節', en: 'love Songkran Festival' }
+    ]
+};
+
+// 一般標籤
+const GENERAL_TAGS = [
+    { id: 'g1', zh: '高', en: 'tall' },
+    { id: 'g2', zh: '矮', en: 'short' },
+    { id: 'g3', zh: '胖', en: 'fat' },
+    { id: 'g4', zh: '瘦', en: 'thin' },
+    { id: 'g5', zh: '男生', en: 'male' },
+    { id: 'g6', zh: '女生', en: 'female' },
+    { id: 'g7', zh: '長頭髮', en: 'long hair' },
+    { id: 'g8', zh: '短頭髮', en: 'short hair' },
+    { id: 'g9', zh: '內向的', en: 'introverted' },
+    { id: 'g10', zh: '外向的', en: 'extroverted' },
+    { id: 'g11', zh: '感性的', en: 'emotional' },
+    { id: 'g12', zh: '理性的', en: 'logical' },
+    { id: 'g13', zh: '有規劃的', en: 'organized' },
+    { id: 'g14', zh: '隨性的', en: 'flexible' },
+    { id: 'g15', zh: '務實派', en: 'practical' },
+    { id: 'g16', zh: '想像派', en: 'imaginative' },
+    { id: 'g17', zh: '皮膚白皙', en: 'fair skin' },
+    { id: 'g18', zh: '皮膚黝黑', en: 'dark skin' },
+    { id: 'g19', zh: '膽小', en: 'timid' },
+    { id: 'g20', zh: '謹慎', en: 'careful' },
+    { id: 'g21', zh: '衝動', en: 'impulsive' },
+    { id: 'g22', zh: '大膽', en: 'bold' },
+    { id: 'g23', zh: '保守', en: 'conservative' },
+    { id: 'g24', zh: '有幽默感', en: 'humorous' }
+];
+
 class GameManager {
     constructor() {
         this.rooms = new Map();
@@ -197,6 +279,52 @@ class GameManager {
         return Math.random().toString(36).substring(2, 8).toUpperCase();
     }
 
+    // 生成標籤選擇題（3個正確 + 3個其他國家）
+    generateTagSelection(character) {
+        const myCountryTags = COUNTRY_TAGS[character] || [];
+
+        // 隨機選3個自己國家的標籤
+        const myTags = this.shuffleArray([...myCountryTags]).slice(0, 3);
+
+        // 從其他國家隨機選3個標籤
+        const otherCountries = Object.keys(COUNTRY_TAGS).filter(c => c !== character);
+        let otherTags = [];
+        otherCountries.forEach(country => {
+            otherTags = otherTags.concat(COUNTRY_TAGS[country]);
+        });
+        const randomOtherTags = this.shuffleArray(otherTags).slice(0, 3);
+
+        // 混合並隨機排序
+        const allTags = this.shuffleArray([...myTags, ...randomOtherTags]);
+
+        return {
+            tags: allTags,
+            correctTagIds: myTags.map(t => t.id)
+        };
+    }
+
+    // 驗證標籤選擇
+    verifyTagSelection(selectedTagIds, correctTagIds) {
+        if (selectedTagIds.length !== 3) return false;
+        return selectedTagIds.every(id => correctTagIds.includes(id)) &&
+            correctTagIds.every(id => selectedTagIds.includes(id));
+    }
+
+    // 隨機獲得2個一般標籤
+    getRandomGeneralTags() {
+        return this.shuffleArray([...GENERAL_TAGS]).slice(0, 2);
+    }
+
+    // 洗牌算法
+    shuffleArray(array) {
+        const shuffled = [...array];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+    }
+
     endGame(roomCode, playerId) {
         const game = this.rooms.get(roomCode);
         if (!game || game.hostId !== playerId) return [];
@@ -225,20 +353,20 @@ class GameManager {
 
 // === 台灣地圖 boardLayout ===
 const TAIWAN_BOARD_LAYOUT = [
-    // bottom (右→左)
-    { id: 0, name: '起點 Start 🚩', type: 'corner', position: { row: 12, col: 10 } },
-    { id: 1, name: 'Special Bonus +500 🎁', type: 'special', position: { row: 12, col: 9 } },
-    { id: 2, name: '普吉島 Phuket 200 🏖️', type: 'property', colorGroup: 'grey', toll: 200, ownerCharacter: 'thai', position: { row: 12, col: 8 } },
-    { id: 3, name: '❓', type: 'chance', position: { row: 12, col: 7 } },
-    { id: 4, name: '臺北 Taipei 🏙️', type: 'property', colorGroup: 'white', toll: 200, ownerCharacter: 'american', position: { row: 12, col: 6 } },
-    { id: 5, name: '芝加哥 Chicago 200 🌃', type: 'property', colorGroup: 'blue', toll: 200, ownerCharacter: 'american', position: { row: 12, col: 5 } },
-    { id: 6, name: '清奈 Chennai 200 🏛️', type: 'property', colorGroup: 'orange', toll: 200, ownerCharacter: 'indian', position: { row: 12, col: 4 } },
-    { id: 7, name: '巴黎 Paris 600 🥐', type: 'property', colorGroup: 'yellow', toll: 600, ownerCharacter: 'french', position: { row: 12, col: 3 } },
-    { id: 8, name: '❓', type: 'chance', position: { row: 12, col: 2 } },
-    { id: 9, name: '東京 Tokyo 600 🗼', type: 'property', colorGroup: 'green', toll: 600, ownerCharacter: 'japanese', position: { row: 12, col: 1 } },
-    { id: 10, name: '桃園國際機場 Taiwan Taoyuan International Airport （跳到「起飛」）✈️', type: 'special', position: { row: 12, col: 0 } },
+    // 🔵 BOTTOM ROW (右→左) - Row 10
+    { id: 0, name: '起點 Start 🚩', type: 'corner', position: { row: 10, col: 10 } },
+    { id: 1, name: 'Special Bonus +500 🎁', type: 'special', position: { row: 10, col: 9 } },
+    { id: 2, name: '普吉島 Phuket 200 🏖️', type: 'property', colorGroup: 'grey', toll: 200, ownerCharacter: 'thai', position: { row: 10, col: 8 } },
+    { id: 3, name: '❓', type: 'chance', position: { row: 10, col: 7 } },
+    { id: 4, name: '臺北 Taipei 🏙️', type: 'property', colorGroup: 'white', toll: 200, ownerCharacter: 'american', position: { row: 10, col: 6 } },
+    { id: 5, name: '芝加哥 Chicago 200 🌃', type: 'property', colorGroup: 'blue', toll: 200, ownerCharacter: 'american', position: { row: 10, col: 5 } },
+    { id: 6, name: '清奈 Chennai 200 🏛️', type: 'property', colorGroup: 'orange', toll: 200, ownerCharacter: 'indian', position: { row: 10, col: 4 } },
+    { id: 7, name: '巴黎 Paris 600 🥐', type: 'property', colorGroup: 'yellow', toll: 600, ownerCharacter: 'french', position: { row: 10, col: 3 } },
+    { id: 8, name: '❓', type: 'chance', position: { row: 10, col: 2 } },
+    { id: 9, name: '東京 Tokyo 600 🗼', type: 'property', colorGroup: 'green', toll: 600, ownerCharacter: 'japanese', position: { row: 10, col: 1 } },
+    { id: 10, name: '桃園國際機場 Taiwan Taoyuan International Airport （跳到「起飛」）✈️', type: 'special', position: { row: 10, col: 0 } },
 
-    // left (下→上)
+    // 🟢 LEFT COLUMN (下→上) - Col 0
     { id: 11, name: 'Special Bonus +500 🎁', type: 'special', position: { row: 9, col: 0 } },
     { id: 12, name: '芭達雅 Pattaya 200 🏖️', type: 'property', colorGroup: 'grey', toll: 200, ownerCharacter: 'thai', position: { row: 8, col: 0 } },
     { id: 13, name: '❓', type: 'chance', position: { row: 7, col: 0 } },
@@ -250,7 +378,7 @@ const TAIWAN_BOARD_LAYOUT = [
     { id: 19, name: '紐約 New York 600 🗽', type: 'property', colorGroup: 'white', toll: 600, ownerCharacter: 'american', position: { row: 1, col: 0 } },
     { id: 20, name: '參加巴西狂歡節 Join the Brazilian Carnival （暫停一輪）🎉', type: 'special', position: { row: 0, col: 0 } },
 
-    // top (左→右)
+    // 🟡 TOP ROW (左→右) - Row 0
     { id: 21, name: '雪梨 Sydney 🦘', type: 'property', colorGroup: 'white', toll: 200, ownerCharacter: 'american', position: { row: 0, col: 1 } },
     { id: 22, name: '加爾各答 Kolkata 200 🏛️', type: 'property', colorGroup: 'orange', toll: 200, ownerCharacter: 'indian', position: { row: 0, col: 2 } },
     { id: 23, name: '❓', type: 'chance', position: { row: 0, col: 3 } },
@@ -262,7 +390,7 @@ const TAIWAN_BOARD_LAYOUT = [
     { id: 29, name: '❓', type: 'chance', position: { row: 0, col: 9 } },
     { id: 30, name: '起飛 Take off 🛫', type: 'corner', position: { row: 0, col: 10 } },
 
-    // right (上→下)
+    // 🔴 RIGHT COLUMN (上→下) - Col 10
     { id: 31, name: '柏林 Berlin 🏰', type: 'property', colorGroup: 'white', toll: 400, ownerCharacter: 'french', position: { row: 1, col: 10 } },
     { id: 32, name: '曼谷 Bangkok 600 🛕', type: 'property', colorGroup: 'grey', toll: 600, ownerCharacter: 'thai', position: { row: 2, col: 10 } },
     { id: 33, name: '孟買 Mumbai 400 🏢', type: 'property', colorGroup: 'orange', toll: 400, ownerCharacter: 'indian', position: { row: 3, col: 10 } },
@@ -312,7 +440,10 @@ class MonopolyGame {
             inJail: false,
             jailTurns: 0,
             getOutOfJailCards: 0,
-            color: this.getPlayerColor(this.players.size)
+            color: this.getPlayerColor(this.players.size),
+            tags: [],  // 玩家的標籤
+            tagSelectionPending: true,  // 等待標籤選擇
+            correctTagIds: []  // 正確的標籤 ID（用於驗證）
         };
 
         this.players.set(playerId, player);
@@ -382,8 +513,11 @@ class MonopolyGame {
     }
 
     rollDice() {
+        console.log(`[擲骰子] 開始擲骰子 - hasRolledThisTurn: ${this.hasRolledThisTurn}, currentRoll:`, this.currentRoll);
+
         // 檢查是否已經在本回合擲過骰子（除非是雙重骰子）
         if (this.hasRolledThisTurn && !this.currentRoll?.isDouble) {
+            console.log(`[擲骰子] 已經擲過骰子了，拒絕再次擲骰子`);
             throw new Error('Already rolled dice this turn');
         }
 
@@ -392,10 +526,13 @@ class MonopolyGame {
         const total = dice1 + dice2;
         const isDouble = dice1 === dice2;
 
+        console.log(`[擲骰子] 骰子結果: ${dice1} + ${dice2} = ${total}`);
+
         this.currentRoll = { dice1, dice2, total, isDouble };
         this.hasRolledThisTurn = true;
 
         const player = this.players.get(this.currentPlayer);
+        console.log(`[擲骰子] 玩家當前位置: ${player.position}`);
 
         if (isDouble) {
             this.doubleRollCount++;
@@ -413,7 +550,9 @@ class MonopolyGame {
         }
 
         // Move player
+        console.log(`[擲骰子] 準備移動玩家 ${total} 格`);
         this.movePlayer(this.currentPlayer, total, this.ioRef, this.roomCode);
+        console.log(`[擲骰子] 玩家移動後位置: ${player.position}`);
 
         return this.currentRoll;
     }

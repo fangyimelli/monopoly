@@ -200,6 +200,54 @@
         </div>
     </div>
 
+    <!-- Tag Selection Screen -->
+    <div id="tagSelectionScreen" class="screen">
+        <div class="tag-selection-container">
+            <div class="tag-header">
+                <h2>🏷️ 選擇標籤</h2>
+                <p>請從下方6個標籤中，選擇3個屬於你代表國家的標籤</p>
+                <p class="tag-subtitle">選對才能進入遊戲喔！</p>
+            </div>
+
+            <div class="tag-selection-area">
+                <div id="tagOptions" class="tag-grid"></div>
+            </div>
+
+            <div class="tag-actions">
+                <button id="submitTagsBtn" class="btn primary large" disabled>
+                    <i class="fas fa-check"></i>
+                    確認選擇
+                </button>
+                <div id="tagFeedback" class="tag-feedback"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Host Tag Display Screen -->
+    <div id="hostTagDisplayScreen" class="screen">
+        <div class="tag-selection-container">
+            <div class="tag-header">
+                <h2>🎁 你的標籤</h2>
+                <p>系統已為你分配以下標籤</p>
+            </div>
+
+            <div class="host-tags-display">
+                <h3>國家標籤 (3個)</h3>
+                <div id="hostCountryTags" class="host-tags-grid"></div>
+                
+                <h3 style="margin-top: 30px;">一般標籤 (2個)</h3>
+                <div id="hostGeneralTags" class="host-tags-grid"></div>
+            </div>
+
+            <div class="tag-actions">
+                <button id="hostTagsContinueBtn" class="btn primary large">
+                    <i class="fas fa-arrow-right"></i>
+                    進入大廳
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Game Screen -->
     <div id="gameScreen" class="screen">
         <!-- 公費顯示在棋盤左下方 -->

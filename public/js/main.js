@@ -163,7 +163,7 @@ function setupResponsiveDesign() {
         adjustLayoutForScreenSize();
 
         // Update game board if it exists
-        if (window.game && window.game.gameBoard) {
+        if (window.game && window.game.gameBoard && typeof window.game.gameBoard.adjustForMobile === 'function') {
             window.game.gameBoard.adjustForMobile();
         }
     }, 250));

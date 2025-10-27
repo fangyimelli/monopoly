@@ -11,7 +11,13 @@ const io = socketIo(server, {
         origin: "*",
         methods: ["GET", "POST"]
     },
-    transports: ['polling', 'websocket']
+    transports: ['websocket', 'polling'],
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    upgradeTimeout: 30000,
+    maxHttpBufferSize: 1e8,
+    allowUpgrades: true,
+    perMessageDeflate: false
 });
 
 // Serve static files
@@ -90,9 +96,14 @@ io.on('connection', (socket) => {
 
     // Handle starting the game
     socket.on('startGame', ({ roomCode }) => {
+        console.log('[遊戲開始] 收到開始遊戲請求:', roomCode, 'from:', socket.id);
         try {
             const result = gameManager.startGame(roomCode, socket.id);
+            console.log('[遊戲開始] 結果:', result.success);
             if (result.success) {
+                console.log('[遊戲開始] 當前玩家:', result.gameState.currentPlayer);
+                console.log('[遊戲開始] 當前玩家索引:', result.gameState.currentPlayerIndex);
+                console.log('[遊戲開始] 玩家列表:', result.gameState.players.map(p => ({ id: p.id, name: p.name })));
                 io.to(roomCode).emit('gameStarted', {
                     gameState: result.gameState
                 });
@@ -100,6 +111,7 @@ io.on('connection', (socket) => {
                 socket.emit('startError', { message: result.message });
             }
         } catch (error) {
+            console.error('[遊戲開始] 錯誤:', error);
             socket.emit('startError', { message: 'Failed to start game' });
         }
     });
@@ -221,7 +233,180 @@ io.on('connection', (socket) => {
             takenCharacters: Array.from(game.players.values()).map(p => p.character)
         });
     });
+
+    // 獲取標籤選擇題
+    socket.on('getTagSelection', ({ roomCode }) => {
+        console.log('[標籤] 玩家請求標籤選擇題:', socket.id, 'roomCode:', roomCode);
+        const game = gameManager.rooms.get(roomCode);
+        if (!game) {
+            console.log('[標籤] 房間不存在:', roomCode);
+            socket.emit('tagSelectionError', { message: '房間不存在' });
+            return;
+        }
+        const player = game.players.get(socket.id);
+        if (!player) {
+            console.log('[標籤] 玩家不存在:', socket.id);
+            socket.emit('tagSelectionError', { message: '玩家不存在' });
+            return;
+        }
+
+        console.log('[標籤] 玩家角色:', player.character);
+        const selection = gameManager.generateTagSelection(player.character);
+        player.correctTagIds = selection.correctTagIds;
+
+        console.log('[標籤] 生成標籤選擇題，標籤數量:', selection.tags.length);
+        console.log('[標籤] 正確答案:', selection.correctTagIds);
+
+        socket.emit('tagSelectionReceived', {
+            tags: selection.tags
+        });
+    });
+
+    // 提交標籤選擇
+    socket.on('submitTagSelection', ({ roomCode, selectedTagIds }) => {
+        const game = gameManager.rooms.get(roomCode);
+        if (!game) {
+            socket.emit('tagVerificationResult', { success: false, message: '房間不存在' });
+            return;
+        }
+        const player = game.players.get(socket.id);
+        if (!player) {
+            socket.emit('tagVerificationResult', { success: false, message: '玩家不存在' });
+            return;
+        }
+
+        const isCorrect = gameManager.verifyTagSelection(selectedTagIds, player.correctTagIds);
+
+        if (isCorrect) {
+            // 選對了，保存國家標籤並給予2個一般標籤
+            const countryTags = selectedTagIds;
+            const generalTags = gameManager.getRandomGeneralTags();
+            player.tags = [...countryTags, ...generalTags.map(t => t.id)];
+            player.tagSelectionPending = false;
+
+            socket.emit('tagVerificationResult', {
+                success: true,
+                countryTags: selectedTagIds,
+                generalTags: generalTags
+            });
+
+            // 通知房間所有人此玩家已完成標籤選擇
+            io.to(roomCode).emit('playerTagsReady', {
+                playerId: socket.id,
+                gameState: game.getGameState()
+            });
+        } else {
+            socket.emit('tagVerificationResult', {
+                success: false,
+                message: '選擇錯誤！請重新選擇你的國家標籤。'
+            });
+        }
+    });
+
+    // 自動分配房主標籤
+    socket.on('autoAssignHostTags', ({ roomCode }) => {
+        console.log('[標籤] 收到房主自動分配請求:', socket.id, 'roomCode:', roomCode);
+        const game = gameManager.rooms.get(roomCode);
+        if (!game) {
+            console.log('[標籤] 房間不存在');
+            return;
+        }
+
+        const player = game.players.get(socket.id);
+        if (!player) {
+            console.log('[標籤] 玩家不存在');
+            return;
+        }
+        if (player.id !== game.hostId) {
+            console.log('[標籤] 不是房主');
+            return;
+        }
+
+        console.log('[標籤] 開始分配房主標籤，角色:', player.character);
+
+        // 自動選擇3個國家標籤
+        const selection = gameManager.generateTagSelection(player.character);
+        const countryTagIds = selection.correctTagIds;
+
+        // 獲取完整的國家標籤數據
+        const countryTagsData = selection.tags.filter(t => countryTagIds.includes(t.id));
+
+        // 給予2個一般標籤
+        const generalTags = gameManager.getRandomGeneralTags();
+        player.tags = [...countryTagIds, ...generalTags.map(t => t.id)];
+        player.tagSelectionPending = false;
+        player.correctTagIds = [];
+
+        console.log('[標籤] 房主標籤分配完成');
+        console.log('[標籤] 國家標籤:', countryTagsData);
+        console.log('[標籤] 一般標籤:', generalTags);
+
+        // 發送標籤數據給房主顯示
+        socket.emit('hostTagsAssigned', {
+            countryTags: countryTagsData,
+            generalTags: generalTags
+        });
+
+        // 不在這裡通知，等玩家點擊確認後才通知
+    });
+
+    // 自動分配玩家標籤（與房主相同）
+    socket.on('autoAssignPlayerTags', ({ roomCode }) => {
+        console.log('[標籤] 收到玩家自動分配請求:', socket.id, 'roomCode:', roomCode);
+        const game = gameManager.rooms.get(roomCode);
+        if (!game) {
+            console.log('[標籤] 房間不存在');
+            return;
+        }
+
+        const player = game.players.get(socket.id);
+        if (!player) {
+            console.log('[標籤] 玩家不存在');
+            return;
+        }
+
+        console.log('[標籤] 開始分配玩家標籤，角色:', player.character);
+
+        // 自動選擇3個國家標籤
+        const selection = gameManager.generateTagSelection(player.character);
+        const countryTagIds = selection.correctTagIds;
+
+        // 獲取完整的國家標籤數據
+        const countryTagsData = selection.tags.filter(t => countryTagIds.includes(t.id));
+
+        // 給予2個一般標籤
+        const generalTags = gameManager.getRandomGeneralTags();
+        player.tags = [...countryTagIds, ...generalTags.map(t => t.id)];
+        player.tagSelectionPending = false;
+        player.correctTagIds = [];
+
+        console.log('[標籤] 玩家標籤分配完成');
+        console.log('[標籤] 國家標籤:', countryTagsData);
+        console.log('[標籤] 一般標籤:', generalTags);
+
+        // 發送標籤數據給玩家顯示
+        socket.emit('playerTagsAssigned', {
+            countryTags: countryTagsData,
+            generalTags: generalTags
+        });
+
+        // 不在這裡通知，等玩家點擊確認後才通知
+    });
+
+    // 玩家確認標籤後
+    socket.on('confirmTags', ({ roomCode }) => {
+        console.log('[標籤] 玩家確認標籤:', socket.id);
+        const game = gameManager.rooms.get(roomCode);
+        if (!game) return;
+
+        // 通知房間所有人此玩家已完成標籤確認
+        io.to(roomCode).emit('playerTagsReady', {
+            playerId: socket.id,
+            gameState: game.getGameState()
+        });
+    });
 });
+
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {

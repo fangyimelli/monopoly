@@ -8,7 +8,7 @@ class MonopolyClient {
         this.playerId = null;
         this.isHost = false;
         this.turnCountdownInterval = null;
-        this.turnCountdownValue = 10;
+        this.turnCountdownValue = 5;
 
         // 新增倒數狀態追蹤
         this.lastCountdownPlayerId = null;
@@ -20,12 +20,19 @@ class MonopolyClient {
     init() {
         console.log('Initializing Socket.io connection...');
         this.socket = io({
-            transports: ['polling', 'websocket'],
-            timeout: 20000,
-            forceNew: true
+            transports: ['websocket', 'polling'],
+            timeout: 30000,
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            reconnectionAttempts: 5,
+            forceNew: false,
+            upgrade: true,
+            rememberUpgrade: true
         });
         this.setupSocketListeners();
         this.setupCharacterSelection();
+        this.setupTagSelection();
     }
 
     setupSocketListeners() {
@@ -59,6 +66,7 @@ class MonopolyClient {
 
         // Room events
         this.socket.on('roomCreated', (data) => {
+            console.log('收到 roomCreated 事件:', data);
             this.roomCode = data.roomCode;
             this.playerId = data.playerId;
             this.gameState = data.gameState;
@@ -66,23 +74,38 @@ class MonopolyClient {
             this.isHost = (this.playerId === this.gameState.hostId);
 
             this.showSuccess(`房間已創建！代碼: ${this.roomCode}`);
-            this.showLobby();
+
+            // 如果房主參與遊戲，請求分配標籤並顯示
+            if (!this.gameState.hostIsObserver) {
+                console.log('房主參與遊戲，請求自動分配標籤');
+                this.socket.emit('autoAssignHostTags', { roomCode: this.roomCode });
+            } else {
+                // 觀戰房主直接進入大廳
+                console.log('觀戰房主，直接進入大廳');
+                this.showLobby();
+            }
         });
 
         this.socket.on('joinSuccess', (data) => {
+            console.log('收到 joinSuccess 事件:', data);
             this.roomCode = data.roomCode;
             this.playerId = data.playerId;
             this.gameState = data.gameState;
             this.availableCharacters = data.availableCharacters;
             this.isHost = (this.playerId === this.gameState.hostId);
             this.updateCharacterAvailability();
+
+            // 顯示成功訊息但不隱藏載入畫面，因為要等標籤分配
             if (data.assignedCharacter) {
-                this.showSuccess(`成功加入房間！獲得角色: ${this.getCharacterName(data.assignedCharacter)}`);
+                console.log(`成功加入房間！獲得角色: ${this.getCharacterName(data.assignedCharacter)}`);
             } else {
-                this.showSuccess('成功加入房間！');
+                console.log('成功加入房間！');
             }
-            this.showLobby();
-            this.updateLobby();
+
+            // 自動分配標籤並顯示
+            console.log('玩家加入成功，roomCode:', this.roomCode, 'playerId:', this.playerId);
+            console.log('發送 autoAssignPlayerTags 請求');
+            this.socket.emit('autoAssignPlayerTags', { roomCode: this.roomCode });
         });
 
         this.socket.on('joinError', (data) => {
@@ -115,9 +138,18 @@ class MonopolyClient {
 
         // Game events
         this.socket.on('gameStarted', (data) => {
+            console.log('遊戲開始事件:', data);
+            console.log('當前玩家 ID:', data.gameState.currentPlayer);
+            console.log('當前玩家索引:', data.gameState.currentPlayerIndex);
+            console.log('我的 ID:', this.playerId);
             this.gameState = data.gameState;
+            this.hasRemovedTagThisTurn = false; // 遊戲開始時重置標記
             this.showGame();
             this.showSuccess('遊戲開始！');
+            // 立即顯示所有玩家在起點
+            if (this.gameBoard) {
+                this.gameBoard.updatePlayerPositions(this.gameState);
+            }
         });
 
         this.socket.on('startError', (data) => {
@@ -125,52 +157,33 @@ class MonopolyClient {
         });
 
         this.socket.on('diceRolled', async (data) => {
-            // 保存舊位置用於動畫
-            const oldGameState = this.gameState;
+            // 保存舊 gameState 用於動畫
+            const oldGameState = JSON.parse(JSON.stringify(this.gameState));
             const movingPlayer = oldGameState ? oldGameState.players.find(p => p.id === data.playerId) : null;
             const oldPosition = movingPlayer ? movingPlayer.position : 0;
 
-            this.gameState = data.gameState;
+            // 先顯示骰子結果
             this.showDiceResult(data.dice);
 
-            // 播放逐步移動動畫
-            if (window.gameBoard && movingPlayer) {
-                const newPlayer = this.gameState.players.find(p => p.id === data.playerId);
+            // 播放逐步移動動畫（傳入舊的 gameState）
+            if (this.gameBoard && movingPlayer) {
+                const newPlayer = data.gameState.players.find(p => p.id === data.playerId);
                 if (newPlayer) {
-                    await window.gameBoard.animatePlayerMovement(
+                    await this.gameBoard.animatePlayerMovement(
                         data.playerId,
                         oldPosition,
                         newPlayer.position,
-                        data.dice.total
+                        data.dice.total,
+                        oldGameState  // 傳入舊的 gameState
                     );
                 }
             }
 
+            // 動畫完成後才更新 gameState 和畫面
+            this.gameState = data.gameState;
             this.updateGameScreen();
 
-            if (data.playerId === this.playerId) {
-                this.enableActionButtons();
-                // 擲完骰子才啟動倒數
-                const endBtn = document.getElementById('endTurnBtn');
-                if (this.turnCountdownInterval) clearInterval(this.turnCountdownInterval);
-                this.turnCountdownValue = 10;
-                endBtn.textContent = `結束回合(${this.turnCountdownValue})`;
-                endBtn.disabled = false;
-                this.turnCountdownInterval = setInterval(() => {
-                    this.turnCountdownValue--;
-                    endBtn.textContent = `結束回合(${this.turnCountdownValue})`;
-                    if (this.turnCountdownValue <= 0) {
-                        clearInterval(this.turnCountdownInterval);
-                        this.turnCountdownInterval = null;
-                        this.endTurn();
-                    }
-                }, 1000);
-                endBtn.onclick = () => {
-                    if (this.turnCountdownInterval) clearInterval(this.turnCountdownInterval);
-                    this.turnCountdownInterval = null;
-                    this.endTurn();
-                };
-            }
+            // 移除重複的倒數計時邏輯，統一由 updateActionButtons() 處理
         });
 
         this.socket.on('rollError', (data) => {
@@ -178,7 +191,18 @@ class MonopolyClient {
         });
 
         this.socket.on('turnEnded', (data) => {
+            console.log('=== 回合結束事件 ===');
+            console.log('新當前玩家 ID:', data.gameState.currentPlayer);
+            console.log('新當前玩家索引:', data.gameState.currentPlayerIndex);
+            console.log('我的 ID:', this.playerId);
+            console.log('玩家列表:', data.gameState.players.map(p => ({ id: p.id, name: p.name })));
             this.gameState = data.gameState;
+
+            // 如果輪到我的回合，重置標籤撕除標記
+            if (data.gameState.currentPlayer === this.playerId) {
+                this.hasRemovedTagThisTurn = false;
+            }
+
             this.updateGameScreen();
             this.resetActionButtons();
         });
@@ -218,6 +242,45 @@ class MonopolyClient {
         });
         this.socket.on('receiveToll', (data) => {
             this.showSuccess(`你收到 ${data.payerName}（${this.getCharacterName(data.payerCharacter)}）支付的 $${data.amount} 過路費（地點：${data.propertyName}）`);
+        });
+
+        // 標籤選擇相關事件
+        this.socket.on('tagSelectionReceived', (data) => {
+            this.showTagSelection(data.tags);
+        });
+
+        this.socket.on('tagVerificationResult', (data) => {
+            if (data.success) {
+                this.showSuccess('標籤選擇正確！獲得2張一般標籤卡！');
+                this.showTagResult(data.countryTags, data.generalTags);
+                setTimeout(() => {
+                    this.showLobby();
+                }, 3000);
+            } else {
+                this.showError(data.message || '選擇錯誤！請重新選擇。');
+                this.enableTagSubmission();
+            }
+        });
+
+        this.socket.on('playerTagsReady', (data) => {
+            this.gameState = data.gameState;
+            this.updateLobby();
+        });
+
+        this.socket.on('tagSelectionError', (data) => {
+            this.showError(data.message);
+        });
+
+        // 房主標籤分配完成
+        this.socket.on('hostTagsAssigned', (data) => {
+            console.log('收到房主標籤:', data);
+            this.showHostTagsDisplay(data.countryTags, data.generalTags);
+        });
+
+        // 玩家標籤分配完成（與房主相同的處理）
+        this.socket.on('playerTagsAssigned', (data) => {
+            console.log('收到玩家標籤:', data);
+            this.showHostTagsDisplay(data.countryTags, data.generalTags);
         });
     }
 
@@ -405,6 +468,14 @@ class MonopolyClient {
                 hostLabel += '</span>';
             }
 
+            // 顯示標籤狀態
+            let tagStatus = '';
+            if (player.tagSelectionPending) {
+                tagStatus = '<span class="host-badge" style="background: #ff9800;">等待選擇標籤</span>';
+            } else if (player.tags && player.tags.length > 0) {
+                tagStatus = '<span class="host-badge" style="background: #4caf50;">✓ 已完成標籤</span>';
+            }
+
             playerItem.innerHTML = `
                 <div class="player-avatar" style="background-color: ${player.color}">
                     ${characterIcon}
@@ -416,18 +487,23 @@ class MonopolyClient {
                 <div class="player-status">
                     ${hostLabel}
                     ${player.id === this.playerId ? '<span class="host-badge" style="background: #28a745;">您</span>' : ''}
+                    ${tagStatus}
                 </div>
             `;
 
             playersList.appendChild(playerItem);
         });
 
-        // Update start button
+        // Update start button - 確保所有玩家都已完成標籤選擇
         const startBtn = document.getElementById('startGameBtn');
-        if (this.isHost && this.gameState.players.length >= 2) {
+        const allPlayersReady = this.gameState.players.every(p => !p.tagSelectionPending);
+        if (this.isHost && this.gameState.players.length >= 2 && allPlayersReady) {
             startBtn.disabled = false;
         } else {
             startBtn.disabled = true;
+            if (this.isHost && !allPlayersReady) {
+                startBtn.title = '等待所有玩家完成標籤選擇';
+            }
         }
     }
 
@@ -556,6 +632,13 @@ class MonopolyClient {
             // 計算得分（暫以現金 player.money 為分數）
             const score = player.money;
 
+            // 顯示玩家標籤
+            let tagsHtml = '';
+            if (player.tags && player.tags.length > 0) {
+                const tagNames = this.getTagNames(player.tags);
+                tagsHtml = `<div class="player-tags">${tagNames.map(name => `<span class="player-tag">${name}</span>`).join('')}</div>`;
+            }
+
             playerItem.innerHTML = `
                 <div class="game-player-header">
                     <div class="game-player-character">${characterIcon}</div>
@@ -566,6 +649,7 @@ class MonopolyClient {
                 <div class="game-player-ethnic" style="font-size: 0.95em; color: #666; margin-bottom: 2px;">${ethnicName}</div>
                 <div class="game-player-position">位置: ${positionName}${dotHtml}</div>
                 <div class="game-player-score" style="margin-top:2px;font-size:1em;color:#333;">得分：${score}</div>
+                ${tagsHtml}
                 ${ownerColorHex ? `<div class="owner-color-strip" style="height: 8px; border-radius: 4px; margin: 4px 0 0 0; background: ${ownerColorHex};"></div>` : ''}
             `;
 
@@ -585,41 +669,80 @@ class MonopolyClient {
         rollBtn.style.display = 'block';
         endBtn.style.display = 'block';
 
-        if (this.turnCountdownInterval) clearInterval(this.turnCountdownInterval);
-        this.turnCountdownInterval = null;
-        this.lastCountdownPlayerId = null;
-        endBtn.textContent = '結束回合';
-
         if (!this.isMyTurn()) {
+            // 不是我的回合，清除倒數計時
+            if (this.turnCountdownInterval) {
+                clearInterval(this.turnCountdownInterval);
+                this.turnCountdownInterval = null;
+            }
             rollBtn.disabled = true;
             endBtn.disabled = true;
+            endBtn.textContent = '結束回合';
             return;
         }
+
+        // 輪到我的回合
         endBtn.disabled = false;
 
-        // 結束回合倒數
-        if (this.turnCountdownInterval) clearInterval(this.turnCountdownInterval);
-        this.turnCountdownInterval = null;
-        this.turnCountdownValue = 10;
-        if (this.gameState.currentRoll) {
-            endBtn.textContent = `結束回合(${this.turnCountdownValue})`;
-            this.turnCountdownInterval = setInterval(() => {
-                this.turnCountdownValue--;
+        // 檢查是否已經擲過骰子
+        const hasRolled = this.gameState.currentRoll && this.gameState.currentRoll.total > 0;
+
+        if (hasRolled) {
+            // 已經擲過骰子，禁用擲骰子按鈕
+            rollBtn.disabled = true;
+
+            // 檢查是否在問號格（機會卡）
+            const me = this.gameState.players.find(p => p.id === this.playerId);
+            let isOnQuestionMark = false;
+            if (me && this.gameBoard && this.gameBoard.boardLayout) {
+                const currentSquare = this.gameBoard.boardLayout.find(sq => sq.id == me.position);
+                if (currentSquare && (currentSquare.type === 'chance' || currentSquare.name.includes('？'))) {
+                    isOnQuestionMark = true;
+                }
+            }
+
+            // 啟動倒數計時（問號格不倒數，且只啟動一次）
+            if (!isOnQuestionMark && !this.turnCountdownInterval) {
+                this.turnCountdownValue = 5;
                 endBtn.textContent = `結束回合(${this.turnCountdownValue})`;
-                if (this.turnCountdownValue <= 0) {
+                this.turnCountdownInterval = setInterval(() => {
+                    this.turnCountdownValue--;
+                    endBtn.textContent = `結束回合(${this.turnCountdownValue})`;
+                    if (this.turnCountdownValue <= 0) {
+                        clearInterval(this.turnCountdownInterval);
+                        this.turnCountdownInterval = null;
+                        this.endTurn();
+                    }
+                }, 1000);
+            } else if (isOnQuestionMark) {
+                // 在問號格，清除倒數計時
+                if (this.turnCountdownInterval) {
                     clearInterval(this.turnCountdownInterval);
                     this.turnCountdownInterval = null;
-                    this.endTurn();
                 }
-            }, 1000);
+                endBtn.textContent = '結束回合';
+            }
         } else {
+            // 還沒擲骰子，清除倒數計時
+            if (this.turnCountdownInterval) {
+                clearInterval(this.turnCountdownInterval);
+                this.turnCountdownInterval = null;
+            }
+            rollBtn.disabled = false;
             endBtn.textContent = '結束回合';
         }
-        endBtn.onclick = () => {
-            if (this.turnCountdownInterval) clearInterval(this.turnCountdownInterval);
-            this.turnCountdownInterval = null;
-            this.endTurn();
-        };
+
+        // 只設置一次 onclick，避免重複綁定
+        if (!endBtn.dataset.onclickSet) {
+            endBtn.dataset.onclickSet = 'true';
+            endBtn.onclick = () => {
+                if (this.turnCountdownInterval) {
+                    clearInterval(this.turnCountdownInterval);
+                    this.turnCountdownInterval = null;
+                }
+                this.endTurn();
+            };
+        }
     }
 
     enableActionButtons() {
@@ -627,12 +750,6 @@ class MonopolyClient {
     }
 
     resetActionButtons() {
-        console.log('Resetting action buttons');
-        const rollBtn = document.getElementById('rollDiceBtn');
-
-        // Reset roll button - will be managed by updateActionButtons
-        rollBtn.disabled = false;
-
         // Update all buttons based on current game state
         this.updateActionButtons();
         this.hasRemovedTagThisTurn = false;
@@ -806,7 +923,14 @@ class MonopolyClient {
 
     isMyTurn() {
         const currentTurnPlayer = this.getCurrentTurnPlayer();
-        return currentTurnPlayer && currentTurnPlayer.id === this.playerId;
+        const result = currentTurnPlayer && currentTurnPlayer.id === this.playerId;
+        console.log('檢查是否輪到我:', {
+            myId: this.playerId,
+            currentTurnPlayer: currentTurnPlayer,
+            currentPlayerIndex: this.gameState?.currentPlayerIndex,
+            isMyTurn: result
+        });
+        return result;
     }
 
     getPropertyAtPosition(position) {
@@ -1056,7 +1180,11 @@ class MonopolyClient {
                 });
                 modal.remove();
                 this.hasRemovedTagThisTurn = true;
-                // 不再直接改 player.tags，等伺服器 gameState
+
+                // 選擇完標籤後，自動結束回合
+                setTimeout(() => {
+                    this.endTurn();
+                }, 500); // 延遲 500ms 讓玩家看到選擇結果
             };
             btns.appendChild(btn);
         });
@@ -1088,6 +1216,214 @@ class MonopolyClient {
         if (fundDiv && this.gameState && typeof this.gameState.publicFund === 'number') {
             fundDiv.textContent = `公費：$${this.gameState.publicFund}`;
         }
+    }
+
+    // 標籤選擇系統
+    setupTagSelection() {
+        this.selectedTags = [];
+        this.allTags = {}; // 儲存所有標籤數據
+        this.initializeAllTagsMapping(); // 初始化標籤映射
+    }
+
+    // 初始化所有標籤映射（用於顯示）
+    initializeAllTagsMapping() {
+        // 國家標籤映射
+        const countryTagsMap = {
+            'us1': '愛吃漢堡', 'us2': '擅長打籃球', 'us3': '很有自信', 'us4': '喜歡看超級英雄電影',
+            'us5': '活潑外向', 'us6': '金髮', 'us7': '喜歡過萬聖節', 'us8': '很年輕就能開車',
+            'jp1': '愛吃壽司', 'jp2': '喜歡看動漫', 'jp3': '很有禮貌', 'jp4': '擅長畫漫畫',
+            'jp5': '安靜內向', 'jp6': '很會打棒球', 'jp7': '守規矩的', 'jp8': '喜歡櫻花',
+            'fr1': '愛吃長棍麵包', 'fr2': '喜歡去美術館', 'fr3': '生性浪漫', 'fr4': '時尚',
+            'fr5': '吃飯時間長', 'fr6': '擅長美術', 'fr7': '喜歡戴貝蕾帽', 'fr8': '舉止優雅',
+            'in1': '愛吃咖哩飯', 'in2': '待人熱情', 'in3': '擅長數學', 'in4': '重視家庭關係',
+            'in5': '擅長唱歌跳舞', 'in6': '努力勤奮', 'in7': '路上可見牛', 'in8': '很多人戴頭巾',
+            'th1': '愛吃辣', 'th2': '喜歡看恐怖片', 'th3': '樂觀開朗', 'th4': '尊敬大象',
+            'th5': '重視人際關係', 'th6': '擅長泰拳', 'th7': '喜歡穿鮮豔的衣服', 'th8': '喜歡潑水節',
+            // 一般標籤映射
+            'g1': '高', 'g2': '矮', 'g3': '胖', 'g4': '瘦', 'g5': '男生', 'g6': '女生',
+            'g7': '長頭髮', 'g8': '短頭髮', 'g9': '內向的', 'g10': '外向的', 'g11': '感性的', 'g12': '理性的',
+            'g13': '有規劃的', 'g14': '隨性的', 'g15': '務實派', 'g16': '想像派', 'g17': '皮膚白皙', 'g18': '皮膚黝黑',
+            'g19': '膽小', 'g20': '謹慎', 'g21': '衝動', 'g22': '大膽', 'g23': '保守', 'g24': '有幽默感'
+        };
+
+        // 初始化映射
+        Object.keys(countryTagsMap).forEach(id => {
+            if (!this.allTags[id]) {
+                this.allTags[id] = { id: id, zh: countryTagsMap[id] };
+            }
+        });
+    }
+
+    getTagNames(tagIds) {
+        return tagIds.map(id => {
+            if (this.allTags[id]) {
+                return this.allTags[id].zh;
+            }
+            return id; // 如果找不到，返回 ID
+        });
+    }
+
+    showHostTagsDisplay(countryTags, generalTags) {
+        console.log('顯示房主標籤畫面');
+        console.log('國家標籤:', countryTags);
+        console.log('一般標籤:', generalTags);
+
+        // 儲存標籤數據
+        [...countryTags, ...generalTags].forEach(tag => {
+            this.allTags[tag.id] = tag;
+        });
+
+        // 隱藏載入畫面
+        this.hideLoading();
+
+        // 切換到房主標籤顯示畫面
+        document.querySelectorAll('.screen').forEach(screen => {
+            screen.classList.remove('active');
+        });
+        document.getElementById('hostTagDisplayScreen').classList.add('active');
+
+        // 顯示國家標籤（逐個翻牌效果）
+        const countryContainer = document.getElementById('hostCountryTags');
+        countryContainer.innerHTML = '';
+        countryTags.forEach((tag, index) => {
+            setTimeout(() => {
+                const tagCard = document.createElement('div');
+                tagCard.className = 'host-tag-card';
+                tagCard.style.animationDelay = `${index * 0.2}s`;
+                tagCard.innerHTML = `
+                    <div class="tag-zh">${tag.zh}</div>
+                    <div class="tag-en">${tag.en}</div>
+                `;
+                countryContainer.appendChild(tagCard);
+            }, index * 300);
+        });
+
+        // 顯示一般標籤
+        setTimeout(() => {
+            const generalContainer = document.getElementById('hostGeneralTags');
+            generalContainer.innerHTML = '';
+            generalTags.forEach((tag, index) => {
+                setTimeout(() => {
+                    const tagCard = document.createElement('div');
+                    tagCard.className = 'host-tag-card';
+                    tagCard.style.animationDelay = `${index * 0.2}s`;
+                    tagCard.innerHTML = `
+                        <div class="tag-zh">${tag.zh}</div>
+                        <div class="tag-en">${tag.en}</div>
+                    `;
+                    generalContainer.appendChild(tagCard);
+                }, index * 300);
+            });
+        }, 1200);
+
+        // 設置繼續按鈕 - 點擊後才通知其他人並進入大廳
+        document.getElementById('hostTagsContinueBtn').onclick = () => {
+            console.log('玩家點擊進入大廳按鈕');
+            // 通知伺服器玩家已確認標籤
+            this.socket.emit('confirmTags', { roomCode: this.roomCode });
+            this.showLobby();
+        };
+    }
+
+    showTagSelectionScreen() {
+        console.log('顯示標籤選擇畫面，房間代碼:', this.roomCode);
+        document.querySelectorAll('.screen').forEach(screen => {
+            screen.classList.remove('active');
+        });
+        document.getElementById('tagSelectionScreen').classList.add('active');
+
+        // 請求標籤選擇題
+        console.log('請求標籤選擇題...');
+        this.socket.emit('getTagSelection', { roomCode: this.roomCode });
+    }
+
+    showTagSelection(tags) {
+        console.log('收到標籤數據:', tags);
+        const tagOptions = document.getElementById('tagOptions');
+        if (!tagOptions) {
+            console.error('找不到 tagOptions 元素');
+            return;
+        }
+
+        tagOptions.innerHTML = '';
+        this.selectedTags = [];
+
+        // 儲存標籤數據
+        tags.forEach(tag => {
+            this.allTags[tag.id] = tag;
+
+            const tagDiv = document.createElement('div');
+            tagDiv.className = 'tag-option';
+            tagDiv.dataset.tagId = tag.id;
+            tagDiv.innerHTML = `
+                <div class="tag-zh">${tag.zh}</div>
+                <div class="tag-en">${tag.en}</div>
+            `;
+
+            tagDiv.onclick = () => this.toggleTagSelection(tagDiv, tag.id);
+            tagOptions.appendChild(tagDiv);
+        });
+
+        console.log('已創建', tags.length, '個標籤選項');
+
+        // 設置提交按鈕
+        const submitBtn = document.getElementById('submitTagsBtn');
+        submitBtn.disabled = true;
+        submitBtn.onclick = () => this.submitTagSelection();
+    }
+
+    toggleTagSelection(tagDiv, tagId) {
+        if (tagDiv.classList.contains('selected')) {
+            // 取消選擇
+            tagDiv.classList.remove('selected');
+            this.selectedTags = this.selectedTags.filter(id => id !== tagId);
+        } else {
+            // 選擇
+            if (this.selectedTags.length >= 3) {
+                this.showError('最多只能選擇3個標籤');
+                return;
+            }
+            tagDiv.classList.add('selected');
+            this.selectedTags.push(tagId);
+        }
+
+        // 更新提交按鈕狀態
+        const submitBtn = document.getElementById('submitTagsBtn');
+        submitBtn.disabled = this.selectedTags.length !== 3;
+    }
+
+    submitTagSelection() {
+        if (this.selectedTags.length !== 3) {
+            this.showError('請選擇3個標籤');
+            return;
+        }
+
+        document.getElementById('submitTagsBtn').disabled = true;
+        this.socket.emit('submitTagSelection', {
+            roomCode: this.roomCode,
+            selectedTagIds: this.selectedTags
+        });
+    }
+
+    enableTagSubmission() {
+        document.getElementById('submitTagsBtn').disabled = false;
+    }
+
+    showTagResult(countryTags, generalTags) {
+        // 儲存一般標籤數據
+        generalTags.forEach(tag => {
+            this.allTags[tag.id] = tag;
+        });
+
+        const feedback = document.getElementById('tagFeedback');
+        feedback.className = 'tag-feedback success';
+        feedback.innerHTML = `
+            <div>✅ 選擇正確！</div>
+            <div style="margin-top: 10px;">獲得一般標籤：</div>
+            <div style="margin-top: 5px;">
+                ${generalTags.map(t => `<span class="player-tag">${t.zh}</span>`).join(' ')}
+            </div>
+        `;
     }
 }
 
