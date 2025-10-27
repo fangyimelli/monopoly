@@ -239,15 +239,15 @@ const TAIWAN_BOARD_LAYOUT = [
     { id: 10, name: '桃園國際機場 Taiwan Taoyuan International Airport （跳到「起飛」）✈️', type: 'special', position: { row: 12, col: 0 } },
 
     // left (下→上)
-    { id: 11, name: '芭達雅 Pattaya 200 🏖️', type: 'property', colorGroup: 'grey', toll: 200, ownerCharacter: 'thai', position: { row: 11, col: 0 } },
-    { id: 12, name: 'Special Bonus +500 🎁', type: 'special', position: { row: 10, col: 0 } },
-    { id: 13, name: '❓', type: 'chance', position: { row: 9, col: 0 } },
-    { id: 14, name: '德里 Delhi 600 🕌', type: 'property', colorGroup: 'orange', toll: 600, ownerCharacter: 'indian', position: { row: 5, col: 0 } },
-    { id: 15, name: '札幌 Sapporo 200 ⛄', type: 'property', colorGroup: 'green', toll: 200, ownerCharacter: 'japanese', position: { row: 6, col: 0 } },
-    { id: 16, name: '❓', type: 'chance', position: { row: 7, col: 0 } },
-    { id: 17, name: '首爾 Seoul 🏙️', type: 'property', colorGroup: 'white', toll: 200, ownerCharacter: 'japanese', position: { row: 8, col: 0 } },
-    { id: 18, name: '尼斯 Nice 200 🌊', type: 'property', colorGroup: 'yellow', toll: 200, ownerCharacter: 'french', position: { row: 9, col: 0 } },
-    { id: 19, name: '紐約 New York 600 🗽', type: 'property', colorGroup: 'white', toll: 600, ownerCharacter: 'american', position: { row: 10, col: 0 } },
+    { id: 11, name: 'Special Bonus +500 🎁', type: 'special', position: { row: 9, col: 0 } },
+    { id: 12, name: '芭達雅 Pattaya 200 🏖️', type: 'property', colorGroup: 'grey', toll: 200, ownerCharacter: 'thai', position: { row: 8, col: 0 } },
+    { id: 13, name: '❓', type: 'chance', position: { row: 7, col: 0 } },
+    { id: 14, name: '德里 Delhi 600 🕌', type: 'property', colorGroup: 'orange', toll: 600, ownerCharacter: 'indian', position: { row: 6, col: 0 } },
+    { id: 15, name: '札幌 Sapporo 200 ⛄', type: 'property', colorGroup: 'green', toll: 200, ownerCharacter: 'japanese', position: { row: 5, col: 0 } },
+    { id: 16, name: '❓', type: 'chance', position: { row: 4, col: 0 } },
+    { id: 17, name: '首爾 Seoul 🏙️', type: 'property', colorGroup: 'white', toll: 200, ownerCharacter: 'japanese', position: { row: 3, col: 0 } },
+    { id: 18, name: '尼斯 Nice 200 🌊', type: 'property', colorGroup: 'yellow', toll: 200, ownerCharacter: 'french', position: { row: 2, col: 0 } },
+    { id: 19, name: '紐約 New York 600 🗽', type: 'property', colorGroup: 'white', toll: 600, ownerCharacter: 'american', position: { row: 1, col: 0 } },
     { id: 20, name: '參加巴西狂歡節 Join the Brazilian Carnival （暫停一輪）🎉', type: 'special', position: { row: 0, col: 0 } },
 
     // top (左→右)
@@ -263,15 +263,15 @@ const TAIWAN_BOARD_LAYOUT = [
     { id: 30, name: '起飛 Take off 🛫', type: 'corner', position: { row: 1, col: 10 } },
 
     // right (上→下)
-    { id: 31, name: '柏林 Berlin 🏰', type: 'property', colorGroup: 'white', toll: 400, ownerCharacter: 'french', position: { row: 2, col: 10 } },
-    { id: 32, name: '曼谷 Bangkok 600 🛕', type: 'property', colorGroup: 'grey', toll: 600, ownerCharacter: 'thai', position: { row: 3, col: 10 } },
-    { id: 33, name: '孟買 Mumbai 400 🏢', type: 'property', colorGroup: 'orange', toll: 400, ownerCharacter: 'indian', position: { row: 4, col: 10 } },
-    { id: 34, name: '❓', type: 'chance', position: { row: 5, col: 10 } },
-    { id: 35, name: '舊金山 San Francisco 400 🌉', type: 'property', colorGroup: 'blue', toll: 400, ownerCharacter: 'american', position: { row: 6, col: 10 } },
-    { id: 36, name: '倫敦 London 🎡', type: 'property', colorGroup: 'white', toll: 400, ownerCharacter: 'french', position: { row: 7, col: 10 } },
-    { id: 37, name: '大阪 Osaka 400 🍣', type: 'property', colorGroup: 'green', toll: 400, ownerCharacter: 'japanese', position: { row: 8, col: 10 } },
-    { id: 38, name: '❓', type: 'chance', position: { row: 9, col: 10 } },
-    { id: 39, name: '里昂 Lyon 200 🧀', type: 'property', colorGroup: 'yellow', toll: 200, ownerCharacter: 'french', position: { row: 10, col: 10 } }
+    { id: 31, name: '柏林 Berlin 🏰', type: 'property', colorGroup: 'white', toll: 400, ownerCharacter: 'french', position: { row: 1, col: 10 } },
+    { id: 32, name: '曼谷 Bangkok 600 🛕', type: 'property', colorGroup: 'grey', toll: 600, ownerCharacter: 'thai', position: { row: 2, col: 10 } },
+    { id: 33, name: '孟買 Mumbai 400 🏢', type: 'property', colorGroup: 'orange', toll: 400, ownerCharacter: 'indian', position: { row: 3, col: 10 } },
+    { id: 34, name: '❓', type: 'chance', position: { row: 4, col: 10 } },
+    { id: 35, name: '舊金山 San Francisco 400 🌉', type: 'property', colorGroup: 'blue', toll: 400, ownerCharacter: 'american', position: { row: 5, col: 10 } },
+    { id: 36, name: '倫敦 London 🎡', type: 'property', colorGroup: 'white', toll: 400, ownerCharacter: 'french', position: { row: 6, col: 10 } },
+    { id: 37, name: '大阪 Osaka 400 🍣', type: 'property', colorGroup: 'green', toll: 400, ownerCharacter: 'japanese', position: { row: 7, col: 10 } },
+    { id: 38, name: '❓', type: 'chance', position: { row: 8, col: 10 } },
+    { id: 39, name: '里昂 Lyon 200 🧀', type: 'property', colorGroup: 'yellow', toll: 200, ownerCharacter: 'french', position: { row: 9, col: 10 } }
 ];
 
 class MonopolyGame {
