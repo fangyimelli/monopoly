@@ -482,6 +482,12 @@ io.on('connection', (socket) => {
 
             console.log('[標籤] 玩家選擇不幫忙，扣分:', penalty);
 
+            // 判斷是拒絕幫忙還是走到無玩家的國家
+            const hasOwnerInGame = owner ? true : false;
+            const message = hasOwnerInGame 
+                ? `選擇不幫忙，扣除 ${penalty} 點！`
+                : `別人的地盤，扣除 ${penalty} 點！`;
+
             // 通知所有玩家更新遊戲狀態
             io.to(roomCode).emit('playerPenalized', {
                 playerId: socket.id,
@@ -491,7 +497,7 @@ io.on('connection', (socket) => {
 
             // 通知玩家
             socket.emit('penaltyApplied', {
-                message: `選擇不幫忙，扣除 ${penalty} 點！`,
+                message: message,
                 newBalance: player.money
             });
         }

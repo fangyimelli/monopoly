@@ -82,7 +82,7 @@ class MonopolyClient {
             } else {
                 // 觀戰房主直接進入大廳
                 console.log('觀戰房主，直接進入大廳');
-            this.showLobby();
+                this.showLobby();
             }
         });
 
@@ -143,6 +143,12 @@ class MonopolyClient {
             console.log('當前玩家索引:', data.gameState.currentPlayerIndex);
             console.log('我的 ID:', this.playerId);
             this.gameState = data.gameState;
+
+            // 確保遊戲開始時清除骰子狀態
+            if (this.gameState.currentRoll) {
+                this.gameState.currentRoll = null;
+            }
+
             this.hasRemovedTagThisTurn = false; // 遊戲開始時重置標記
             this.showGame();
             this.showSuccess('遊戲開始！');
@@ -197,6 +203,9 @@ class MonopolyClient {
             console.log('我的 ID:', this.playerId);
             console.log('玩家列表:', data.gameState.players.map(p => ({ id: p.id, name: p.name })));
             this.gameState = data.gameState;
+
+            // 重置骰子狀態（新回合還沒擲骰子）
+            this.gameState.currentRoll = null;
 
             // 如果輪到我的回合，重置標籤撕除標記
             if (data.gameState.currentPlayer === this.playerId) {
@@ -727,6 +736,7 @@ class MonopolyClient {
 
         // 檢查是否已經擲過骰子
         const hasRolled = this.gameState.currentRoll && this.gameState.currentRoll.total > 0;
+        console.log('updateActionButtons - hasRolled:', hasRolled, 'currentRoll:', this.gameState.currentRoll);
 
         if (hasRolled) {
             // 已經擲過骰子，禁用擲骰子按鈕
@@ -745,16 +755,16 @@ class MonopolyClient {
             // 啟動倒數計時（問號格不倒數，且只啟動一次）
             if (!isOnQuestionMark && !this.turnCountdownInterval) {
                 this.turnCountdownValue = 5;
-            endBtn.textContent = `結束回合(${this.turnCountdownValue})`;
-            this.turnCountdownInterval = setInterval(() => {
-                this.turnCountdownValue--;
                 endBtn.textContent = `結束回合(${this.turnCountdownValue})`;
-                if (this.turnCountdownValue <= 0) {
-                    clearInterval(this.turnCountdownInterval);
-                    this.turnCountdownInterval = null;
-                    this.endTurn();
-                }
-            }, 1000);
+                this.turnCountdownInterval = setInterval(() => {
+                    this.turnCountdownValue--;
+                    endBtn.textContent = `結束回合(${this.turnCountdownValue})`;
+                    if (this.turnCountdownValue <= 0) {
+                        clearInterval(this.turnCountdownInterval);
+                        this.turnCountdownInterval = null;
+                        this.endTurn();
+                    }
+                }, 1000);
             } else if (isOnQuestionMark) {
                 // 在問號格，清除倒數計時
                 if (this.turnCountdownInterval) {
@@ -776,13 +786,13 @@ class MonopolyClient {
         // 只設置一次 onclick，避免重複綁定
         if (!endBtn.dataset.onclickSet) {
             endBtn.dataset.onclickSet = 'true';
-        endBtn.onclick = () => {
+            endBtn.onclick = () => {
                 if (this.turnCountdownInterval) {
                     clearInterval(this.turnCountdownInterval);
-            this.turnCountdownInterval = null;
+                    this.turnCountdownInterval = null;
                 }
-            this.endTurn();
-        };
+                this.endTurn();
+            };
         }
     }
 
@@ -1325,7 +1335,7 @@ class MonopolyClient {
     // 顯示走到別人地塊的彈窗
     showOthersPropertyModal(data) {
         const { propertyName, ownerName, ownerCharacter, ownerTags, points, penalty, hasOwnerPlayer } = data;
-        
+
         // 建立 modal
         let modal = document.getElementById('othersPropertyModal');
         if (!modal) {
@@ -1374,6 +1384,11 @@ class MonopolyClient {
                     help: false
                 });
                 modal.remove();
+
+                // 自動結束回合
+                setTimeout(() => {
+                    this.endTurn();
+                }, 500);
             };
             return;
         }
@@ -1434,6 +1449,11 @@ class MonopolyClient {
                         help: true
                     });
                     modal.remove();
+
+                    // 自動結束回合
+                    setTimeout(() => {
+                        this.endTurn();
+                    }, 500);
                 };
                 tagsContainer.appendChild(btn);
             });
@@ -1450,6 +1470,11 @@ class MonopolyClient {
                 help: false
             });
             modal.remove();
+
+            // 自動結束回合
+            setTimeout(() => {
+                this.endTurn();
+            }, 500);
         };
     }
 
