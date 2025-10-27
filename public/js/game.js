@@ -124,10 +124,29 @@ class MonopolyClient {
             this.showError(data.message);
         });
 
-        this.socket.on('diceRolled', (data) => {
+        this.socket.on('diceRolled', async (data) => {
+            // 保存舊位置用於動畫
+            const oldGameState = this.gameState;
+            const movingPlayer = oldGameState ? oldGameState.players.find(p => p.id === data.playerId) : null;
+            const oldPosition = movingPlayer ? movingPlayer.position : 0;
+
             this.gameState = data.gameState;
-            this.updateGameScreen();
             this.showDiceResult(data.dice);
+
+            // 播放逐步移動動畫
+            if (window.gameBoard && movingPlayer) {
+                const newPlayer = this.gameState.players.find(p => p.id === data.playerId);
+                if (newPlayer) {
+                    await window.gameBoard.animatePlayerMovement(
+                        data.playerId,
+                        oldPosition,
+                        newPlayer.position,
+                        data.dice.total
+                    );
+                }
+            }
+
+            this.updateGameScreen();
 
             if (data.playerId === this.playerId) {
                 this.enableActionButtons();
@@ -162,6 +181,17 @@ class MonopolyClient {
             this.gameState = data.gameState;
             this.updateGameScreen();
             this.resetActionButtons();
+        });
+
+        // 接收遊戲訊息（特殊格子效果）
+        this.socket.on('gameMessage', (data) => {
+            if (data.type === 'success') {
+                this.showSuccess(data.message);
+            } else if (data.type === 'info') {
+                this.showInfo(data.message);
+            } else {
+                this.showMessage(data.message);
+            }
         });
 
         this.socket.on('turnError', (data) => {
@@ -846,6 +876,25 @@ class MonopolyClient {
         setTimeout(() => {
             successMessage.style.display = 'none';
         }, 3000);
+    }
+
+    showInfo(message) {
+        // 使用 showSuccess 但顯示藍色資訊
+        const successMessage = document.getElementById('successMessage');
+        const successText = document.getElementById('successText');
+
+        successText.textContent = message;
+        successMessage.style.display = 'flex';
+        successMessage.style.backgroundColor = 'rgba(33, 150, 243, 0.95)'; // 藍色
+
+        setTimeout(() => {
+            successMessage.style.display = 'none';
+            successMessage.style.backgroundColor = ''; // 恢復原色
+        }, 3000);
+    }
+
+    showMessage(message) {
+        this.showInfo(message);
     }
 
     // Modal management

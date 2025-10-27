@@ -331,7 +331,7 @@ class GameBoard {
         }
     }
 
-    updatePlayerPositions(gameState) {
+    updatePlayerPositions(gameState, animatePlayerId = null, oldPosition = null) {
         // Clear all player positions
         this.boardElement.querySelectorAll('.players-on-square').forEach(container => {
             container.innerHTML = '';
@@ -348,9 +348,9 @@ class GameBoard {
                     playerToken.style.backgroundColor = 'transparent'; // 不要顏色底
                     playerToken.title = `${player.name} (${this.getCharacterName(player.character)})`;
 
-                    // 只顯示角色 emoji 並放大
+                    // 放大玩家 emoji 到 2.5rem (更明顯)
                     playerToken.textContent = this.getCharacterIcon(player.character);
-                    playerToken.style.fontSize = '1.6rem'; // 200%
+                    playerToken.style.fontSize = '2.5rem'; // 放大到 2.5rem
                     playerToken.style.lineHeight = '1';
                     playerToken.style.display = 'flex';
                     playerToken.style.justifyContent = 'center';
@@ -361,10 +361,35 @@ class GameBoard {
                         playerToken.classList.add('current-turn');
                     }
 
+                    // 如果這是需要動畫的玩家，添加動畫效果
+                    if (animatePlayerId && player.id === animatePlayerId) {
+                        playerToken.style.animation = 'playerMove 0.3s ease-in-out';
+                    }
+
                     playersContainer.appendChild(playerToken);
                 }
             }
         });
+    }
+
+    // 新增：逐步移動玩家的動畫效果
+    async animatePlayerMovement(playerId, oldPosition, newPosition, steps) {
+        const totalSquares = 40;
+        let currentPos = oldPosition;
+
+        // 計算移動路徑
+        for (let i = 0; i < steps; i++) {
+            await new Promise(resolve => setTimeout(resolve, 300)); // 每步延遲 300ms
+            currentPos = (currentPos + 1) % totalSquares;
+
+            // 更新玩家位置（臨時）
+            const tempGameState = { ...window.game.gameState };
+            const playerIndex = tempGameState.players.findIndex(p => p.id === playerId);
+            if (playerIndex !== -1) {
+                tempGameState.players[playerIndex].position = currentPos;
+                this.updatePlayerPositions(tempGameState, playerId);
+            }
+        }
     }
 
     getCharacterIcon(character) {

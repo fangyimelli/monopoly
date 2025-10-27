@@ -461,26 +461,31 @@ class MonopolyGame {
                     if (space.name.includes('Special Bonus')) {
                         player.money += 500;
                         if (io && roomCode) {
-                            io.to(playerId).emit('showSuccess', { message: '獲得 Special Bonus +500！' });
+                            io.to(roomCode).emit('gameMessage', {
+                                message: `${player.name} 獲得 Special Bonus +500！`,
+                                type: 'success'
+                            });
                         }
                     }
                     // 狂歡節：下回合跳過一次
-                    if (space.name.includes('狂歡')) {
+                    if (space.name.includes('狂歡') || space.name.includes('Carnival')) {
                         player.skipTurns = (player.skipTurns || 0) + 1;
                         if (io && roomCode) {
-                            io.to(roomCode).emit('turnInfo', { message: `${player.name} 參加狂歡節，下回合將被跳過一次` });
+                            io.to(roomCode).emit('gameMessage', {
+                                message: `${player.name} 參加巴西狂歡節，下回合將被跳過一次！`,
+                                type: 'info'
+                            });
                         }
                     }
-                    // 桃園國際機場：直接前往「起飛」格
-                    if (space.name.includes('桃園國際機場') || space.name.includes('機場') || space.name.includes('起飛')) {
-                        const takeOff = Array.from(this.properties.entries()).find(([id, s]) => (s.name && s.name.includes('起飛')));
-                        if (takeOff) {
-                            const [targetId] = takeOff;
-                            player.position = targetId;
-                            // 抵達起飛格，通常無其他處理
-                            if (io && roomCode) {
-                                io.to(roomCode).emit('turnInfo', { message: `${player.name} 抵達機場並前往「起飛」格` });
-                            }
+                    // 桃園國際機場：直接前往「起飛」格 (ID 30)
+                    if (space.name.includes('桃園國際機場') || space.name.includes('Taiwan Taoyuan')) {
+                        // 起飛格的 ID 是 30
+                        player.position = 30;
+                        if (io && roomCode) {
+                            io.to(roomCode).emit('gameMessage', {
+                                message: `${player.name} 從桃園國際機場直接飛往「起飛」格！`,
+                                type: 'info'
+                            });
                         }
                     }
                 }
