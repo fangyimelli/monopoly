@@ -82,7 +82,7 @@ class MonopolyClient {
             } else {
                 // 觀戰房主直接進入大廳
                 console.log('觀戰房主，直接進入大廳');
-                this.showLobby();
+            this.showLobby();
             }
         });
 
@@ -281,6 +281,47 @@ class MonopolyClient {
         this.socket.on('playerTagsAssigned', (data) => {
             console.log('收到玩家標籤:', data);
             this.showHostTagsDisplay(data.countryTags, data.generalTags);
+        });
+
+        // 走到自己的地塊
+        this.socket.on('landOnOwnProperty', (data) => {
+            console.log('走到自己的地塊:', data);
+            this.showOwnPropertyModal(data);
+        });
+
+        // 走到別人的地塊
+        this.socket.on('landOnOthersProperty', (data) => {
+            console.log('走到別人的地塊:', data);
+            this.showOthersPropertyModal(data);
+        });
+
+        // 標籤移除成功
+        this.socket.on('tagRemovedSuccess', (data) => {
+            this.showSuccess(data.message);
+            this.gameState.players.find(p => p.id === this.playerId).money = data.newBalance;
+            this.updateGameScreen();
+        });
+
+        // 扣分處罰
+        this.socket.on('penaltyApplied', (data) => {
+            this.showError(data.message);
+            this.gameState.players.find(p => p.id === this.playerId).money = data.newBalance;
+            this.updateGameScreen();
+        });
+
+        // 其他玩家的標籤被移除
+        this.socket.on('tagRemoved', (data) => {
+            this.gameState = data.gameState;
+            this.updateGameScreen();
+            if (data.helpedBy) {
+                this.showInfo(`${data.helpedBy} 幫助玩家移除了標籤並獲得 ${data.points} 點！`);
+            }
+        });
+
+        // 玩家被處罰
+        this.socket.on('playerPenalized', (data) => {
+            this.gameState = data.gameState;
+            this.updateGameScreen();
         });
     }
 
@@ -704,16 +745,16 @@ class MonopolyClient {
             // 啟動倒數計時（問號格不倒數，且只啟動一次）
             if (!isOnQuestionMark && !this.turnCountdownInterval) {
                 this.turnCountdownValue = 5;
+            endBtn.textContent = `結束回合(${this.turnCountdownValue})`;
+            this.turnCountdownInterval = setInterval(() => {
+                this.turnCountdownValue--;
                 endBtn.textContent = `結束回合(${this.turnCountdownValue})`;
-                this.turnCountdownInterval = setInterval(() => {
-                    this.turnCountdownValue--;
-                    endBtn.textContent = `結束回合(${this.turnCountdownValue})`;
-                    if (this.turnCountdownValue <= 0) {
-                        clearInterval(this.turnCountdownInterval);
-                        this.turnCountdownInterval = null;
-                        this.endTurn();
-                    }
-                }, 1000);
+                if (this.turnCountdownValue <= 0) {
+                    clearInterval(this.turnCountdownInterval);
+                    this.turnCountdownInterval = null;
+                    this.endTurn();
+                }
+            }, 1000);
             } else if (isOnQuestionMark) {
                 // 在問號格，清除倒數計時
                 if (this.turnCountdownInterval) {
@@ -735,13 +776,13 @@ class MonopolyClient {
         // 只設置一次 onclick，避免重複綁定
         if (!endBtn.dataset.onclickSet) {
             endBtn.dataset.onclickSet = 'true';
-            endBtn.onclick = () => {
+        endBtn.onclick = () => {
                 if (this.turnCountdownInterval) {
                     clearInterval(this.turnCountdownInterval);
-                    this.turnCountdownInterval = null;
+            this.turnCountdownInterval = null;
                 }
-                this.endTurn();
-            };
+            this.endTurn();
+        };
         }
     }
 
@@ -1193,6 +1234,223 @@ class MonopolyClient {
 
     setupTagRemoveModal() {
         // 預留，未來可加全局事件
+    }
+
+    // 顯示走到自己地塊的彈窗
+    showOwnPropertyModal(data) {
+        const { propertyName, points, playerTags } = data;
+
+        // 建立 modal
+        let modal = document.getElementById('ownPropertyModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'ownPropertyModal';
+            modal.style.cssText = `
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+            `;
+            document.body.appendChild(modal);
+        }
+
+        // 獲取標籤名稱
+        const tagNames = playerTags.map(tagId => {
+            const tagObj = this.allTags[tagId];
+            return tagObj ? tagObj.zh : tagId;
+        });
+
+        modal.innerHTML = `
+            <div style="background:#fff;padding:40px 30px;border-radius:16px;min-width:400px;max-width:600px;box-shadow:0 4px 24px rgba(0,0,0,0.3);text-align:center;">
+                <h2 style="color:#4CAF50;margin:0 0 16px 0;">🎉 歡迎回到自己的地盤！</h2>
+                <p style="font-size:1.2em;margin-bottom:20px;color:#333;">
+                    <strong>${propertyName}</strong>
+                </p>
+                <p style="color:#666;margin-bottom:24px;">
+                    回答問題移除一個標籤，可獲得 <strong style="color:#FF9800;font-size:1.3em;">${points}</strong> 點！
+                </p>
+                <div style="margin-bottom:24px;">
+                    <p style="margin-bottom:12px;font-weight:bold;color:#555;">選擇要移除的標籤：</p>
+                    <div id="ownPropertyTags" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;"></div>
+                </div>
+                <button id="ownPropertyCancel" style="margin-top:18px;padding:10px 24px;border-radius:8px;background:#ccc;border:none;cursor:pointer;font-size:1em;">
+                    取消
+                </button>
+            </div>
+        `;
+
+        const tagsContainer = modal.querySelector('#ownPropertyTags');
+        playerTags.forEach((tagId, idx) => {
+            const btn = document.createElement('button');
+            const tagName = this.allTags[tagId] ? this.allTags[tagId].zh : tagId;
+            btn.textContent = tagName;
+            btn.style.cssText = `
+                padding:12px 20px;
+                border-radius:12px;
+                border:2px solid #4CAF50;
+                background:#f0f9f0;
+                cursor:pointer;
+                font-size:1em;
+                transition:all 0.2s;
+            `;
+            btn.onmouseover = () => {
+                btn.style.background = '#4CAF50';
+                btn.style.color = '#fff';
+            };
+            btn.onmouseout = () => {
+                btn.style.background = '#f0f9f0';
+                btn.style.color = '#000';
+            };
+            btn.onclick = () => {
+                // 發送移除自己標籤的請求
+                this.socket.emit('removeOwnTag', {
+                    roomCode: this.roomCode,
+                    tagId: tagId,
+                    points: points
+                });
+                modal.remove();
+            };
+            tagsContainer.appendChild(btn);
+        });
+
+        modal.querySelector('#ownPropertyCancel').onclick = () => modal.remove();
+    }
+
+    // 顯示走到別人地塊的彈窗
+    showOthersPropertyModal(data) {
+        const { propertyName, ownerName, ownerCharacter, ownerTags, points, penalty, hasOwnerPlayer } = data;
+        
+        // 建立 modal
+        let modal = document.getElementById('othersPropertyModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'othersPropertyModal';
+            modal.style.cssText = `
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+            `;
+            document.body.appendChild(modal);
+        }
+
+        const characterName = this.getCharacterName(ownerCharacter);
+
+        // 如果該國家沒有玩家參與遊戲，顯示簡化版本
+        if (!hasOwnerPlayer) {
+            modal.innerHTML = `
+                <div style="background:#fff;padding:40px 30px;border-radius:16px;min-width:400px;max-width:600px;box-shadow:0 4px 24px rgba(0,0,0,0.3);text-align:center;">
+                    <h2 style="color:#FF5722;margin:0 0 16px 0;">⚠️ 走到別人的地盤了！</h2>
+                    <p style="font-size:1.2em;margin-bottom:20px;color:#333;">
+                        <strong>${propertyName}</strong>
+                    </p>
+                    <p style="color:#666;margin-bottom:24px;">
+                        這是 <strong>${characterName}</strong> 的地盤
+                    </p>
+                    <button id="othersPropertyPay" style="margin-top:18px;padding:12px 32px;border-radius:8px;background:#F44336;color:#fff;border:none;cursor:pointer;font-size:1.1em;font-weight:bold;">
+                        扣 ${penalty} 點
+                    </button>
+                </div>
+            `;
+
+            modal.querySelector('#othersPropertyPay').onclick = () => {
+                // 發送扣分請求
+                this.socket.emit('handleOthersTag', {
+                    roomCode: this.roomCode,
+                    ownerCharacter: ownerCharacter,
+                    tagId: null,
+                    help: false
+                });
+                modal.remove();
+            };
+            return;
+        }
+
+        // 該國家有玩家參與遊戲，顯示完整版本
+        modal.innerHTML = `
+            <div style="background:#fff;padding:40px 30px;border-radius:16px;min-width:400px;max-width:600px;box-shadow:0 4px 24px rgba(0,0,0,0.3);text-align:center;">
+                <h2 style="color:#FF5722;margin:0 0 16px 0;">⚠️ 走到別人的地盤了！</h2>
+                <p style="font-size:1.2em;margin-bottom:20px;color:#333;">
+                    <strong>${propertyName}</strong>
+                </p>
+                <p style="color:#666;margin-bottom:12px;">
+                    這是 <strong>${ownerName}</strong> (${characterName}) 的地盤
+                </p>
+                <p style="color:#666;margin-bottom:24px;">
+                    幫忙移除標籤可獲得 <strong style="color:#4CAF50;font-size:1.3em;">${points}</strong> 點<br>
+                    拒絕幫忙將扣除 <strong style="color:#F44336;font-size:1.3em;">${penalty}</strong> 點
+                </p>
+                <div style="margin-bottom:24px;">
+                    <p style="margin-bottom:12px;font-weight:bold;color:#555;">選擇要移除的標籤（點擊即幫忙）：</p>
+                    <div id="othersPropertyTags" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;"></div>
+                </div>
+                <button id="othersPropertyRefuse" style="margin-top:18px;padding:10px 24px;border-radius:8px;background:#F44336;color:#fff;border:none;cursor:pointer;font-size:1em;">
+                    拒絕幫忙（扣 ${penalty} 點）
+                </button>
+            </div>
+        `;
+
+        const tagsContainer = modal.querySelector('#othersPropertyTags');
+        if (ownerTags && ownerTags.length > 0) {
+            ownerTags.forEach((tagId, idx) => {
+                const btn = document.createElement('button');
+                const tagName = this.allTags[tagId] ? this.allTags[tagId].zh : tagId;
+                btn.textContent = tagName;
+                btn.style.cssText = `
+                    padding:12px 20px;
+                    border-radius:12px;
+                    border:2px solid #2196F3;
+                    background:#e3f2fd;
+                    cursor:pointer;
+                    font-size:1em;
+                    transition:all 0.2s;
+                `;
+                btn.onmouseover = () => {
+                    btn.style.background = '#2196F3';
+                    btn.style.color = '#fff';
+                };
+                btn.onmouseout = () => {
+                    btn.style.background = '#e3f2fd';
+                    btn.style.color = '#000';
+                };
+                btn.onclick = () => {
+                    // 發送幫忙移除標籤的請求
+                    this.socket.emit('handleOthersTag', {
+                        roomCode: this.roomCode,
+                        ownerCharacter: ownerCharacter,
+                        tagId: tagId,
+                        help: true
+                    });
+                    modal.remove();
+                };
+                tagsContainer.appendChild(btn);
+            });
+        } else {
+            tagsContainer.innerHTML = '<p style="color:#999;">對方沒有標籤可移除</p>';
+        }
+
+        modal.querySelector('#othersPropertyRefuse').onclick = () => {
+            // 發送拒絕幫忙的請求
+            this.socket.emit('handleOthersTag', {
+                roomCode: this.roomCode,
+                ownerCharacter: ownerCharacter,
+                tagId: null,
+                help: false
+            });
+            modal.remove();
+        };
     }
 
     // 在玩家移動後判斷是否在問號格

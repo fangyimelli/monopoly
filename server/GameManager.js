@@ -356,50 +356,50 @@ const TAIWAN_BOARD_LAYOUT = [
     // 🔵 BOTTOM ROW (右→左) - Row 10
     { id: 0, name: '起點 Start 🚩', type: 'corner', position: { row: 10, col: 10 } },
     { id: 1, name: 'Special Bonus +500 🎁', type: 'special', position: { row: 10, col: 9 } },
-    { id: 2, name: '普吉島 Phuket 200 🏖️', type: 'property', colorGroup: 'grey', toll: 200, ownerCharacter: 'thai', position: { row: 10, col: 8 } },
+    { id: 2, name: '普吉島 Phuket 200 🏖️', type: 'property', colorGroup: 'grey', toll: 200, ownerCharacter: 'thai', colorBorder: '#808080', position: { row: 10, col: 8 } },
     { id: 3, name: '❓', type: 'chance', position: { row: 10, col: 7 } },
-    { id: 4, name: '臺北 Taipei 🏙️', type: 'property', colorGroup: 'white', toll: 200, ownerCharacter: 'american', position: { row: 10, col: 6 } },
-    { id: 5, name: '芝加哥 Chicago 200 🌃', type: 'property', colorGroup: 'blue', toll: 200, ownerCharacter: 'american', position: { row: 10, col: 5 } },
-    { id: 6, name: '清奈 Chennai 200 🏛️', type: 'property', colorGroup: 'orange', toll: 200, ownerCharacter: 'indian', position: { row: 10, col: 4 } },
-    { id: 7, name: '巴黎 Paris 600 🥐', type: 'property', colorGroup: 'yellow', toll: 600, ownerCharacter: 'french', position: { row: 10, col: 3 } },
+    { id: 4, name: '臺北 Taipei 🏙️', type: 'property', colorGroup: 'white', toll: 200, position: { row: 10, col: 6 } },
+    { id: 5, name: '芝加哥 Chicago 200 🌃', type: 'property', colorGroup: 'blue', toll: 200, ownerCharacter: 'american', colorBorder: '#0000FF', position: { row: 10, col: 5 } },
+    { id: 6, name: '清奈 Chennai 200 🏛️', type: 'property', colorGroup: 'orange', toll: 200, ownerCharacter: 'indian', colorBorder: '#FFA500', position: { row: 10, col: 4 } },
+    { id: 7, name: '巴黎 Paris 600 🥐', type: 'property', colorGroup: 'yellow', toll: 600, ownerCharacter: 'french', colorBorder: '#FFFF00', position: { row: 10, col: 3 } },
     { id: 8, name: '❓', type: 'chance', position: { row: 10, col: 2 } },
-    { id: 9, name: '東京 Tokyo 600 🗼', type: 'property', colorGroup: 'green', toll: 600, ownerCharacter: 'japanese', position: { row: 10, col: 1 } },
+    { id: 9, name: '東京 Tokyo 600 🗼', type: 'property', colorGroup: 'green', toll: 600, ownerCharacter: 'japanese', colorBorder: '#008000', position: { row: 10, col: 1 } },
     { id: 10, name: '桃園國際機場 Taiwan Taoyuan International Airport （跳到「起飛」）✈️', type: 'special', position: { row: 10, col: 0 } },
 
     // 🟢 LEFT COLUMN (下→上) - Col 0
     { id: 11, name: 'Special Bonus +500 🎁', type: 'special', position: { row: 9, col: 0 } },
-    { id: 12, name: '芭達雅 Pattaya 200 🏖️', type: 'property', colorGroup: 'grey', toll: 200, ownerCharacter: 'thai', position: { row: 8, col: 0 } },
+    { id: 12, name: '芭達雅 Pattaya 200 🏖️', type: 'property', colorGroup: 'grey', toll: 200, ownerCharacter: 'thai', colorBorder: '#808080', position: { row: 8, col: 0 } },
     { id: 13, name: '❓', type: 'chance', position: { row: 7, col: 0 } },
-    { id: 14, name: '德里 Delhi 600 🕌', type: 'property', colorGroup: 'orange', toll: 600, ownerCharacter: 'indian', position: { row: 6, col: 0 } },
-    { id: 15, name: '札幌 Sapporo 200 ⛄', type: 'property', colorGroup: 'green', toll: 200, ownerCharacter: 'japanese', position: { row: 5, col: 0 } },
+    { id: 14, name: '德里 Delhi 600 🕌', type: 'property', colorGroup: 'orange', toll: 600, ownerCharacter: 'indian', colorBorder: '#FFA500', position: { row: 6, col: 0 } },
+    { id: 15, name: '札幌 Sapporo 200 ⛄', type: 'property', colorGroup: 'green', toll: 200, ownerCharacter: 'japanese', colorBorder: '#008000', position: { row: 5, col: 0 } },
     { id: 16, name: '❓', type: 'chance', position: { row: 4, col: 0 } },
-    { id: 17, name: '首爾 Seoul 🏙️', type: 'property', colorGroup: 'white', toll: 200, ownerCharacter: 'japanese', position: { row: 3, col: 0 } },
-    { id: 18, name: '尼斯 Nice 200 🌊', type: 'property', colorGroup: 'yellow', toll: 200, ownerCharacter: 'french', position: { row: 2, col: 0 } },
-    { id: 19, name: '紐約 New York 600 🗽', type: 'property', colorGroup: 'white', toll: 600, ownerCharacter: 'american', position: { row: 1, col: 0 } },
+    { id: 17, name: '首爾 Seoul 🏙️', type: 'property', colorGroup: 'white', toll: 200, position: { row: 3, col: 0 } },
+    { id: 18, name: '尼斯 Nice 200 🌊', type: 'property', colorGroup: 'yellow', toll: 200, ownerCharacter: 'french', colorBorder: '#FFFF00', position: { row: 2, col: 0 } },
+    { id: 19, name: '紐約 New York 600 🗽', type: 'property', colorGroup: 'white', toll: 600, ownerCharacter: 'american', colorBorder: '#0000FF', position: { row: 1, col: 0 } },
     { id: 20, name: '參加巴西狂歡節 Join the Brazilian Carnival （暫停一輪）🎉', type: 'special', position: { row: 0, col: 0 } },
 
     // 🟡 TOP ROW (左→右) - Row 0
-    { id: 21, name: '雪梨 Sydney 🦘', type: 'property', colorGroup: 'white', toll: 200, ownerCharacter: 'american', position: { row: 0, col: 1 } },
-    { id: 22, name: '加爾各答 Kolkata 200 🏛️', type: 'property', colorGroup: 'orange', toll: 200, ownerCharacter: 'indian', position: { row: 0, col: 2 } },
+    { id: 21, name: '雪梨 Sydney 🦘', type: 'property', colorGroup: 'white', toll: 200, position: { row: 0, col: 1 } },
+    { id: 22, name: '加爾各答 Kolkata 200 🏛️', type: 'property', colorGroup: 'orange', toll: 200, ownerCharacter: 'indian', colorBorder: '#FFA500', position: { row: 0, col: 2 } },
     { id: 23, name: '❓', type: 'chance', position: { row: 0, col: 3 } },
-    { id: 24, name: '京都 Kyoto 200 🏯', type: 'property', colorGroup: 'green', toll: 200, ownerCharacter: 'japanese', position: { row: 0, col: 4 } },
-    { id: 25, name: '馬賽 Marseille 400 ⚓', type: 'property', colorGroup: 'yellow', toll: 400, ownerCharacter: 'french', position: { row: 0, col: 5 } },
-    { id: 26, name: '羅馬 Rome 🏛️', type: 'property', colorGroup: 'white', toll: 400, ownerCharacter: 'french', position: { row: 0, col: 6 } },
-    { id: 27, name: '邁阿密 Miami 200 🏝️', type: 'property', colorGroup: 'blue', toll: 200, ownerCharacter: 'american', position: { row: 0, col: 7 } },
-    { id: 28, name: '清邁 ChiangMai 400 🏮', type: 'property', colorGroup: 'grey', toll: 400, ownerCharacter: 'thai', position: { row: 0, col: 8 } },
+    { id: 24, name: '京都 Kyoto 200 🏯', type: 'property', colorGroup: 'green', toll: 200, ownerCharacter: 'japanese', colorBorder: '#008000', position: { row: 0, col: 4 } },
+    { id: 25, name: '馬賽 Marseille 400 ⚓', type: 'property', colorGroup: 'yellow', toll: 400, ownerCharacter: 'french', colorBorder: '#FFFF00', position: { row: 0, col: 5 } },
+    { id: 26, name: '羅馬 Rome 🏛️', type: 'property', colorGroup: 'white', toll: 400, position: { row: 0, col: 6 } },
+    { id: 27, name: '邁阿密 Miami 200 🏝️', type: 'property', colorGroup: 'blue', toll: 200, ownerCharacter: 'american', colorBorder: '#0000FF', position: { row: 0, col: 7 } },
+    { id: 28, name: '清邁 ChiangMai 400 🏮', type: 'property', colorGroup: 'grey', toll: 400, ownerCharacter: 'thai', colorBorder: '#808080', position: { row: 0, col: 8 } },
     { id: 29, name: '❓', type: 'chance', position: { row: 0, col: 9 } },
     { id: 30, name: '起飛 Take off 🛫', type: 'corner', position: { row: 0, col: 10 } },
 
     // 🔴 RIGHT COLUMN (上→下) - Col 10
-    { id: 31, name: '柏林 Berlin 🏰', type: 'property', colorGroup: 'white', toll: 400, ownerCharacter: 'french', position: { row: 1, col: 10 } },
-    { id: 32, name: '曼谷 Bangkok 600 🛕', type: 'property', colorGroup: 'grey', toll: 600, ownerCharacter: 'thai', position: { row: 2, col: 10 } },
-    { id: 33, name: '孟買 Mumbai 400 🏢', type: 'property', colorGroup: 'orange', toll: 400, ownerCharacter: 'indian', position: { row: 3, col: 10 } },
+    { id: 31, name: '柏林 Berlin 🏰', type: 'property', colorGroup: 'white', toll: 400, position: { row: 1, col: 10 } },
+    { id: 32, name: '曼谷 Bangkok 600 🛕', type: 'property', colorGroup: 'grey', toll: 600, ownerCharacter: 'thai', colorBorder: '#808080', position: { row: 2, col: 10 } },
+    { id: 33, name: '孟買 Mumbai 400 🏢', type: 'property', colorGroup: 'orange', toll: 400, ownerCharacter: 'indian', colorBorder: '#FFA500', position: { row: 3, col: 10 } },
     { id: 34, name: '❓', type: 'chance', position: { row: 4, col: 10 } },
-    { id: 35, name: '舊金山 San Francisco 400 🌉', type: 'property', colorGroup: 'blue', toll: 400, ownerCharacter: 'american', position: { row: 5, col: 10 } },
-    { id: 36, name: '倫敦 London 🎡', type: 'property', colorGroup: 'white', toll: 400, ownerCharacter: 'french', position: { row: 6, col: 10 } },
-    { id: 37, name: '大阪 Osaka 400 🍣', type: 'property', colorGroup: 'green', toll: 400, ownerCharacter: 'japanese', position: { row: 7, col: 10 } },
+    { id: 35, name: '舊金山 San Francisco 400 🌉', type: 'property', colorGroup: 'blue', toll: 400, ownerCharacter: 'american', colorBorder: '#0000FF', position: { row: 5, col: 10 } },
+    { id: 36, name: '倫敦 London 🎡', type: 'property', colorGroup: 'white', toll: 400, position: { row: 6, col: 10 } },
+    { id: 37, name: '大阪 Osaka 400 🍣', type: 'property', colorGroup: 'green', toll: 400, ownerCharacter: 'japanese', colorBorder: '#008000', position: { row: 7, col: 10 } },
     { id: 38, name: '❓', type: 'chance', position: { row: 8, col: 10 } },
-    { id: 39, name: '里昂 Lyon 200 🧀', type: 'property', colorGroup: 'yellow', toll: 200, ownerCharacter: 'french', position: { row: 9, col: 10 } }
+    { id: 39, name: '里昂 Lyon 200 🧀', type: 'property', colorGroup: 'yellow', toll: 200, ownerCharacter: 'french', colorBorder: '#FFFF00', position: { row: 9, col: 10 } }
 ];
 
 class MonopolyGame {
@@ -620,7 +620,7 @@ class MonopolyGame {
                     if (space.name.includes('桃園國際機場') || space.name.includes('Taiwan Taoyuan')) {
                         // 起飛格的 ID 是 30
                         player.position = 30;
-                        if (io && roomCode) {
+                            if (io && roomCode) {
                             io.to(roomCode).emit('gameMessage', {
                                 message: `${player.name} 從桃園國際機場直接飛往「起飛」格！`,
                                 type: 'info'
@@ -641,33 +641,55 @@ class MonopolyGame {
         const property = this.properties.get(position);
         const player = this.players.get(playerId);
 
-        // 只要有 ownerCharacter 且不是自己顏色就收錢
+        // 只處理有所屬國家的地塊
         if (property && property.ownerCharacter && property.toll) {
             if (player.character === property.ownerCharacter) {
-                // 地主自己走到自己地，不收費
-                console.log('地主自己走到自己地，不收費');
+                // 走到自己的地塊：可以透過回答問題撕掉標籤，並獲得點數
+                console.log('玩家走到自己的地塊:', property.name);
+                if (io && roomCode) {
+                    io.to(playerId).emit('landOnOwnProperty', {
+                        propertyName: property.name,
+                        propertyId: position,
+                        ownerCharacter: property.ownerCharacter,
+                        points: property.toll,
+                        playerTags: player.tags
+                    });
+                }
                 return;
-            }
-            const toll = property.toll;
-            console.log('property.toll', property.toll, 'player.money(before)', player.money);
-            if (player.money >= toll) {
-                player.money -= toll;
-                this.publicFund += toll;
-                console.log('扣錢成功', { playerMoney: player.money, publicFund: this.publicFund });
             } else {
-                this.publicFund += player.money;
-                player.money = 0;
-                console.log('玩家破產，全部進公費', { publicFund: this.publicFund });
-            }
-            console.log('player.money(after)', player.money);
-            // 通知玩家
-            if (io && roomCode) {
-                io.to(playerId).emit('payToll', {
-                    amount: toll,
-                    propertyName: property.name,
-                    ownerCharacter: property.ownerCharacter,
-                    toPublicFund: true
-                });
+                // 走到別人的地塊
+                console.log('玩家走到別人的地塊:', property.name);
+                if (io && roomCode) {
+                    // 找到該地塊所屬國家的玩家
+                    const ownerPlayer = Array.from(this.players.values()).find(p => p.character === property.ownerCharacter);
+
+                    if (ownerPlayer) {
+                        // 該國家有玩家在遊戲中：可選擇是否幫該國人撕掉標籤
+                        io.to(playerId).emit('landOnOthersProperty', {
+                            propertyName: property.name,
+                            propertyId: position,
+                            ownerCharacter: property.ownerCharacter,
+                            ownerName: ownerPlayer.name,
+                            ownerTags: ownerPlayer.tags,
+                            points: property.toll,
+                            penalty: property.toll,
+                            hasOwnerPlayer: true
+                        });
+                    } else {
+                        // 該國家沒有玩家在遊戲中：只能扣分
+                        io.to(playerId).emit('landOnOthersProperty', {
+                            propertyName: property.name,
+                            propertyId: position,
+                            ownerCharacter: property.ownerCharacter,
+                            ownerName: null,
+                            ownerTags: [],
+                            points: property.toll,
+                            penalty: property.toll,
+                            hasOwnerPlayer: false
+                        });
+                    }
+                }
+                return;
             }
         }
         // 其他格子不處理

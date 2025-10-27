@@ -28,50 +28,50 @@ class GameBoard {
             // 🔵 BOTTOM ROW (右→左) - Row 10
             { id: 0, name: '起點 Start 🚩', type: 'corner', position: { row: 10, col: 10 } },
             { id: 1, name: 'Special Bonus +500 🎁', type: 'special', position: { row: 10, col: 9 } },
-            { id: 2, name: '普吉島 Phuket 200 🏖️', type: 'property', toll: 200, position: { row: 10, col: 8 } },
+            { id: 2, name: '普吉島 Phuket 200 🏖️', type: 'property', toll: 200, ownerCharacter: 'thai', colorBorder: '#808080', position: { row: 10, col: 8 } },
             { id: 3, name: '❓', type: 'chance', position: { row: 10, col: 7 } },
             { id: 4, name: '臺北 Taipei 🏙️', type: 'property', toll: 200, position: { row: 10, col: 6 } },
-            { id: 5, name: '芝加哥 Chicago 200 🌃', type: 'property', toll: 200, position: { row: 10, col: 5 } },
-            { id: 6, name: '清奈 Chennai 200 🏛️', type: 'property', toll: 200, position: { row: 10, col: 4 } },
-            { id: 7, name: '巴黎 Paris 600 🥐', type: 'property', toll: 600, position: { row: 10, col: 3 } },
+            { id: 5, name: '芝加哥 Chicago 200 🌃', type: 'property', toll: 200, ownerCharacter: 'american', colorBorder: '#0000FF', position: { row: 10, col: 5 } },
+            { id: 6, name: '清奈 Chennai 200 🏛️', type: 'property', toll: 200, ownerCharacter: 'indian', colorBorder: '#FFA500', position: { row: 10, col: 4 } },
+            { id: 7, name: '巴黎 Paris 600 🥐', type: 'property', toll: 600, ownerCharacter: 'french', colorBorder: '#FFFF00', position: { row: 10, col: 3 } },
             { id: 8, name: '❓', type: 'chance', position: { row: 10, col: 2 } },
-            { id: 9, name: '東京 Tokyo 600 🗼', type: 'property', toll: 600, position: { row: 10, col: 1 } },
+            { id: 9, name: '東京 Tokyo 600 🗼', type: 'property', toll: 600, ownerCharacter: 'japanese', colorBorder: '#008000', position: { row: 10, col: 1 } },
             { id: 10, name: '桃園國際機場 Taiwan Taoyuan International Airport （跳到「起飛」）✈️', type: 'special', position: { row: 10, col: 0 } },
 
             // 🟢 LEFT COLUMN (下→上) - Col 0
             { id: 11, name: 'Special Bonus +500 🎁', type: 'special', position: { row: 9, col: 0 } },
-            { id: 12, name: '芭達雅 Pattaya 200 🏖️', type: 'property', toll: 200, position: { row: 8, col: 0 } },
+            { id: 12, name: '芭達雅 Pattaya 200 🏖️', type: 'property', toll: 200, ownerCharacter: 'thai', colorBorder: '#808080', position: { row: 8, col: 0 } },
             { id: 13, name: '❓', type: 'chance', position: { row: 7, col: 0 } },
-            { id: 14, name: '德里 Delhi 600 🕌', type: 'property', toll: 600, position: { row: 6, col: 0 } },
-            { id: 15, name: '札幌 Sapporo 200 ⛄', type: 'property', toll: 200, position: { row: 5, col: 0 } },
+            { id: 14, name: '德里 Delhi 600 🕌', type: 'property', toll: 600, ownerCharacter: 'indian', colorBorder: '#FFA500', position: { row: 6, col: 0 } },
+            { id: 15, name: '札幌 Sapporo 200 ⛄', type: 'property', toll: 200, ownerCharacter: 'japanese', colorBorder: '#008000', position: { row: 5, col: 0 } },
             { id: 16, name: '❓', type: 'chance', position: { row: 4, col: 0 } },
             { id: 17, name: '首爾 Seoul 🏙️', type: 'property', toll: 200, position: { row: 3, col: 0 } },
-            { id: 18, name: '尼斯 Nice 200 🌊', type: 'property', toll: 200, position: { row: 2, col: 0 } },
-            { id: 19, name: '紐約 New York 600 🗽', type: 'property', toll: 600, position: { row: 1, col: 0 } },
+            { id: 18, name: '尼斯 Nice 200 🌊', type: 'property', toll: 200, ownerCharacter: 'french', colorBorder: '#FFFF00', position: { row: 2, col: 0 } },
+            { id: 19, name: '紐約 New York 600 🗽', type: 'property', toll: 600, ownerCharacter: 'american', colorBorder: '#0000FF', position: { row: 1, col: 0 } },
             { id: 20, name: '參加巴西狂歡節 Join the Brazilian Carnival （暫停一輪）🎉', type: 'special', position: { row: 0, col: 0 } },
 
             // 🟡 TOP ROW (左→右) - Row 0
             { id: 21, name: '雪梨 Sydney 🦘', type: 'property', toll: 200, position: { row: 0, col: 1 } },
-            { id: 22, name: '加爾各答 Kolkata 200 🏛️', type: 'property', toll: 200, position: { row: 0, col: 2 } },
+            { id: 22, name: '加爾各答 Kolkata 200 🏛️', type: 'property', toll: 200, ownerCharacter: 'indian', colorBorder: '#FFA500', position: { row: 0, col: 2 } },
             { id: 23, name: '❓', type: 'chance', position: { row: 0, col: 3 } },
-            { id: 24, name: '京都 Kyoto 200 🏯', type: 'property', toll: 200, position: { row: 0, col: 4 } },
-            { id: 25, name: '馬賽 Marseille 400 ⚓', type: 'property', toll: 400, position: { row: 0, col: 5 } },
+            { id: 24, name: '京都 Kyoto 200 🏯', type: 'property', toll: 200, ownerCharacter: 'japanese', colorBorder: '#008000', position: { row: 0, col: 4 } },
+            { id: 25, name: '馬賽 Marseille 400 ⚓', type: 'property', toll: 400, ownerCharacter: 'french', colorBorder: '#FFFF00', position: { row: 0, col: 5 } },
             { id: 26, name: '羅馬 Rome 🏛️', type: 'property', toll: 400, position: { row: 0, col: 6 } },
-            { id: 27, name: '邁阿密 Miami 200 🏝️', type: 'property', toll: 200, position: { row: 0, col: 7 } },
-            { id: 28, name: '清邁 ChiangMai 400 🏮', type: 'property', toll: 400, position: { row: 0, col: 8 } },
+            { id: 27, name: '邁阿密 Miami 200 🏝️', type: 'property', toll: 200, ownerCharacter: 'american', colorBorder: '#0000FF', position: { row: 0, col: 7 } },
+            { id: 28, name: '清邁 ChiangMai 400 🏮', type: 'property', toll: 400, ownerCharacter: 'thai', colorBorder: '#808080', position: { row: 0, col: 8 } },
             { id: 29, name: '❓', type: 'chance', position: { row: 0, col: 9 } },
             { id: 30, name: '起飛 Take off 🛫', type: 'corner', position: { row: 0, col: 10 } },
 
             // 🔴 RIGHT COLUMN (上→下) - Col 10
             { id: 31, name: '柏林 Berlin 🏰', type: 'property', toll: 400, position: { row: 1, col: 10 } },
-            { id: 32, name: '曼谷 Bangkok 600 🛕', type: 'property', toll: 600, position: { row: 2, col: 10 } },
-            { id: 33, name: '孟買 Mumbai 400 🏢', type: 'property', toll: 400, position: { row: 3, col: 10 } },
+            { id: 32, name: '曼谷 Bangkok 600 🛕', type: 'property', toll: 600, ownerCharacter: 'thai', colorBorder: '#808080', position: { row: 2, col: 10 } },
+            { id: 33, name: '孟買 Mumbai 400 🏢', type: 'property', toll: 400, ownerCharacter: 'indian', colorBorder: '#FFA500', position: { row: 3, col: 10 } },
             { id: 34, name: '❓', type: 'chance', position: { row: 4, col: 10 } },
-            { id: 35, name: '舊金山 San Francisco 400 🌉', type: 'property', toll: 400, position: { row: 5, col: 10 } },
+            { id: 35, name: '舊金山 San Francisco 400 🌉', type: 'property', toll: 400, ownerCharacter: 'american', colorBorder: '#0000FF', position: { row: 5, col: 10 } },
             { id: 36, name: '倫敦 London 🎡', type: 'property', toll: 400, position: { row: 6, col: 10 } },
-            { id: 37, name: '大阪 Osaka 400 🍣', type: 'property', toll: 400, position: { row: 7, col: 10 } },
+            { id: 37, name: '大阪 Osaka 400 🍣', type: 'property', toll: 400, ownerCharacter: 'japanese', colorBorder: '#008000', position: { row: 7, col: 10 } },
             { id: 38, name: '❓', type: 'chance', position: { row: 8, col: 10 } },
-            { id: 39, name: '里昂 Lyon 200 🧀', type: 'property', toll: 200, position: { row: 9, col: 10 } }
+            { id: 39, name: '里昂 Lyon 200 🧀', type: 'property', toll: 200, ownerCharacter: 'french', colorBorder: '#FFFF00', position: { row: 9, col: 10 } }
         ];
     }
 
@@ -157,23 +157,10 @@ class GameBoard {
 
         square.innerHTML = content;
 
-        // 顏色條：代表國家地塊配色
-        if (squareData.type === 'property') {
-            const countryColorMap = {
-                american: '#1976D2', // 藍色
-                japanese: '#43A047', // 綠色
-                french: '#FFD600',   // 黃色
-                indian: '#FF9800',   // 橘色
-                thai: '#9E9E9E'      // 灰色
-            };
-            const ownerToCountry = squareData.ownerCharacter; // 後端以角色代碼標示所有權國家
-            const colorHex = countryColorMap[ownerToCountry];
-            if (colorHex) {
-                const colorStrip = document.createElement('div');
-                colorStrip.className = 'property-color-strip';
-                colorStrip.style.backgroundColor = colorHex;
-                square.appendChild(colorStrip);
-            }
+        // 顏色框：代表國家地塊配色（以邊框顯示）
+        if (squareData.type === 'property' && squareData.colorBorder) {
+            square.style.border = `4px solid ${squareData.colorBorder}`;
+            square.style.boxShadow = `inset 0 0 0 2px ${squareData.colorBorder}, 0 2px 8px rgba(0,0,0,0.2)`;
         }
 
         return square;

@@ -405,6 +405,97 @@ io.on('connection', (socket) => {
             gameState: game.getGameState()
         });
     });
+
+    // 玩家在自己的地塊上移除標籤
+    socket.on('removeOwnTag', ({ roomCode, tagId, points }) => {
+        console.log('[標籤] 玩家移除自己的標籤:', socket.id, 'tagId:', tagId, 'points:', points);
+        const game = gameManager.rooms.get(roomCode);
+        if (!game) return;
+
+        const player = game.players.get(socket.id);
+        if (!player) return;
+
+        // 移除標籤
+        player.tags = player.tags.filter(t => t !== tagId);
+
+        // 獲得點數
+        player.money += points;
+
+        console.log('[標籤] 標籤移除成功，玩家獲得點數:', points);
+
+        // 通知所有玩家更新遊戲狀態
+        io.to(roomCode).emit('tagRemoved', {
+            playerId: socket.id,
+            tagId: tagId,
+            points: points,
+            gameState: game.getGameState()
+        });
+
+        // 通知玩家標籤移除成功
+        socket.emit('tagRemovedSuccess', {
+            message: `成功移除標籤並獲得 ${points} 點！`,
+            newBalance: player.money
+        });
+    });
+
+    // 玩家選擇是否幫別人移除標籤
+    socket.on('handleOthersTag', ({ roomCode, ownerCharacter, tagId, help }) => {
+        console.log('[標籤] 玩家處理別人的標籤:', socket.id, 'ownerCharacter:', ownerCharacter, 'tagId:', tagId, 'help:', help);
+        const game = gameManager.rooms.get(roomCode);
+        if (!game) return;
+
+        const player = game.players.get(socket.id);
+        if (!player) return;
+
+        // 找到地塊所有者
+        const owner = Array.from(game.players.values()).find(p => p.character === ownerCharacter);
+
+        if (help && owner && tagId) {
+            // 選擇幫忙：移除對方的標籤，玩家獲得點數
+            owner.tags = owner.tags.filter(t => t !== tagId);
+            const propertySpace = game.getSpaceInfo(player.position);
+            const points = propertySpace.toll || 0;
+            player.money += points;
+
+            console.log('[標籤] 玩家幫忙移除標籤，獲得點數:', points);
+
+            // 通知所有玩家更新遊戲狀態
+            io.to(roomCode).emit('tagRemoved', {
+                playerId: owner.id,
+                tagId: tagId,
+                points: points,
+                helpedBy: player.name,
+                gameState: game.getGameState()
+            });
+
+            // 通知玩家
+            socket.emit('tagRemovedSuccess', {
+                message: `成功幫助 ${owner.name} 移除標籤並獲得 ${points} 點！`,
+                newBalance: player.money
+            });
+        } else {
+            // 選擇不幫忙：玩家扣分
+            const propertySpace = game.getSpaceInfo(player.position);
+            const penalty = propertySpace.toll || 0;
+            player.money -= penalty;
+            if (player.money < 0) player.money = 0;
+
+            console.log('[標籤] 玩家選擇不幫忙，扣分:', penalty);
+
+            // 通知所有玩家更新遊戲狀態
+            io.to(roomCode).emit('playerPenalized', {
+                playerId: socket.id,
+                penalty: penalty,
+                gameState: game.getGameState()
+            });
+
+            // 通知玩家
+            socket.emit('penaltyApplied', {
+                message: `選擇不幫忙，扣除 ${penalty} 點！`,
+                newBalance: player.money
+            });
+        }
+    });
 });
 
 
