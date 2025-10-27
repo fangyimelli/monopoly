@@ -139,9 +139,8 @@ function setupErrorHandling() {
     window.addEventListener('unhandledrejection', (event) => {
         console.error('Unhandled promise rejection:', event.reason);
 
-        if (window.game) {
-            window.game.showError('網路連接出現問題，請檢查您的網路連接');
-        }
+        // 不要自動顯示錯誤訊息，讓 Socket.io 自己處理連接錯誤
+        // Socket.io 會在 connect_error 事件中處理連接問題
     });
 
     // Network status monitoring
