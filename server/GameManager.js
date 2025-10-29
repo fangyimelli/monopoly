@@ -421,6 +421,12 @@ class MonopolyGame {
         this.hostIsObserver = false;
         this.boardLayout = TAIWAN_BOARD_LAYOUT;
         this.publicFund = 20000; // 公費初始值
+        this.lastEndTurnTime = 0; // 🔥 防止重複調用 endTurn
+        this.stateVersion = 0; // 🔢 遊戲狀態版本，避免前端套用過期狀態
+    }
+
+    bumpVersion() {
+        this.stateVersion++;
     }
 
     addPlayer(playerId, playerName, character = 'candle') {
@@ -582,8 +588,8 @@ class MonopolyGame {
                 this.handlePropertyLanding(playerId, position, io, this.roomCode);
                 break;
             case 'chance':
-                // 問號格：從「機會卡 + 命運卡」混合堆中抽一張
-                this.drawChanceCard(playerId);
+                // 問號格：用於撕標籤，不自動抽卡片
+                // 撕標籤的邏輯在前端處理（透過 handleQuestionMark）
                 break;
             case 'community_chest':
                 this.drawCommunityChestCard(playerId);
@@ -600,9 +606,15 @@ class MonopolyGame {
                     if (space.name.includes('Special Bonus')) {
                         player.money += 500;
                         if (io && roomCode) {
-                            io.to(roomCode).emit('gameMessage', {
+                            // 發送 bonus 事件給當前玩家
+                            io.to(playerId).emit('receivedBonus', {
+                                amount: 500,
+                                newBalance: player.money
+                            });
+                            // 通知其他玩家
+                            this.socket.to(roomCode).emit('gameMessage', {
                                 message: `${player.name} 獲得 Special Bonus +500！`,
-                                type: 'success'
+                                type: 'info'
                             });
                         }
                     }
@@ -620,7 +632,7 @@ class MonopolyGame {
                     if (space.name.includes('桃園國際機場') || space.name.includes('Taiwan Taoyuan')) {
                         // 起飛格的 ID 是 30
                         player.position = 30;
-                            if (io && roomCode) {
+                        if (io && roomCode) {
                             io.to(roomCode).emit('gameMessage', {
                                 message: `${player.name} 從桃園國際機場直接飛往「起飛」格！`,
                                 type: 'info'
@@ -724,6 +736,14 @@ class MonopolyGame {
     }
 
     endTurn() {
+        // 🔥 防抖：防止在 1 秒內重複調用 endTurn
+        const now = Date.now();
+        if (now - this.lastEndTurnTime < 1000) {
+            console.log('[endTurn] 防止重複調用（1秒內）');
+            return;
+        }
+        this.lastEndTurnTime = now;
+
         // Check if player gets another turn from doubles
         if (this.currentRoll && this.currentRoll.isDouble && this.doubleRollCount < 3) {
             // Player gets another turn, but reset roll state
@@ -753,9 +773,13 @@ class MonopolyGame {
             }
             break;
         } while (safety > 0);
+
+        // 狀態版本自增，通知前端僅接受較新的狀態
+        this.bumpVersion();
     }
 
     getGameState() {
+        console.log('getGameState currentPlayer:', this.currentPlayer, 'currentPlayerIndex:', this.currentPlayerIndex);
         console.log('getGameState', { publicFund: this.publicFund, players: Array.from(this.players.values()) });
         return {
             players: Array.from(this.players.values()),
@@ -768,7 +792,8 @@ class MonopolyGame {
             hotels: this.hotels,
             hostId: this.hostId,
             hostIsObserver: this.hostIsObserver,
-            publicFund: this.publicFund // 回傳公費
+            publicFund: this.publicFund, // 回傳公費
+            stateVersion: this.stateVersion
         };
     }
 
@@ -946,30 +971,6 @@ class MonopolyGame {
 }
 
 // === Socket.io 事件註冊區（請加在 module.exports = GameManager; 之前） ===
-if (typeof global.io !== 'undefined') {
-    global.io.on('connection', (socket) => {
-        socket.on('removeTag', ({ playerId, country, tag }) => {
-            // 找到該玩家所在房間
-            let game = null, roomCode = null;
-            for (const [code, g] of global.gameManager.rooms.entries()) {
-                if (g.players.has(playerId)) {
-                    game = g;
-                    roomCode = code;
-                    break;
-                }
-            }
-            if (!game || !roomCode) return;
-            const player = game.players.get(playerId);
-            if (!player.deletedTagsByCountry) player.deletedTagsByCountry = {};
-            if (!player.deletedTagsByCountry[country]) player.deletedTagsByCountry[country] = [];
-            if (!player.deletedTagsByCountry[country].includes(tag)) player.deletedTagsByCountry[country].push(tag);
-            // 從 tags 移除
-            const idx = player.tags.indexOf(tag);
-            if (idx !== -1) player.tags.splice(idx, 1);
-            // 廣播新 gameState
-            global.io.to(roomCode).emit('turnEnded', { gameState: game.getGameState() });
-        });
-    });
-}
+// 已棄用：移除舊版 removeTag 事件以避免與新流程衝突
 
 module.exports = GameManager;

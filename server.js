@@ -415,20 +415,29 @@ io.on('connection', (socket) => {
         const player = game.players.get(socket.id);
         if (!player) return;
 
+        console.log('[標籤] 移除前的玩家標籤:', player.tags);
+
         // 移除標籤
         player.tags = player.tags.filter(t => t !== tagId);
+
+        console.log('[標籤] 移除後的玩家標籤:', player.tags);
 
         // 獲得點數
         player.money += points;
 
         console.log('[標籤] 標籤移除成功，玩家獲得點數:', points);
 
+        // 狀態版本自增，避免前端套用過期狀態
+        if (typeof game.bumpVersion === 'function') game.bumpVersion();
+        const gameState = game.getGameState();
+        console.log('[標籤] 準備發送的 gameState 中的玩家標籤:', gameState.players.map(p => ({ id: p.id, name: p.name, tags: p.tags })));
+
         // 通知所有玩家更新遊戲狀態
         io.to(roomCode).emit('tagRemoved', {
             playerId: socket.id,
             tagId: tagId,
             points: points,
-            gameState: game.getGameState()
+            gameState: gameState
         });
 
         // 通知玩家標籤移除成功
@@ -436,6 +445,8 @@ io.on('connection', (socket) => {
             message: `成功移除標籤並獲得 ${points} 點！`,
             newBalance: player.money
         });
+
+        // 🔥 不再由後端自動結束回合，讓前端完全控制
     });
 
     // 玩家選擇是否幫別人移除標籤
@@ -452,12 +463,21 @@ io.on('connection', (socket) => {
 
         if (help && owner && tagId) {
             // 選擇幫忙：移除對方的標籤，玩家獲得點數
+            console.log('[標籤] 移除前的地主標籤:', owner.tags);
+
             owner.tags = owner.tags.filter(t => t !== tagId);
+
+            console.log('[標籤] 移除後的地主標籤:', owner.tags);
+
             const propertySpace = game.getSpaceInfo(player.position);
             const points = propertySpace.toll || 0;
             player.money += points;
 
             console.log('[標籤] 玩家幫忙移除標籤，獲得點數:', points);
+
+            if (typeof game.bumpVersion === 'function') game.bumpVersion();
+            const gameState = game.getGameState();
+            console.log('[標籤] 準備發送的 gameState 中的玩家標籤:', gameState.players.map(p => ({ id: p.id, name: p.name, tags: p.tags })));
 
             // 通知所有玩家更新遊戲狀態
             io.to(roomCode).emit('tagRemoved', {
@@ -465,7 +485,7 @@ io.on('connection', (socket) => {
                 tagId: tagId,
                 points: points,
                 helpedBy: player.name,
-                gameState: game.getGameState()
+                gameState: gameState
             });
 
             // 通知玩家
@@ -484,11 +504,12 @@ io.on('connection', (socket) => {
 
             // 判斷是拒絕幫忙還是走到無玩家的國家
             const hasOwnerInGame = owner ? true : false;
-            const message = hasOwnerInGame 
+            const message = hasOwnerInGame
                 ? `選擇不幫忙，扣除 ${penalty} 點！`
                 : `別人的地盤，扣除 ${penalty} 點！`;
 
             // 通知所有玩家更新遊戲狀態
+            if (typeof game.bumpVersion === 'function') game.bumpVersion();
             io.to(roomCode).emit('playerPenalized', {
                 playerId: socket.id,
                 penalty: penalty,
@@ -501,6 +522,8 @@ io.on('connection', (socket) => {
                 newBalance: player.money
             });
         }
+
+        // 🔥 不再由後端自動結束回合，讓前端完全控制
     });
 });
 
