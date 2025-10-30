@@ -28,71 +28,7 @@ const GameManager = require('./server/GameManager');
 const gameManager = new GameManager();
 gameManager.ioRef = io;
 
-// ===== [題庫圖片常數] =====
-const QUESTION_IMG = {
-  own: [
-    "https://img1.pixhost.to/images/9739/655686586_1.jpg",
-    "https://img1.pixhost.to/images/9739/655686588_2.jpg",
-    "https://img1.pixhost.to/images/9739/655686591_3.jpg",
-    "https://img1.pixhost.to/images/9739/655686593_4.jpg",
-    "https://img1.pixhost.to/images/9739/655686594_5.jpg",
-    "https://img1.pixhost.to/images/9739/655686601_6.jpg",
-    "https://img1.pixhost.to/images/9739/655686604_7.jpg",
-    "https://img1.pixhost.to/images/9739/655686606_8.jpg",
-    "https://img1.pixhost.to/images/9739/655686608_9.jpg",
-    "https://img1.pixhost.to/images/9739/655686611_10.jpg",
-    "https://img1.pixhost.to/images/9739/655686612_11.jpg",
-    "https://img1.pixhost.to/images/9739/655686616_12.jpg",
-    "https://img1.pixhost.to/images/9739/655686618_13.jpg",
-    "https://img1.pixhost.to/images/9739/655686620_14.jpg",
-    "https://img1.pixhost.to/images/9739/655686624_15.jpg",
-  ],
-  chance: [
-    "https://img1.pixhost.to/images/9738/655682099_1.jpg",
-    "https://img1.pixhost.to/images/9738/655682371_2.jpg",
-    "https://img1.pixhost.to/images/9738/655682372_3.jpg",
-    "https://img1.pixhost.to/images/9738/655682373_4.jpg",
-    "https://img1.pixhost.to/images/9738/655682374_5.jpg",
-    "https://img1.pixhost.to/images/9738/655682375_6.jpg",
-    "https://img1.pixhost.to/images/9738/655682376_7.jpg",
-    "https://img1.pixhost.to/images/9738/655682377_8.jpg",
-    "https://img1.pixhost.to/images/9738/655682378_9.jpg",
-    "https://img1.pixhost.to/images/9738/655682379_10.jpg",
-    "https://img1.pixhost.to/images/9738/655682380_11.jpg",
-  ],
-  usa: [
-    "https://img1.pixhost.to/images/9739/655684970_-a-1.jpg",
-    "https://img1.pixhost.to/images/9739/655684971_-a-2.jpg",
-    "https://img1.pixhost.to/images/9739/655684972_-a-3.jpg",
-    "https://img1.pixhost.to/images/9739/655684973_-a-4.jpg",
-  ],
-  japan: [
-    "https://img1.pixhost.to/images/9739/655684950_-j-1.jpg",
-    "https://img1.pixhost.to/images/9739/655684952_-j-2.jpg",
-    "https://img1.pixhost.to/images/9739/655684953_-j-3.jpg",
-    "https://img1.pixhost.to/images/9739/655684954_-j-4.jpg",
-  ],
-  france: [
-    "https://img1.pixhost.to/images/9739/655684959_-f-1.jpg",
-    "https://img1.pixhost.to/images/9739/655684962_-f-2.jpg",
-    "https://img1.pixhost.to/images/9739/655684963_-f-3.jpg",
-    "https://img1.pixhost.to/images/9739/655684965_-f-4.jpg",
-  ],
-  indian: [
-    "https://img1.pixhost.to/images/9739/655684955_-i-1.jpg",
-    "https://img1.pixhost.to/images/9739/655684956_-i-2.jpg",
-    "https://img1.pixhost.to/images/9739/655684957_-i-3.jpg",
-    "https://img1.pixhost.to/images/9739/655684958_-i-4.jpg",
-  ],
-  thai: [
-    "https://img1.pixhost.to/images/9739/655684975_-t-1.jpg",
-    "https://img1.pixhost.to/images/9739/655684976_-t-2.jpg",
-    "https://img1.pixhost.to/images/9739/655684977_-t-3.jpg",
-    "https://img1.pixhost.to/images/9739/655684980_-t-4.jpg",
-  ]
-};
-
-// ====== [socket 事件註冊] ======
+// Socket.io connection handling
 io.on('connection', (socket) => {
     console.log('New client connected:', socket.id);
 
@@ -590,29 +526,159 @@ io.on('connection', (socket) => {
         // 🔥 不再由後端自動結束回合，讓前端完全控制
     });
 
-    // 跳出題目(自動判斷類型，隨機出一題)
-    socket.on('requireQuestion', ({ roomCode, type, country, payload }) => {
-        let images = [];
-        if (type === 'own') images = QUESTION_IMG.own;
-        else if (type === 'chance') images = QUESTION_IMG.chance;
-        else if (country && QUESTION_IMG[country]) images = QUESTION_IMG[country];
-        if (!images.length) images = QUESTION_IMG.own;
-        let randomIdx = Math.floor(Math.random() * images.length);
-        let imageUrl = images[randomIdx];
-        io.to(roomCode).emit('showQuestion', { imageUrl, type, country, payload });
+    // 問答系統相關事件處理
+    socket.on('requestShowQuestion', ({ roomCode, questionData, playerInfo }) => {
+        console.log('[問答] 玩家請求顯示問題給所有玩家:', roomCode, '觸發玩家:', socket.id);
+
+        const game = gameManager.rooms.get(roomCode);
+        if (!game) return;
+
+        const triggerPlayer = game.players.get(socket.id);
+        const triggerPlayerName = triggerPlayer ? triggerPlayer.name : '未知玩家';
+        const triggerCharacter = triggerPlayer ? triggerPlayer.character : 'french';
+
+        // 國家名稱映射
+        const getCountryName = (character) => {
+            const countryNames = {
+                'french': '法國',
+                'indian': '印度',
+                'american': '美國',
+                'thai': '泰國',
+                'japanese': '日本'
+            };
+            return countryNames[character] || '法國';
+        };
+
+        const getCharacterName = (character) => {
+            const characterNames = {
+                'french': '法國人',
+                'indian': '印度人',
+                'american': '美國人',
+                'thai': '泰國人',
+                'japanese': '日本人'
+            };
+            return characterNames[character] || '法國人';
+        };
+
+        // 添加觸發者信息到問題數據中
+        const enhancedQuestionData = {
+            ...questionData,
+            triggeredBy: socket.id,
+            triggeredByName: triggerPlayerName,
+            triggeredByCharacter: triggerCharacter,
+            triggeredByCountry: getCountryName(triggerCharacter),
+            triggeredByCharacterName: getCharacterName(triggerCharacter)
+        };
+
+        // 廣播問題給房間內的所有玩家（包括觸發者）
+        io.to(roomCode).emit('showQuestionToAll', {
+            questionData: enhancedQuestionData,
+            triggeredBy: socket.id
+        });
     });
-    socket.on('questionNext', ({ roomCode, type, country, payload }) => {
-        let images = [];
-        if (type === 'own') images = QUESTION_IMG.own;
-        else if (type === 'chance') images = QUESTION_IMG.chance;
-        else if (country && QUESTION_IMG[country]) images = QUESTION_IMG[country];
-        if (!images.length) images = QUESTION_IMG.own;
-        let randomIdx = Math.floor(Math.random() * images.length);
-        let imageUrl = images[randomIdx];
-        io.to(roomCode).emit('showQuestion', { imageUrl, type, country, payload });
+
+    socket.on('showQuestionToAll', ({ roomCode, questionData }) => {
+        console.log('[問答] 房主要求顯示問題給所有玩家:', roomCode);
+        // 廣播問題給房間內的所有其他玩家（除了房主）
+        socket.to(roomCode).emit('showQuestionToAll', { questionData });
     });
-    socket.on('questionAnswered', ({ roomCode, payload }) => {
-        io.to(roomCode).emit('questionAnswered', { payload });
+
+    socket.on('questionAnswered', ({ roomCode, correct, context }) => {
+        console.log('[問答] 房主回答問題結果:', { roomCode, correct, context });
+        const game = gameManager.rooms.get(roomCode);
+        if (!game) return;
+
+        // 廣播問答結果給房間內的所有玩家
+        io.to(roomCode).emit('questionAnswered', {
+            correct: correct,
+            context: context
+        });
+    });
+
+    // 處理通過問答撕自己標籤的請求
+    socket.on('removeOwnTagWithQuestion', ({ roomCode, tagId, points, autoEndTurn }) => {
+        console.log('[問答標籤] 玩家通過問答撕自己標籤:', socket.id, 'tagId:', tagId, 'autoEndTurn:', autoEndTurn);
+        const game = gameManager.rooms.get(roomCode);
+        if (!game) return;
+
+        const player = game.players.get(socket.id);
+        if (!player) return;
+
+        // 移除標籤
+        player.tags = player.tags.filter(t => t !== tagId);
+        player.money += points;
+
+        console.log('[問答標籤] 移除標籤成功，獲得點數:', points);
+
+        if (typeof game.bumpVersion === 'function') game.bumpVersion();
+        const gameState = game.getGameState();
+
+        // 通知所有玩家標籤移除成功
+        io.to(roomCode).emit('tagRemovedSuccess', {
+            message: `成功移除標籤並獲得 ${points} 點！`,
+            newBalance: player.money
+        });
+
+        // 如果需要自動結束回合
+        if (autoEndTurn) {
+            console.log('[問答標籤] 自動結束回合');
+            game.endTurn();
+            const newGameState = game.getGameState();
+            io.to(roomCode).emit('turnEnded', { gameState: newGameState });
+        } else {
+            // 只更新遊戲狀態
+            io.to(roomCode).emit('gameStateUpdated', { gameState });
+        }
+    });
+
+    // 處理通過問答幫助別人撕標籤的請求
+    socket.on('handleOthersTagWithQuestion', ({ roomCode, ownerCharacter, tagId, help, autoEndTurn }) => {
+        console.log('[問答標籤] 玩家通過問答幫助別人撕標籤:', socket.id, 'ownerCharacter:', ownerCharacter, 'tagId:', tagId, 'autoEndTurn:', autoEndTurn);
+        const game = gameManager.rooms.get(roomCode);
+        if (!game) return;
+
+        const player = game.players.get(socket.id);
+        if (!player) return;
+
+        // 找到地塊所有者
+        const owner = Array.from(game.players.values()).find(p => p.character === ownerCharacter);
+
+        if (help && owner && tagId) {
+            // 移除對方的標籤，玩家獲得點數
+            owner.tags = owner.tags.filter(t => t !== tagId);
+
+            const propertySpace = game.getSpaceInfo(player.position);
+            const points = propertySpace.toll || 0;
+            player.money += points;
+
+            console.log('[問答標籤] 玩家幫忙移除標籤，獲得點數:', points);
+
+            if (typeof game.bumpVersion === 'function') game.bumpVersion();
+            const gameState = game.getGameState();
+
+            // 通知所有玩家更新遊戲狀態
+            io.to(roomCode).emit('tagRemoved', {
+                playerId: owner.id,
+                tagId: tagId,
+                points: points,
+                helpedBy: player.name,
+                gameState: gameState
+            });
+
+            // 通知玩家
+            socket.emit('tagRemovedSuccess', {
+                message: `成功幫助 ${owner.name} 移除標籤並獲得 ${points} 點！`,
+                newBalance: player.money
+            });
+
+            // 如果需要自動結束回合
+            if (autoEndTurn) {
+                console.log('[問答標籤] 自動結束回合');
+                game.endTurn();
+                const newGameState = game.getGameState();
+                io.to(roomCode).emit('turnEnded', { gameState: newGameState });
+            }
+        }
     });
 });
 
