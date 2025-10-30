@@ -411,13 +411,6 @@ class MonopolyClient {
                 }, 1000);
             }
         });
-
-        // 遊戲狀態更新事件（不結束回合）
-        this.socket.on('gameStateUpdated', (data) => {
-            console.log('收到遊戲狀態更新:', data);
-            this.gameState = data.gameState;
-            this.updateGameScreen();
-        });
     }
 
     // Room management
@@ -1485,26 +1478,28 @@ class MonopolyClient {
 
         if (context.isHelpingOthers) {
             // 幫助別人撕標籤
-            this.socket.emit('handleOthersTagWithQuestion', {
+            this.socket.emit('handleOthersTag', {
                 roomCode: this.roomCode,
                 ownerCharacter: context.ownerCharacter,
                 tagId: context.tagId,
-                help: true,
-                autoEndTurn: true  // 標記需要自動結束回合
+                help: true
             });
             this.showSuccess('答案正確！正在幫助移除標籤...');
         } else {
             // 撕自己的標籤
-            this.socket.emit('removeOwnTagWithQuestion', {
+            this.socket.emit('removeOwnTag', {
                 roomCode: this.roomCode,
                 tagId: context.tagId,
-                points: context.points,
-                autoEndTurn: true  // 標記需要自動結束回合
+                points: context.points
             });
             this.showSuccess('答案正確！正在移除標籤...');
         }
 
-        // 不再手動結束回合，讓服務器處理
+        // 立即結束回合，換下一個玩家
+        setTimeout(() => {
+            console.log('自動結束回合');
+            this.endTurn();
+        }, 500);
     }
 
     // 在幫助別人撕標籤前顯示問題

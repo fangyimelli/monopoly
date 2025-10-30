@@ -20,19 +20,8 @@ const io = socketIo(server, {
     perMessageDeflate: false
 });
 
-// Serve static files from public directory
-app.use('/public', express.static(path.join(__dirname, 'public')));
-
-// Serve index.html for root path
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// Serve other static files from root (like favicon, etc.)
-app.use(express.static(__dirname, {
-    index: false,  // Don't serve index.html from static middleware
-    dotfiles: 'ignore'
-}));
+// Serve static files
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Game state management
 const GameManager = require('./server/GameManager');
@@ -604,92 +593,6 @@ io.on('connection', (socket) => {
             correct: correct,
             context: context
         });
-    });
-
-    // 處理通過問答撕自己標籤的請求
-    socket.on('removeOwnTagWithQuestion', ({ roomCode, tagId, points, autoEndTurn }) => {
-        console.log('[問答標籤] 玩家通過問答撕自己標籤:', socket.id, 'tagId:', tagId, 'autoEndTurn:', autoEndTurn);
-        const game = gameManager.rooms.get(roomCode);
-        if (!game) return;
-
-        const player = game.players.get(socket.id);
-        if (!player) return;
-
-        // 移除標籤
-        player.tags = player.tags.filter(t => t !== tagId);
-        player.money += points;
-
-        console.log('[問答標籤] 移除標籤成功，獲得點數:', points);
-
-        if (typeof game.bumpVersion === 'function') game.bumpVersion();
-        const gameState = game.getGameState();
-
-        // 通知所有玩家標籤移除成功
-        io.to(roomCode).emit('tagRemovedSuccess', {
-            message: `成功移除標籤並獲得 ${points} 點！`,
-            newBalance: player.money
-        });
-
-        // 如果需要自動結束回合
-        if (autoEndTurn) {
-            console.log('[問答標籤] 自動結束回合');
-            game.endTurn();
-            const newGameState = game.getGameState();
-            io.to(roomCode).emit('turnEnded', { gameState: newGameState });
-        } else {
-            // 只更新遊戲狀態
-            io.to(roomCode).emit('gameStateUpdated', { gameState });
-        }
-    });
-
-    // 處理通過問答幫助別人撕標籤的請求
-    socket.on('handleOthersTagWithQuestion', ({ roomCode, ownerCharacter, tagId, help, autoEndTurn }) => {
-        console.log('[問答標籤] 玩家通過問答幫助別人撕標籤:', socket.id, 'ownerCharacter:', ownerCharacter, 'tagId:', tagId, 'autoEndTurn:', autoEndTurn);
-        const game = gameManager.rooms.get(roomCode);
-        if (!game) return;
-
-        const player = game.players.get(socket.id);
-        if (!player) return;
-
-        // 找到地塊所有者
-        const owner = Array.from(game.players.values()).find(p => p.character === ownerCharacter);
-
-        if (help && owner && tagId) {
-            // 移除對方的標籤，玩家獲得點數
-            owner.tags = owner.tags.filter(t => t !== tagId);
-
-            const propertySpace = game.getSpaceInfo(player.position);
-            const points = propertySpace.toll || 0;
-            player.money += points;
-
-            console.log('[問答標籤] 玩家幫忙移除標籤，獲得點數:', points);
-
-            if (typeof game.bumpVersion === 'function') game.bumpVersion();
-            const gameState = game.getGameState();
-
-            // 通知所有玩家更新遊戲狀態
-            io.to(roomCode).emit('tagRemoved', {
-                playerId: owner.id,
-                tagId: tagId,
-                points: points,
-                helpedBy: player.name,
-                gameState: gameState
-            });
-
-            // 通知玩家
-            socket.emit('tagRemovedSuccess', {
-                message: `成功幫助 ${owner.name} 移除標籤並獲得 ${points} 點！`,
-                newBalance: player.money
-            });
-
-            // 如果需要自動結束回合
-            if (autoEndTurn) {
-                console.log('[問答標籤] 自動結束回合');
-                game.endTurn();
-                const newGameState = game.getGameState();
-                io.to(roomCode).emit('turnEnded', { gameState: newGameState });
-            }
-        }
     });
 });
 
