@@ -20,13 +20,19 @@ const io = socketIo(server, {
     perMessageDeflate: false
 });
 
-// Serve static files from root directory
-app.use(express.static(__dirname));
+// Serve static files from public directory
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
 // Serve index.html for root path
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
+
+// Serve other static files from root (like favicon, etc.)
+app.use(express.static(__dirname, {
+    index: false,  // Don't serve index.html from static middleware
+    dotfiles: 'ignore'
+}));
 
 // Game state management
 const GameManager = require('./server/GameManager');
