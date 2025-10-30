@@ -28,7 +28,71 @@ const GameManager = require('./server/GameManager');
 const gameManager = new GameManager();
 gameManager.ioRef = io;
 
-// Socket.io connection handling
+// ===== [題庫圖片常數] =====
+const QUESTION_IMG = {
+  own: [
+    "https://img1.pixhost.to/images/9739/655686586_1.jpg",
+    "https://img1.pixhost.to/images/9739/655686588_2.jpg",
+    "https://img1.pixhost.to/images/9739/655686591_3.jpg",
+    "https://img1.pixhost.to/images/9739/655686593_4.jpg",
+    "https://img1.pixhost.to/images/9739/655686594_5.jpg",
+    "https://img1.pixhost.to/images/9739/655686601_6.jpg",
+    "https://img1.pixhost.to/images/9739/655686604_7.jpg",
+    "https://img1.pixhost.to/images/9739/655686606_8.jpg",
+    "https://img1.pixhost.to/images/9739/655686608_9.jpg",
+    "https://img1.pixhost.to/images/9739/655686611_10.jpg",
+    "https://img1.pixhost.to/images/9739/655686612_11.jpg",
+    "https://img1.pixhost.to/images/9739/655686616_12.jpg",
+    "https://img1.pixhost.to/images/9739/655686618_13.jpg",
+    "https://img1.pixhost.to/images/9739/655686620_14.jpg",
+    "https://img1.pixhost.to/images/9739/655686624_15.jpg",
+  ],
+  chance: [
+    "https://img1.pixhost.to/images/9738/655682099_1.jpg",
+    "https://img1.pixhost.to/images/9738/655682371_2.jpg",
+    "https://img1.pixhost.to/images/9738/655682372_3.jpg",
+    "https://img1.pixhost.to/images/9738/655682373_4.jpg",
+    "https://img1.pixhost.to/images/9738/655682374_5.jpg",
+    "https://img1.pixhost.to/images/9738/655682375_6.jpg",
+    "https://img1.pixhost.to/images/9738/655682376_7.jpg",
+    "https://img1.pixhost.to/images/9738/655682377_8.jpg",
+    "https://img1.pixhost.to/images/9738/655682378_9.jpg",
+    "https://img1.pixhost.to/images/9738/655682379_10.jpg",
+    "https://img1.pixhost.to/images/9738/655682380_11.jpg",
+  ],
+  usa: [
+    "https://img1.pixhost.to/images/9739/655684970_-a-1.jpg",
+    "https://img1.pixhost.to/images/9739/655684971_-a-2.jpg",
+    "https://img1.pixhost.to/images/9739/655684972_-a-3.jpg",
+    "https://img1.pixhost.to/images/9739/655684973_-a-4.jpg",
+  ],
+  japan: [
+    "https://img1.pixhost.to/images/9739/655684950_-j-1.jpg",
+    "https://img1.pixhost.to/images/9739/655684952_-j-2.jpg",
+    "https://img1.pixhost.to/images/9739/655684953_-j-3.jpg",
+    "https://img1.pixhost.to/images/9739/655684954_-j-4.jpg",
+  ],
+  france: [
+    "https://img1.pixhost.to/images/9739/655684959_-f-1.jpg",
+    "https://img1.pixhost.to/images/9739/655684962_-f-2.jpg",
+    "https://img1.pixhost.to/images/9739/655684963_-f-3.jpg",
+    "https://img1.pixhost.to/images/9739/655684965_-f-4.jpg",
+  ],
+  indian: [
+    "https://img1.pixhost.to/images/9739/655684955_-i-1.jpg",
+    "https://img1.pixhost.to/images/9739/655684956_-i-2.jpg",
+    "https://img1.pixhost.to/images/9739/655684957_-i-3.jpg",
+    "https://img1.pixhost.to/images/9739/655684958_-i-4.jpg",
+  ],
+  thai: [
+    "https://img1.pixhost.to/images/9739/655684975_-t-1.jpg",
+    "https://img1.pixhost.to/images/9739/655684976_-t-2.jpg",
+    "https://img1.pixhost.to/images/9739/655684977_-t-3.jpg",
+    "https://img1.pixhost.to/images/9739/655684980_-t-4.jpg",
+  ]
+};
+
+// ====== [socket 事件註冊] ======
 io.on('connection', (socket) => {
     console.log('New client connected:', socket.id);
 
@@ -524,6 +588,31 @@ io.on('connection', (socket) => {
         }
 
         // 🔥 不再由後端自動結束回合，讓前端完全控制
+    });
+
+    // 跳出題目(自動判斷類型，隨機出一題)
+    socket.on('requireQuestion', ({ roomCode, type, country, payload }) => {
+        let images = [];
+        if (type === 'own') images = QUESTION_IMG.own;
+        else if (type === 'chance') images = QUESTION_IMG.chance;
+        else if (country && QUESTION_IMG[country]) images = QUESTION_IMG[country];
+        if (!images.length) images = QUESTION_IMG.own;
+        let randomIdx = Math.floor(Math.random() * images.length);
+        let imageUrl = images[randomIdx];
+        io.to(roomCode).emit('showQuestion', { imageUrl, type, country, payload });
+    });
+    socket.on('questionNext', ({ roomCode, type, country, payload }) => {
+        let images = [];
+        if (type === 'own') images = QUESTION_IMG.own;
+        else if (type === 'chance') images = QUESTION_IMG.chance;
+        else if (country && QUESTION_IMG[country]) images = QUESTION_IMG[country];
+        if (!images.length) images = QUESTION_IMG.own;
+        let randomIdx = Math.floor(Math.random() * images.length);
+        let imageUrl = images[randomIdx];
+        io.to(roomCode).emit('showQuestion', { imageUrl, type, country, payload });
+    });
+    socket.on('questionAnswered', ({ roomCode, payload }) => {
+        io.to(roomCode).emit('questionAnswered', { payload });
     });
 });
 
