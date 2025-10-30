@@ -20,8 +20,13 @@ const io = socketIo(server, {
     perMessageDeflate: false
 });
 
-// Serve static files
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve static files from root directory
+app.use(express.static(__dirname));
+
+// Serve index.html for root path
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // Game state management
 const GameManager = require('./server/GameManager');
