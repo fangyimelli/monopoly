@@ -583,15 +583,320 @@ io.on('connection', (socket) => {
         socket.to(roomCode).emit('showQuestionToAll', { questionData });
     });
 
-    socket.on('questionAnswered', ({ roomCode, correct, context }) => {
-        console.log('[問答] 房主回答問題結果:', { roomCode, correct, context });
+    socket.on('questionAnswered', ({ roomCode, correct, context, triggeredBy }) => {
+        console.log('[問答] 房主回答問題結果:', { roomCode, correct, context, triggeredBy });
         const game = gameManager.rooms.get(roomCode);
         if (!game) return;
 
-        // 廣播問答結果給房間內的所有玩家
+        // 廣播問答結果給房間內的所有玩家（包含觸發玩家信息）
         io.to(roomCode).emit('questionAnswered', {
             correct: correct,
-            context: context
+            context: context,
+            triggeredBy: triggeredBy || (context && context.triggeredBy) // 從 context 或參數中獲取觸發玩家ID
+        });
+
+        // 如果答案正確且標記需要自動結束回合，則在處理完標籤後自動結束回合
+        if (correct && context && context.autoEndTurn) {
+            console.log('[問答] 答案正確，將在處理完標籤後自動結束回合');
+        }
+    });
+
+    // 新增：處理答對問題後移除自己的標籤（並自動結束回合）
+    socket.on('removeOwnTagWithQuestion', ({ roomCode, tagId, points, autoEndTurn }) => {
+        console.log('[問答] 玩家答對問題移除自己的標籤:', socket.id, 'tagId:', tagId, 'autoEndTurn:', autoEndTurn);
+        const game = gameManager.rooms.get(roomCode);
+        if (!game) return;
+
+        const player = game.players.get(socket.id);
+        if (!player) return;
+
+        console.log('[問答] 移除前的玩家標籤:', player.tags);
+
+        // 移除標籤
+        player.tags = player.tags.filter(t => t !== tagId);
+
+        console.log('[問答] 移除後的玩家標籤:', player.tags);
+
+        // 獲得點數
+        player.money += points;
+
+        console.log('[問答] 標籤移除成功，玩家獲得點數:', points);
+
+        // 狀態版本自增
+        if (typeof game.bumpVersion === 'function') game.bumpVersion();
+        const gameState = game.getGameState();
+
+        // 通知所有玩家更新遊戲狀態
+        io.to(roomCode).emit('tagRemoved', {
+            playerId: socket.id,
+            tagId: tagId,
+            points: points,
+            gameState: gameState
+        });
+
+        // 通知玩家移除成功
+        io.to(socket.id).emit('tagRemovedSuccess', {
+            message: `成功移除標籤並獲得 ${points} 點！`,
+            newBalance: player.money
+        });
+
+        // 如果需要自動結束回合
+        if (autoEndTurn) {
+            console.log('[問答] 自動結束回合');
+            setTimeout(() => {
+                try {
+                    game.endTurn(); // 使用正確的方法名
+                    const updatedGameState = game.getGameState();
+                    io.to(roomCode).emit('turnEnded', {
+                        gameState: updatedGameState
+                    });
+                    console.log('[問答] 回合已結束，新玩家:', updatedGameState.currentPlayer);
+                } catch (error) {
+                    console.error('[問答] 結束回合時發生錯誤:', error);
+                }
+            }, 1000); // 延遲1秒，讓玩家看到結果
+        }
+    });
+
+    // 新增：處理答對問題後幫助別人移除標籤（並自動結束回合）
+    socket.on('handleOthersTagWithQuestion', ({ roomCode, ownerCharacter, tagId, help, autoEndTurn }) => {
+        console.log('[問答] 玩家答對問題處理別人的標籤:', socket.id, 'ownerCharacter:', ownerCharacter, 'help:', help, 'autoEndTurn:', autoEndTurn);
+        const game = gameManager.rooms.get(roomCode);
+        if (!game) return;
+
+        const player = game.players.get(socket.id);
+        if (!player) return;
+
+        // 找到地塊所有者
+        const owner = Array.from(game.players.values()).find(p => p.character === ownerCharacter);
+
+        if (help && owner && tagId) {
+            // 選擇幫忙：移除對方的標籤，玩家獲得點數
+            console.log('[問答] 移除前的地主標籤:', owner.tags);
+
+            owner.tags = owner.tags.filter(t => t !== tagId);
+
+            console.log('[問答] 移除後的地主標籤:', owner.tags);
+
+            const propertySpace = game.getSpaceInfo(player.position);
+            const points = propertySpace.toll || 0;
+            player.money += points;
+
+            console.log('[問答] 玩家幫忙移除標籤，獲得點數:', points);
+
+            if (typeof game.bumpVersion === 'function') game.bumpVersion();
+            const gameState = game.getGameState();
+
+            // 通知所有玩家更新遊戲狀態
+            io.to(roomCode).emit('tagRemoved', {
+                playerId: owner.id,
+                tagId: tagId,
+                points: points,
+                helpedBy: player.name,
+                gameState: gameState
+            });
+
+            // 通知玩家幫忙成功
+            io.to(socket.id).emit('tagRemovedSuccess', {
+                message: `成功幫助移除標籤並獲得 ${points} 點！`,
+                newBalance: player.money
+            });
+
+            // 如果需要自動結束回合
+            if (autoEndTurn) {
+                console.log('[問答] 自動結束回合');
+                setTimeout(() => {
+                    try {
+                        game.endTurn(); // 使用正確的方法名
+                        const updatedGameState = game.getGameState();
+                        io.to(roomCode).emit('turnEnded', {
+                            gameState: updatedGameState
+                        });
+                        console.log('[問答] 回合已結束，新玩家:', updatedGameState.currentPlayer);
+                    } catch (error) {
+                        console.error('[問答] 結束回合時發生錯誤:', error);
+                    }
+                }, 1000); // 延遲1秒，讓玩家看到結果
+            }
+        } else {
+            // 拒絕幫忙：扣分
+            const propertySpace = game.getSpaceInfo(player.position);
+            const penalty = propertySpace.toll || 0;
+            player.money -= penalty;
+
+            console.log('[問答] 玩家拒絕幫忙，扣除點數:', penalty);
+
+            if (typeof game.bumpVersion === 'function') game.bumpVersion();
+            const gameState = game.getGameState();
+
+            // 通知所有玩家更新遊戲狀態
+            io.to(roomCode).emit('playerPenalized', {
+                playerId: socket.id,
+                penalty: penalty,
+                gameState: gameState
+            });
+
+            // 通知玩家被扣分
+            io.to(socket.id).emit('penaltyApplied', {
+                message: `拒絕幫忙，扣除 ${penalty} 點`,
+                newBalance: player.money
+            });
+
+            // 如果需要自動結束回合
+            if (autoEndTurn) {
+                console.log('[問答] 自動結束回合');
+                setTimeout(() => {
+                    try {
+                        game.endTurn(); // 使用正確的方法名
+                        const updatedGameState = game.getGameState();
+                        io.to(roomCode).emit('turnEnded', {
+                            gameState: updatedGameState
+                        });
+                        console.log('[問答] 回合已結束，新玩家:', updatedGameState.currentPlayer);
+                    } catch (error) {
+                        console.error('[問答] 結束回合時發生錯誤:', error);
+                    }
+                }, 1000); // 延遲1秒，讓玩家看到結果
+            }
+        }
+    });
+
+    // 新增：廣播移除標籤彈窗給所有玩家（走到自己地盤）
+    socket.on('requestShowOwnPropertyModal', ({ roomCode, modalData }) => {
+        console.log('[標籤] 玩家請求顯示自己地盤彈窗給所有玩家:', roomCode);
+        const game = gameManager.rooms.get(roomCode);
+        if (!game) return;
+
+        const triggerPlayer = game.players.get(socket.id);
+        if (!triggerPlayer) return;
+
+        const getCountryName = (character) => {
+            const countryNames = {
+                'french': '法國',
+                'indian': '印度',
+                'american': '美國',
+                'thai': '泰國',
+                'japanese': '日本'
+            };
+            return countryNames[character] || '法國';
+        };
+
+        const getCharacterName = (character) => {
+            const characterNames = {
+                'french': '法國人',
+                'indian': '印度人',
+                'american': '美國人',
+                'thai': '泰國人',
+                'japanese': '日本人'
+            };
+            return characterNames[character] || '法國人';
+        };
+
+        // 廣播給所有玩家（直接將玩家信息與 modalData 合併）
+        io.to(roomCode).emit('showOwnPropertyModalToAll', {
+            modalData: modalData,
+            triggeredBy: socket.id,
+            playerName: triggerPlayer.name,
+            playerCharacter: triggerPlayer.character,
+            playerCountryName: getCountryName(triggerPlayer.character),
+            playerCharacterName: getCharacterName(triggerPlayer.character)
+        });
+    });
+
+    // 新增：廣播移除標籤彈窗給所有玩家（走到別人地盤）
+    socket.on('requestShowOthersPropertyModal', ({ roomCode, modalData }) => {
+        console.log('[標籤] 玩家請求顯示別人地盤彈窗給所有玩家:', roomCode);
+        const game = gameManager.rooms.get(roomCode);
+        if (!game) return;
+
+        const triggerPlayer = game.players.get(socket.id);
+        if (!triggerPlayer) return;
+
+        const getCountryName = (character) => {
+            const countryNames = {
+                'french': '法國',
+                'indian': '印度',
+                'american': '美國',
+                'thai': '泰國',
+                'japanese': '日本'
+            };
+            return countryNames[character] || '法國';
+        };
+
+        const getCharacterName = (character) => {
+            const characterNames = {
+                'french': '法國人',
+                'indian': '印度人',
+                'american': '美國人',
+                'thai': '泰國人',
+                'japanese': '日本人'
+            };
+            return characterNames[character] || '法國人';
+        };
+
+        // 廣播給所有玩家（直接將玩家信息與 modalData 合併）
+        io.to(roomCode).emit('showOthersPropertyModalToAll', {
+            modalData: modalData,
+            triggeredBy: socket.id,
+            playerName: triggerPlayer.name,
+            playerCharacter: triggerPlayer.character,
+            playerCountryName: getCountryName(triggerPlayer.character),
+            playerCharacterName: getCharacterName(triggerPlayer.character)
+        });
+    });
+
+    // 新增：廣播移除標籤彈窗給所有玩家（問號格）
+    socket.on('requestShowTagRemoveModal', ({ roomCode, modalData }) => {
+        console.log('[標籤] 玩家請求顯示問號格彈窗給所有玩家:', roomCode);
+        const game = gameManager.rooms.get(roomCode);
+        if (!game) return;
+
+        const triggerPlayer = game.players.get(socket.id);
+        if (!triggerPlayer) return;
+
+        const getCountryName = (character) => {
+            const countryNames = {
+                'french': '法國',
+                'indian': '印度',
+                'american': '美國',
+                'thai': '泰國',
+                'japanese': '日本'
+            };
+            return countryNames[character] || '法國';
+        };
+
+        const getCharacterName = (character) => {
+            const characterNames = {
+                'french': '法國人',
+                'indian': '印度人',
+                'american': '美國人',
+                'thai': '泰國人',
+                'japanese': '日本人'
+            };
+            return characterNames[character] || '法國';
+        };
+
+        // 廣播給所有玩家（直接將玩家信息與 modalData 合併）
+        io.to(roomCode).emit('showTagRemoveModalToAll', {
+            modalData: modalData,
+            triggeredBy: socket.id,
+            playerName: triggerPlayer.name,
+            playerCharacter: triggerPlayer.character,
+            playerCountryName: getCountryName(triggerPlayer.character),
+            playerCharacterName: getCharacterName(triggerPlayer.character)
+        });
+    });
+
+    // 新增：觸發玩家關閉彈窗時，通知所有玩家也關閉
+    socket.on('requestCloseModalForAll', ({ roomCode, modalType }) => {
+        console.log('[標籤] 玩家請求關閉彈窗給所有玩家:', roomCode, 'modalType:', modalType);
+        const game = gameManager.rooms.get(roomCode);
+        if (!game) return;
+
+        // 廣播關閉彈窗事件給房間內所有玩家
+        io.to(roomCode).emit('closeModalForAll', {
+            modalType: modalType,
+            triggeredBy: socket.id
         });
     });
 });

@@ -270,7 +270,8 @@ class QuestionSystem {
     closeQuestionModal() {
         const modal = document.getElementById('questionModal');
         if (modal) {
-            modal.style.display = 'none';
+            console.log('關閉問題模態框');
+            modal.remove(); // 完全移除彈窗，而不只是隱藏
         }
         
         this.currentQuestion = null;
@@ -279,7 +280,8 @@ class QuestionSystem {
         this.isQuestionActive = false;
     }
 
-    // 檢查是否為房主
+    // 檢查是否為房主（包括觀戰房主）
+    // 觀戰房主也擁有問答系統的控制權限（正確/換一題按鈕）
     isHost() {
         if (!window.game) {
             console.log('window.game 不存在');
