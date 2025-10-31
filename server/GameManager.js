@@ -779,10 +779,33 @@ class MonopolyGame {
     }
 
     getGameState() {
-        console.log('getGameState currentPlayer:', this.currentPlayer, 'currentPlayerIndex:', this.currentPlayerIndex);
-        console.log('getGameState', { publicFund: this.publicFund, players: Array.from(this.players.values()) });
+        console.log('🎮 getGameState currentPlayer:', this.currentPlayer, 'currentPlayerIndex:', this.currentPlayerIndex);
+        console.log('🎮 gameStarted:', this.gameStarted);
+        console.log('🎮 playerOrder:', this.playerOrder);
+        
+        // 🔥 重要修復：按照 playerOrder 順序返回 players 數組
+        // - 游戏开始后：使用 playerOrder 顺序（确保 currentPlayerIndex 对应正确）
+        // - 游戏开始前：直接从 Map 获取（大厅阶段显示所有玩家）
+        let orderedPlayers;
+        if (this.gameStarted && this.playerOrder.length > 0) {
+            // 游戏已开始，使用 playerOrder 顺序
+            orderedPlayers = this.playerOrder.map(playerId => {
+                const player = this.players.get(playerId);
+                return player;
+            }).filter(p => p !== undefined);
+            console.log('🎮 [游戏中] orderedPlayers:', orderedPlayers.map(p => ({ id: p.id, name: p.name })));
+        } else {
+            // 游戏未开始（大厅阶段），直接获取所有玩家
+            orderedPlayers = Array.from(this.players.values());
+            console.log('🎮 [大厅] players:', orderedPlayers.map(p => ({ id: p.id, name: p.name })));
+        }
+        
+        if (this.gameStarted && this.playerOrder.length > 0) {
+            console.log('🎮 currentPlayer from orderedPlayers[' + this.currentPlayerIndex + ']:', orderedPlayers[this.currentPlayerIndex]?.id);
+        }
+        
         return {
-            players: Array.from(this.players.values()),
+            players: orderedPlayers,
             properties: Array.from(this.properties.entries()).map(([id, prop]) => ({ id, ...prop })),
             currentPlayer: this.currentPlayer,
             currentPlayerIndex: this.currentPlayerIndex,

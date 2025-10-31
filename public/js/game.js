@@ -7,15 +7,11 @@ class MonopolyClient {
         this.roomCode = null;
         this.playerId = null;
         this.isHost = false;
-        this.turnCountdownInterval = null;
-        this.turnCountdownValue = 5;
-
-        // 新增倒數狀態追蹤
-        this.lastCountdownPlayerId = null;
 
         this.hasRemovedTagThisTurn = false;
         this.lastQuestionMarkPosition = null; // 記錄上次處理問號格的位置
         this.lastEndTurnTime = 0; // 記錄上次結束回合的時間，防止重複調用
+        this.autoEndTurnExecuted = false; // 記錄本回合是否已執行自動結束
         this.setupTagRemoveModal();
     }
 
@@ -152,6 +148,7 @@ class MonopolyClient {
             }
 
             this.hasRemovedTagThisTurn = false; // 遊戲開始時重置標記
+            this.autoEndTurnExecuted = false; // 遊戲開始時重置自動結束標記
             this.showGame();
             this.showSuccess('遊戲開始！');
             // 立即顯示所有玩家在起點
@@ -165,6 +162,10 @@ class MonopolyClient {
         });
 
         this.socket.on('diceRolled', async (data) => {
+            console.log('🎲 收到 diceRolled 事件:', data);
+            console.log('🎲 掷骰子的玩家:', data.playerId);
+            console.log('🎲 我的 ID:', this.playerId);
+
             // 保存舊 gameState 用於動畫
             const oldGameState = JSON.parse(JSON.stringify(this.gameState));
             const movingPlayer = oldGameState ? oldGameState.players.find(p => p.id === data.playerId) : null;
@@ -196,7 +197,20 @@ class MonopolyClient {
             this.gameState = data.gameState;
             this.updateGameScreen();
 
-            // 移除重複的倒數計時邏輯，統一由 updateActionButtons() 處理
+            // 只有當前掷骰子的玩家才检查自动结束
+            if (data.playerId === this.playerId) {
+                console.log('🎲 是我掷的骰子，延遲 1200ms 後檢查是否需要自動結束回合');
+                // 延遲1200ms後檢查是否需要自動結束回合（給彈窗足夠時間顯示）
+                setTimeout(() => {
+                    // 再次确认是否为我的回合
+                    if (this.isMyTurn() && this.gameState.currentRoll && this.gameState.currentRoll.total > 0) {
+                        console.log('🎲 確認是我的回合，檢查是否需要自動結束');
+                        this.checkAutoEndTurn();
+                    }
+                }, 1200);
+            } else {
+                console.log('🎲 不是我掷的骰子，只更新畫面');
+            }
         });
 
         this.socket.on('rollError', (data) => {
@@ -204,20 +218,27 @@ class MonopolyClient {
         });
 
         this.socket.on('turnEnded', (data) => {
-            console.log('=== 回合結束事件 ===');
-            console.log('新當前玩家 ID:', data.gameState.currentPlayer);
-            console.log('新當前玩家索引:', data.gameState.currentPlayerIndex);
-            console.log('我的 ID:', this.playerId);
-            console.log('玩家列表:', data.gameState.players.map(p => ({ id: p.id, name: p.name })));
-            console.log('收到的 currentRoll:', data.gameState.currentRoll);
+            console.log('=== 🔄 回合結束事件 ===');
+            console.log('🔄 新當前玩家 ID:', data.gameState.currentPlayer);
+            console.log('🔄 新當前玩家索引:', data.gameState.currentPlayerIndex);
+            console.log('🔄 我的 ID:', this.playerId);
+            console.log('🔄 玩家列表:', data.gameState.players.map(p => ({ id: p.id, name: p.name })));
+            console.log('🔄 收到的 currentRoll:', data.gameState.currentRoll);
 
             // 重置骰子狀態（新回合還沒擲骰子）
             data.gameState.currentRoll = null;
             this.gameState = data.gameState;
 
-            // 如果輪到我的回合，重置標籤撕除標記
+            // 重置所有回合相關標記
+            this.hasRemovedTagThisTurn = false;
+            this.autoEndTurnExecuted = false;
+            console.log('🔄 已重置 autoEndTurnExecuted 為 false');
+
+            // 如果輪到我的回合
             if (data.gameState.currentPlayer === this.playerId) {
-                this.hasRemovedTagThisTurn = false;
+                console.log('🔄 輪到我的回合了！');
+            } else {
+                console.log('🔄 輪到其他玩家的回合');
             }
 
             this.updateGameScreen();
@@ -897,7 +918,84 @@ class MonopolyClient {
         });
     }
 
-    // 移除 updateActionButtons 內的倒數邏輯
+    // 檢查是否有任何彈窗正在顯示
+    hasAnyModalOpen() {
+        const modals = [
+            'tagRemoveModal',
+            'ownPropertyModal',
+            'othersPropertyModal',
+            'bonusModal'
+        ];
+
+        // 檢查是否有任何彈窗存在
+        for (const modalId of modals) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                console.log(`🔍 發現彈窗: ${modalId}`);
+                return true;
+            }
+        }
+
+        // 檢查問答系統的彈窗
+        if (window.questionSystem && window.questionSystem.currentModal) {
+            console.log('🔍 發現問答系統彈窗');
+            return true;
+        }
+
+        console.log('🔍 沒有任何彈窗');
+        return false;
+    }
+
+    // 檢查是否需要自動結束回合
+    checkAutoEndTurn() {
+        console.log('🔍 checkAutoEndTurn 被調用');
+        console.log('🔍 autoEndTurnExecuted:', this.autoEndTurnExecuted);
+        console.log('🔍 isMyTurn:', this.isMyTurn());
+        console.log('🔍 currentRoll:', this.gameState.currentRoll);
+
+        // 如果已經執行過自動結束，則不再執行
+        if (this.autoEndTurnExecuted) {
+            console.log('🔍 已經執行過自動結束，跳過');
+            return;
+        }
+
+        // 確認是我的回合
+        if (!this.isMyTurn()) {
+            console.log('🔍 不是我的回合，跳過');
+            return;
+        }
+
+        // 確認已經擲過骰子
+        if (!this.gameState.currentRoll || !this.gameState.currentRoll.total) {
+            console.log('🔍 還沒擲骰子，跳過');
+            return;
+        }
+
+        // 檢查是否有彈窗
+        const hasModal = this.hasAnyModalOpen();
+        if (hasModal) {
+            console.log('🔍 有彈窗正在顯示，不自動結束回合');
+            return;
+        }
+
+        // 沒有彈窗，自動結束回合
+        console.log('✅ 沒有彈窗，準備自動結束回合');
+        this.autoEndTurnExecuted = true;
+
+        // 延遲300ms確保狀態穩定
+        setTimeout(() => {
+            // 再次確認是否為我的回合（防止狀態在延遲期間改變）
+            if (this.isMyTurn()) {
+                console.log('✅ 最終確認：自動結束回合');
+                this.endTurn();
+            } else {
+                console.log('⚠️ 延遲期間回合已改變，取消自動結束');
+                this.autoEndTurnExecuted = false;
+            }
+        }, 300);
+    }
+
+    // 更新按鈕狀態
     updateActionButtons() {
         const rollBtn = document.getElementById('rollDiceBtn');
         const endBtn = document.getElementById('endTurnBtn');
@@ -910,77 +1008,36 @@ class MonopolyClient {
         endBtn.style.display = 'block';
 
         if (!this.isMyTurn()) {
-            // 不是我的回合，清除倒數計時
-            if (this.turnCountdownInterval) {
-                clearInterval(this.turnCountdownInterval);
-                this.turnCountdownInterval = null;
-            }
+            // 不是我的回合
             rollBtn.disabled = true;
             endBtn.disabled = true;
             endBtn.textContent = '結束回合';
+            console.log('🎮 updateActionButtons: 不是我的回合，禁用所有按鈕');
             return;
         }
 
         // 輪到我的回合
         endBtn.disabled = false;
+        endBtn.textContent = '結束回合';
 
         // 檢查是否已經擲過骰子
         const hasRolled = this.gameState.currentRoll && this.gameState.currentRoll.total > 0;
-        console.log('updateActionButtons - hasRolled:', hasRolled, 'currentRoll:', this.gameState.currentRoll);
+        console.log('🎮 updateActionButtons - isMyTurn: true, hasRolled:', hasRolled);
 
         if (hasRolled) {
             // 已經擲過骰子，禁用擲骰子按鈕
             rollBtn.disabled = true;
-
-            // 檢查是否在問號格（機會卡）
-            const me = this.gameState.players.find(p => p.id === this.playerId);
-            let isOnQuestionMark = false;
-            if (me && this.gameBoard && this.gameBoard.boardLayout) {
-                const currentSquare = this.gameBoard.boardLayout.find(sq => sq.id == me.position);
-                if (currentSquare && (currentSquare.type === 'chance' || currentSquare.name.includes('？'))) {
-                    isOnQuestionMark = true;
-                }
-            }
-
-            // 啟動倒數計時（問號格不倒數，且只啟動一次）
-            if (!isOnQuestionMark && !this.turnCountdownInterval) {
-                this.turnCountdownValue = 5;
-                endBtn.textContent = `結束回合(${this.turnCountdownValue})`;
-                this.turnCountdownInterval = setInterval(() => {
-                    this.turnCountdownValue--;
-                    endBtn.textContent = `結束回合(${this.turnCountdownValue})`;
-                    if (this.turnCountdownValue <= 0) {
-                        clearInterval(this.turnCountdownInterval);
-                        this.turnCountdownInterval = null;
-                        this.endTurn();
-                    }
-                }, 1000);
-            } else if (isOnQuestionMark) {
-                // 在問號格，清除倒數計時
-                if (this.turnCountdownInterval) {
-                    clearInterval(this.turnCountdownInterval);
-                    this.turnCountdownInterval = null;
-                }
-                endBtn.textContent = '結束回合';
-            }
+            console.log('🎮 已擲過骰子，禁用擲骰子按鈕');
         } else {
-            // 還沒擲骰子，清除倒數計時
-            if (this.turnCountdownInterval) {
-                clearInterval(this.turnCountdownInterval);
-                this.turnCountdownInterval = null;
-            }
+            // 還沒擲骰子，啟用擲骰子按鈕
             rollBtn.disabled = false;
-            endBtn.textContent = '結束回合';
+            console.log('🎮 還沒擲骰子，啟用擲骰子按鈕');
         }
 
         // 只設置一次 onclick，避免重複綁定
         if (!endBtn.dataset.onclickSet) {
             endBtn.dataset.onclickSet = 'true';
             endBtn.onclick = () => {
-                if (this.turnCountdownInterval) {
-                    clearInterval(this.turnCountdownInterval);
-                    this.turnCountdownInterval = null;
-                }
                 this.endTurn();
             };
         }
@@ -1307,34 +1364,12 @@ class MonopolyClient {
         // 若仍需購買流程，可直接在主畫面按鈕處理
     }
 
-    // 在 showBuildModal 彈窗出現時才啟動倒數
+    // 顯示建造彈窗（暫時保留，未來可能移除）
     showBuildModal() {
         const modal = document.getElementById('buildModal');
-        const buildBtn = document.getElementById('modalBuildBtn');
-        const closeBtn = document.getElementById('modalCloseBtn');
-        // 移除舊的 timerDiv
-        const oldTimer = modal.querySelector('#build-timer');
-        if (oldTimer) oldTimer.remove();
-        let timer = 10;
-        const timerDiv = document.createElement('div');
-        timerDiv.style = 'color:#d32f2f;font-weight:bold;margin-top:10px;';
-        timerDiv.id = 'build-timer';
-        timerDiv.textContent = `自動結束回合倒數：${timer} 秒`;
-        modal.querySelector('.modal-buttons').appendChild(timerDiv);
-        if (this.turnCountdownInterval) clearInterval(this.turnCountdownInterval);
-        this.turnCountdownInterval = setInterval(() => {
-            timer--;
-            timerDiv.textContent = `自動結束回合倒數：${timer} 秒`;
-            if (timer <= 0) {
-                clearInterval(this.turnCountdownInterval);
-                this.turnCountdownInterval = null;
-                closeBtn.click();
-                this.endTurn();
-            }
-        }, 1000);
-        buildBtn.onclick = () => { clearInterval(this.turnCountdownInterval); this.turnCountdownInterval = null; /*...原有建造流程...*/ };
-        closeBtn.onclick = () => { clearInterval(this.turnCountdownInterval); this.turnCountdownInterval = null; this.endTurn(); };
-        modal.style.display = 'block';
+        if (modal) {
+            modal.style.display = 'block';
+        }
     }
 
     // Board management
@@ -1412,12 +1447,6 @@ class MonopolyClient {
         const availableTags = player.tags.filter(tag => !player.deletedTagsByCountry[country].includes(tag));
         if (availableTags.length === 0) return;
 
-        // 🔥 清除倒數計時，因為玩家正在處理彈窗
-        if (this.turnCountdownInterval) {
-            clearInterval(this.turnCountdownInterval);
-            this.turnCountdownInterval = null;
-        }
-
         // 請求服務器廣播彈窗給所有玩家
         console.log('🎲 請求服務器廣播問號格彈窗');
         this.socket.emit('requestShowTagRemoveModal', {
@@ -1435,12 +1464,6 @@ class MonopolyClient {
         const { playerTags, currentSquare } = modalData;
 
         if (!playerTags || playerTags.length === 0) return;
-
-        // 🔥 清除倒數計時
-        if (this.turnCountdownInterval) {
-            clearInterval(this.turnCountdownInterval);
-            this.turnCountdownInterval = null;
-        }
 
         // 建立 modal（所有玩家都能看到）
         let modal = document.getElementById('tagRemoveModal');
@@ -1703,12 +1726,6 @@ class MonopolyClient {
 
         console.log('🏠 showOwnPropertyModalToAll 被調用:', data);
 
-        // 🔥 清除倒數計時
-        if (this.turnCountdownInterval) {
-            clearInterval(this.turnCountdownInterval);
-            this.turnCountdownInterval = null;
-        }
-
         // 建立 modal（所有玩家都能看到）
         let modal = document.getElementById('ownPropertyModal');
         if (!modal) {
@@ -1821,12 +1838,6 @@ class MonopolyClient {
         const { propertyName, ownerName, ownerCharacter, ownerTags, points, penalty, hasOwnerPlayer } = modalData;
 
         console.log('收到廣播的別人地塊彈窗:', data);
-
-        // 🔥 清除倒數計時
-        if (this.turnCountdownInterval) {
-            clearInterval(this.turnCountdownInterval);
-            this.turnCountdownInterval = null;
-        }
 
         // 判斷是否為觸發玩家
         const isTriggerer = triggeredBy === this.playerId;
