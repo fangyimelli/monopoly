@@ -248,10 +248,10 @@ class QuestionSystem {
         console.log('房主選擇換題');
         
         // 獲取新題目
-        const newQuestion = this.getRandomQuestion(this.questionType, 
-            this.questionContext ? this.getCountryFromProperty(this.questionContext.propertyName) : null);
+        const country = this.questionContext ? this.getCountryFromProperty(this.questionContext.propertyName) : null;
+        const newQuestion = this.getRandomQuestion(this.questionType, country);
         
-        if (newQuestion) {
+        if (newQuestion && window.game && window.game.socket) {
             const questionData = {
                 imageUrl: newQuestion,
                 type: this.questionType,
@@ -259,8 +259,17 @@ class QuestionSystem {
                 description: this.getQuestionDescription(this.questionType)
             };
             
-            // 更新當前問題並重新顯示
-            this.showQuestionModal(questionData);
+            // 通知服務器廣播新題目給所有玩家
+            console.log('請求服務器廣播新題目給所有玩家');
+            window.game.socket.emit('requestShowQuestion', {
+                roomCode: window.game.roomCode,
+                questionData: questionData,
+                playerInfo: {
+                    playerId: window.game.playerId,
+                    character: window.game.gameState?.players.find(p => p.id === window.game.playerId)?.character,
+                    playerName: window.game.gameState?.players.find(p => p.id === window.game.playerId)?.name
+                }
+            });
         } else {
             window.game.showError('無法載入新題目，請稍後再試');
         }

@@ -494,25 +494,49 @@ io.on('connection', (socket) => {
                 newBalance: player.money
             });
         } else {
-            // 選擇不幫忙：玩家扣分
+            // 選擇不幫忙或走到無玩家的國家：玩家扣分，地主（如果存在）收取過路費
             const propertySpace = game.getSpaceInfo(player.position);
             const penalty = propertySpace.toll || 0;
+            
+            // 扣除玩家點數
             player.money -= penalty;
             if (player.money < 0) player.money = 0;
 
-            console.log('[標籤] 玩家選擇不幫忙，扣分:', penalty);
-
             // 判斷是拒絕幫忙還是走到無玩家的國家
             const hasOwnerInGame = owner ? true : false;
-            const message = hasOwnerInGame
-                ? `選擇不幫忙，扣除 ${penalty} 點！`
-                : `別人的地盤，扣除 ${penalty} 點！`;
+            let message = '';
+
+            if (hasOwnerInGame && owner) {
+                // 有地主在遊戲中，將扣除的點數轉移給地主
+                owner.money += penalty;
+                message = `選擇不幫忙，扣除 ${penalty} 點並支付給 ${owner.name}！`;
+                console.log('[標籤] 玩家拒絕幫忙，扣除點數:', penalty, '轉移給地主:', owner.name);
+                
+                // 通知地主收到過路費
+                io.to(owner.id).emit('receiveToll', {
+                    amount: penalty,
+                    payerName: player.name,
+                    payerCharacter: player.character,
+                    propertyName: propertySpace.name || '未知地點'
+                });
+            } else {
+                // 沒有地主玩家，點數進入公費
+                if (typeof game.publicFund === 'number') {
+                    game.publicFund += penalty;
+                    message = `走到別人的地盤，扣除 ${penalty} 點（進入公費）！`;
+                    console.log('[標籤] 無地主玩家，扣除點數進入公費:', penalty);
+                } else {
+                    message = `走到別人的地盤，扣除 ${penalty} 點！`;
+                    console.log('[標籤] 無地主玩家，扣除點數:', penalty);
+                }
+            }
 
             // 通知所有玩家更新遊戲狀態
             if (typeof game.bumpVersion === 'function') game.bumpVersion();
             io.to(roomCode).emit('playerPenalized', {
                 playerId: socket.id,
                 penalty: penalty,
+                ownerId: owner ? owner.id : null,
                 gameState: game.getGameState()
             });
 
@@ -719,12 +743,39 @@ io.on('connection', (socket) => {
                 }, 1000); // 延遲1秒，讓玩家看到結果
             }
         } else {
-            // 拒絕幫忙：扣分
+            // 拒絕幫忙：玩家扣分，地主（如果存在）收取過路費
             const propertySpace = game.getSpaceInfo(player.position);
             const penalty = propertySpace.toll || 0;
+            
+            // 扣除玩家點數
             player.money -= penalty;
+            if (player.money < 0) player.money = 0;
 
-            console.log('[問答] 玩家拒絕幫忙，扣除點數:', penalty);
+            let message = '';
+            if (owner) {
+                // 有地主在遊戲中，將扣除的點數轉移給地主
+                owner.money += penalty;
+                message = `拒絕幫忙，扣除 ${penalty} 點並支付給 ${owner.name}！`;
+                console.log('[問答] 玩家拒絕幫忙，扣除點數:', penalty, '轉移給地主:', owner.name);
+                
+                // 通知地主收到過路費
+                io.to(owner.id).emit('receiveToll', {
+                    amount: penalty,
+                    payerName: player.name,
+                    payerCharacter: player.character,
+                    propertyName: propertySpace.name || '未知地點'
+                });
+            } else {
+                // 沒有地主玩家，點數進入公費
+                if (typeof game.publicFund === 'number') {
+                    game.publicFund += penalty;
+                    message = `拒絕幫忙，扣除 ${penalty} 點（進入公費）！`;
+                    console.log('[問答] 無地主玩家，扣除點數進入公費:', penalty);
+                } else {
+                    message = `拒絕幫忙，扣除 ${penalty} 點！`;
+                    console.log('[問答] 無地主玩家，扣除點數:', penalty);
+                }
+            }
 
             if (typeof game.bumpVersion === 'function') game.bumpVersion();
             const gameState = game.getGameState();
@@ -733,12 +784,13 @@ io.on('connection', (socket) => {
             io.to(roomCode).emit('playerPenalized', {
                 playerId: socket.id,
                 penalty: penalty,
+                ownerId: owner ? owner.id : null,
                 gameState: gameState
             });
 
             // 通知玩家被扣分
             io.to(socket.id).emit('penaltyApplied', {
-                message: `拒絕幫忙，扣除 ${penalty} 點`,
+                message: message,
                 newBalance: player.money
             });
 
