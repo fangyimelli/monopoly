@@ -310,9 +310,9 @@ class GameManager {
             correctTagIds.every(id => selectedTagIds.includes(id));
     }
 
-    // 隨機獲得2個一般標籤
-    getRandomGeneralTags() {
-        return this.shuffleArray([...GENERAL_TAGS]).slice(0, 2);
+    // 隨機獲得一般標籤（默認2個）
+    getRandomGeneralTags(count = 2) {
+        return this.shuffleArray([...GENERAL_TAGS]).slice(0, count);
     }
 
     // 洗牌算法

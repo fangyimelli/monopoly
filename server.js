@@ -890,6 +890,69 @@ io.on('connection', (socket) => {
         }
     });
 
+    // 處理問號格抽獎
+    socket.on('requestLottery', ({ roomCode, playerId }) => {
+        console.log('[抽獎] 玩家請求抽獎:', playerId);
+        const game = gameManager.rooms.get(roomCode);
+        if (!game) return;
+
+        const player = game.players.get(playerId);
+        if (!player) return;
+
+        // 先檢查玩家是否有一般標籤（排除國家標籤）
+        const countryTags = player.initialCountryTags || [];
+        const generalTags = player.tags.filter(tagId => !countryTags.includes(tagId));
+        console.log('[抽獎] 玩家的一般標籤:', generalTags);
+
+        let result;
+        if (generalTags.length === 0) {
+            // 如果玩家沒有一般標籤，強制抽到增加標籤
+            result = 'addTag';
+            console.log('[抽獎] 玩家沒有一般標籤，強制抽到增加標籤');
+        } else {
+            // 如果有一般標籤，50% 概率增加標籤，50% 概率撕去標籤
+            result = Math.random() < 0.5 ? 'addTag' : 'removeTag';
+            console.log('[抽獎] 正常抽獎結果:', result);
+        }
+
+        if (result === 'addTag') {
+            // 增加標籤：隨機給一個一般標籤
+            const allGeneralTags = gameManager.getRandomGeneralTags(1);
+            if (allGeneralTags && allGeneralTags.length > 0) {
+                const newTag = allGeneralTags[0];
+                
+                // 檢查玩家是否已有此標籤
+                if (!player.tags.includes(newTag.id)) {
+                    player.tags.push(newTag.id);
+                    console.log('[抽獎] 玩家獲得新標籤:', newTag.id);
+                }
+
+                // 廣播抽獎結果給所有玩家
+                io.to(roomCode).emit('lotteryResult', {
+                    result: 'addTag',
+                    player: {
+                        id: player.id,
+                        name: player.name,
+                        character: player.character
+                    },
+                    newTag: newTag.id
+                });
+            }
+        } else {
+            // 撕去標籤：顯示一般標籤選擇
+            // 廣播抽獎結果給所有玩家
+            io.to(roomCode).emit('lotteryResult', {
+                result: 'removeTag',
+                player: {
+                    id: player.id,
+                    name: player.name,
+                    character: player.character
+                },
+                generalTags: generalTags
+            });
+        }
+    });
+
     // 新增：廣播移除標籤彈窗給所有玩家（走到自己地盤）
     socket.on('requestShowOwnPropertyModal', ({ roomCode, modalData }) => {
         console.log('[標籤] 玩家請求顯示自己地盤彈窗給所有玩家:', roomCode);
