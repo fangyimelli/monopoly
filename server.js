@@ -207,17 +207,22 @@ io.on('connection', (socket) => {
 
     // Handle ending the game
     socket.on('endGame', ({ roomCode }) => {
+        console.log('🏁 房主結束遊戲:', roomCode, socket.id);
         const game = gameManager.rooms.get(roomCode);
         if (!game) {
-            socket.emit('gameEnded', { scores: [], message: '房間不存在' });
+            socket.emit('gameEnded', { scores: [], reason: 'error', message: '房間不存在' });
             return;
         }
         if (game.hostId !== socket.id) {
-            socket.emit('gameEnded', { scores: [], message: '只有房主可以結束遊戲' });
+            socket.emit('gameEnded', { scores: [], reason: 'error', message: '只有房主可以結束遊戲' });
             return;
         }
         const scores = gameManager.endGame(roomCode, socket.id);
-        io.to(roomCode).emit('gameEnded', { scores });
+        console.log('🏁 計算完成，廣播遊戲結束:', scores);
+        io.to(roomCode).emit('gameEnded', { 
+            reason: 'hostEnd',
+            scores: scores 
+        });
     });
 
     // 查詢房間剩餘角色
@@ -281,8 +286,16 @@ io.on('connection', (socket) => {
             // 選對了，保存國家標籤並給予2個一般標籤
             const countryTags = selectedTagIds;
             const generalTags = gameManager.getRandomGeneralTags();
-            player.tags = [...countryTags, ...generalTags.map(t => t.id)];
+            const generalTagIds = generalTags.map(t => t.id);
+            
+            player.tags = [...countryTags, ...generalTagIds];
             player.tagSelectionPending = false;
+            
+            // 🏁 保存初始標籤（用於遊戲結束時計算分數）
+            player.initialCountryTags = [...countryTags];
+            player.initialGeneralTags = [...generalTagIds];
+            
+            console.log('[標籤] 初始標籤已保存 - 國家:', player.initialCountryTags, '一般:', player.initialGeneralTags);
 
             socket.emit('tagVerificationResult', {
                 success: true,
@@ -333,13 +346,20 @@ io.on('connection', (socket) => {
 
         // 給予2個一般標籤
         const generalTags = gameManager.getRandomGeneralTags();
-        player.tags = [...countryTagIds, ...generalTags.map(t => t.id)];
+        const generalTagIds = generalTags.map(t => t.id);
+        
+        player.tags = [...countryTagIds, ...generalTagIds];
         player.tagSelectionPending = false;
         player.correctTagIds = [];
+        
+        // 🏁 保存初始標籤（用於遊戲結束時計算分數）
+        player.initialCountryTags = [...countryTagIds];
+        player.initialGeneralTags = [...generalTagIds];
 
         console.log('[標籤] 房主標籤分配完成');
         console.log('[標籤] 國家標籤:', countryTagsData);
         console.log('[標籤] 一般標籤:', generalTags);
+        console.log('[標籤] 初始標籤已保存 - 國家:', player.initialCountryTags, '一般:', player.initialGeneralTags);
 
         // 發送標籤數據給房主顯示
         socket.emit('hostTagsAssigned', {
@@ -376,13 +396,20 @@ io.on('connection', (socket) => {
 
         // 給予2個一般標籤
         const generalTags = gameManager.getRandomGeneralTags();
-        player.tags = [...countryTagIds, ...generalTags.map(t => t.id)];
+        const generalTagIds = generalTags.map(t => t.id);
+        
+        player.tags = [...countryTagIds, ...generalTagIds];
         player.tagSelectionPending = false;
         player.correctTagIds = [];
+        
+        // 🏁 保存初始標籤（用於遊戲結束時計算分數）
+        player.initialCountryTags = [...countryTagIds];
+        player.initialGeneralTags = [...generalTagIds];
 
         console.log('[標籤] 玩家標籤分配完成');
         console.log('[標籤] 國家標籤:', countryTagsData);
         console.log('[標籤] 一般標籤:', generalTags);
+        console.log('[標籤] 初始標籤已保存 - 國家:', player.initialCountryTags, '一般:', player.initialGeneralTags);
 
         // 發送標籤數據給玩家顯示
         socket.emit('playerTagsAssigned', {
@@ -446,6 +473,18 @@ io.on('connection', (socket) => {
             newBalance: player.money
         });
 
+        // 🏁 檢查是否有玩家獲勝（撕掉所有標籤）
+        const winCheck = gameManager.checkPlayerWin(socket.id);
+        if (winCheck.hasWon) {
+            console.log('🎉 檢測到玩家獲勝！');
+            const scores = gameManager.calculateFinalScores(winCheck.game);
+            io.to(roomCode).emit('gameEnded', {
+                reason: 'playerWin',
+                winner: winCheck.winner,
+                scores: scores
+            });
+        }
+
         // 🔥 不再由後端自動結束回合，讓前端完全控制
     });
 
@@ -493,6 +532,18 @@ io.on('connection', (socket) => {
                 message: `成功幫助 ${owner.name} 移除標籤並獲得 ${points} 點！`,
                 newBalance: player.money
             });
+
+            // 🏁 檢查地主是否獲勝（撕掉所有標籤）
+            const winCheck = gameManager.checkPlayerWin(owner.id);
+            if (winCheck.hasWon) {
+                console.log('🎉 檢測到玩家獲勝！');
+                const scores = gameManager.calculateFinalScores(winCheck.game);
+                io.to(roomCode).emit('gameEnded', {
+                    reason: 'playerWin',
+                    winner: winCheck.winner,
+                    scores: scores
+                });
+            }
         } else {
             // 選擇不幫忙或走到無玩家的國家：玩家扣分，地主（如果存在）收取過路費
             const propertySpace = game.getSpaceInfo(player.position);
@@ -664,6 +715,19 @@ io.on('connection', (socket) => {
             newBalance: player.money
         });
 
+        // 🏁 檢查是否有玩家獲勝（撕掉所有標籤）
+        const winCheck = gameManager.checkPlayerWin(socket.id);
+        if (winCheck.hasWon) {
+            console.log('🎉 檢測到玩家獲勝！');
+            const scores = gameManager.calculateFinalScores(winCheck.game);
+            io.to(roomCode).emit('gameEnded', {
+                reason: 'playerWin',
+                winner: winCheck.winner,
+                scores: scores
+            });
+            return; // 遊戲結束，不再自動結束回合
+        }
+
         // 如果需要自動結束回合
         if (autoEndTurn) {
             console.log('[問答] 自動結束回合');
@@ -725,6 +789,19 @@ io.on('connection', (socket) => {
                 message: `成功幫助移除標籤並獲得 ${points} 點！`,
                 newBalance: player.money
             });
+
+            // 🏁 檢查地主是否獲勝（撕掉所有標籤）
+            const winCheck = gameManager.checkPlayerWin(owner.id);
+            if (winCheck.hasWon) {
+                console.log('🎉 檢測到玩家獲勝！');
+                const scores = gameManager.calculateFinalScores(winCheck.game);
+                io.to(roomCode).emit('gameEnded', {
+                    reason: 'playerWin',
+                    winner: winCheck.winner,
+                    scores: scores
+                });
+                return; // 遊戲結束，不再自動結束回合
+            }
 
             // 如果需要自動結束回合
             if (autoEndTurn) {

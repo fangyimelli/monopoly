@@ -325,29 +325,96 @@ class GameManager {
         return shuffled;
     }
 
+    // 計算最終分數（包含標籤）
+    calculateFinalScores(game) {
+        const scores = Array.from(game.players.values()).map(player => {
+            let score = player.money || 0;
+            let tagScore = 0;
+            let removedCountryTags = [];
+            let removedGeneralTags = [];
+            let remainingTags = [];
+
+            // 獲取玩家的初始標籤（國家標籤 + 一般標籤）
+            const allInitialTags = [...(player.initialCountryTags || []), ...(player.initialGeneralTags || [])];
+            const currentTags = player.tags || [];
+
+            console.log('🏁 計算玩家分數:', player.name);
+            console.log('🏁 初始標籤:', allInitialTags);
+            console.log('🏁 當前標籤:', currentTags);
+
+            // 計算已撕掉的標籤
+            allInitialTags.forEach(tagId => {
+                if (!currentTags.includes(tagId)) {
+                    // 這個標籤已被撕掉
+                    const isCountryTag = player.initialCountryTags && player.initialCountryTags.includes(tagId);
+                    const tagValue = isCountryTag ? 1000 : 500;
+                    tagScore += tagValue;
+
+                    if (isCountryTag) {
+                        removedCountryTags.push({ id: tagId, value: 1000 });
+                    } else {
+                        removedGeneralTags.push({ id: tagId, value: 500 });
+                    }
+                }
+            });
+
+            // 剩餘的標籤
+            currentTags.forEach(tagId => {
+                remainingTags.push(tagId);
+            });
+
+            score += tagScore;
+
+            console.log('🏁 玩家', player.name, '總分:', score, '(金錢:', player.money, '+ 標籤:', tagScore, ')');
+
+            return {
+                id: player.id,
+                name: player.name,
+                character: player.character,
+                money: player.money || 0,
+                tagScore: tagScore,
+                totalScore: score,
+                removedCountryTags: removedCountryTags,
+                removedGeneralTags: removedGeneralTags,
+                remainingTags: remainingTags,
+                totalRemovedTags: removedCountryTags.length + removedGeneralTags.length
+            };
+        });
+
+        scores.sort((a, b) => b.totalScore - a.totalScore);
+        return scores;
+    }
+
     endGame(roomCode, playerId) {
         const game = this.rooms.get(roomCode);
         if (!game || game.hostId !== playerId) return [];
-        // 分數計算：現金＋地產價值＋房屋/旅館價值
-        const propertyBase = 100; // 沒有明確地產價值時的預設
-        const houseValue = 50;
-        const hotelValue = 100;
-        const scores = Array.from(game.players.values()).map(player => {
-            let score = player.money;
-            if (player.properties && player.properties.length > 0) {
-                player.properties.forEach(pid => {
-                    const prop = game.properties.get(pid);
-                    if (prop) {
-                        score += (prop.price || propertyBase);
-                        score += (prop.houses || 0) * (prop.housePrice || houseValue);
-                        score += (prop.hotels || 0) * (prop.housePrice ? prop.housePrice * 2 : hotelValue);
-                    }
-                });
-            }
-            return { id: player.id, name: player.name, score };
-        });
-        scores.sort((a, b) => b.score - a.score);
+        
+        console.log('🏁 遊戲結束，計算最終分數');
+        const scores = this.calculateFinalScores(game);
+        console.log('🏁 最終分數:', scores);
+        
         return scores;
+    }
+
+    // 檢查玩家是否撕掉所有標籤
+    checkPlayerWin(playerId) {
+        // 遍歷所有房間找到玩家
+        for (const [roomCode, game] of this.rooms.entries()) {
+            const player = game.players.get(playerId);
+            if (player && game.gameStarted) {
+                // 檢查玩家是否還有標籤
+                if (!player.tags || player.tags.length === 0) {
+                    console.log('🎉 玩家', player.name, '撕掉了所有標籤！遊戲結束！');
+                    return {
+                        hasWon: true,
+                        roomCode: roomCode,
+                        game: game,
+                        winner: player
+                    };
+                }
+            }
+        }
+        return { hasWon: false };
     }
 }
 

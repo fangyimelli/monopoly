@@ -149,6 +149,7 @@ class MonopolyClient {
 
             this.hasRemovedTagThisTurn = false; // 遊戲開始時重置標記
             this.autoEndTurnExecuted = false; // 遊戲開始時重置自動結束標記
+            this.lastQuestionMarkPosition = null; // 遊戲開始時重置問號格記錄
             this.showGame();
             this.showSuccess('遊戲開始！');
             // 立即顯示所有玩家在起點
@@ -234,7 +235,8 @@ class MonopolyClient {
             // 重置所有回合相關標記
             this.hasRemovedTagThisTurn = false;
             this.autoEndTurnExecuted = false;
-            console.log('🔄 已重置 autoEndTurnExecuted 為 false');
+            this.lastQuestionMarkPosition = null;  // 重置問號格記錄
+            console.log('🔄 已重置所有回合標記（包含問號格記錄）');
 
             // 如果是同一玩家（雙倍骰子）
             if (isSamePlayer && data.gameState.currentRoll === null) {
@@ -280,7 +282,8 @@ class MonopolyClient {
         });
 
         this.socket.on('gameEnded', (data) => {
-            this.showGameEndModal(data.scores);
+            console.log('🏁 收到遊戲結束事件:', data);
+            this.showGameEndModal(data);
         });
 
         this.socket.on('payToll', (data) => {
@@ -1021,6 +1024,7 @@ class MonopolyClient {
 
             // 重置自動結束標記
             this.autoEndTurnExecuted = false;
+            this.lastQuestionMarkPosition = null;  // 重置問號格記錄
 
             // 如果是我的回合，直接結束
             if (currentPlayer.id === this.playerId) {
@@ -1031,6 +1035,13 @@ class MonopolyClient {
                 console.log('🆘 提示：請由當前玩家(' + currentPlayer.name + ')在控制台執行 window.game.forceEndCurrentTurn()');
             }
         }
+    }
+
+    // 🔧 重置問號格記錄（用於卡住時）
+    resetQuestionMarkPosition() {
+        console.log('🔧 重置問號格記錄');
+        this.lastQuestionMarkPosition = null;
+        console.log('🔧 已重置，現在可以再次處理問號格');
     }
 
     // 更新按鈕狀態
@@ -1425,14 +1436,134 @@ class MonopolyClient {
         }
     }
 
-    showGameEndModal(scores) {
-        let html = '<h3>遊戲結束！分數排名：</h3><ol>';
-        scores.forEach((item, idx) => {
-            html += `<li><strong>${item.name}</strong>：${item.score} 分</li>`;
+    showGameEndModal(data) {
+        console.log('🏁 遊戲結束數據:', data);
+
+        const { scores, reason, winner } = data;
+
+        // 建立 modal
+        let modal = document.getElementById('gameEndModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'gameEndModal';
+            modal.style.cssText = `
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(0,0,0,0.85);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                overflow-y: auto;
+                padding: 20px;
+            `;
+            document.body.appendChild(modal);
+        }
+
+        // 判斷結束原因
+        let headerText = '';
+        let headerColor = '#4CAF50';
+        if (reason === 'playerWin' && winner) {
+            const winnerCharacter = this.getCharacterName(winner.character);
+            headerText = `🎉 ${winnerCharacter}${winner.name} 撕掉所有標籤獲勝！`;
+            headerColor = '#FFD700';
+        } else {
+            headerText = '🏁 遊戲結束';
+            headerColor = '#4CAF50';
+        }
+
+        // 建立排名 HTML
+        let rankingsHtml = '';
+        scores.forEach((player, index) => {
+            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+            const characterName = this.getCharacterName(player.character);
+            const characterIcon = this.getCharacterIcon(player.character);
+
+            // 已移除的國家標籤
+            let removedCountryTagsHtml = '';
+            if (player.removedCountryTags && player.removedCountryTags.length > 0) {
+                removedCountryTagsHtml = player.removedCountryTags.map(tag => {
+                    const tagName = this.allTags[tag.id] ? this.allTags[tag.id].zh : tag.id;
+                    return `<span style="display:inline-block;padding:4px 10px;margin:2px;background:#4CAF50;color:#fff;border-radius:6px;font-size:0.9em;">${tagName} (+${tag.value})</span>`;
+                }).join('');
+            }
+
+            // 已移除的一般標籤
+            let removedGeneralTagsHtml = '';
+            if (player.removedGeneralTags && player.removedGeneralTags.length > 0) {
+                removedGeneralTagsHtml = player.removedGeneralTags.map(tag => {
+                    const tagName = this.allTags[tag.id] ? this.allTags[tag.id].zh : tag.id;
+                    return `<span style="display:inline-block;padding:4px 10px;margin:2px;background:#2196F3;color:#fff;border-radius:6px;font-size:0.9em;">${tagName} (+${tag.value})</span>`;
+                }).join('');
+            }
+
+            // 剩餘標籤
+            let remainingTagsHtml = '';
+            if (player.remainingTags && player.remainingTags.length > 0) {
+                remainingTagsHtml = player.remainingTags.map(tagId => {
+                    const tagName = this.allTags[tagId] ? this.allTags[tagId].zh : tagId;
+                    return `<span style="display:inline-block;padding:4px 10px;margin:2px;background:#757575;color:#fff;border-radius:6px;font-size:0.9em;">${tagName}</span>`;
+                }).join('');
+            }
+
+            rankingsHtml += `
+                <div style="background:#fff;border-radius:12px;padding:20px;margin-bottom:15px;box-shadow:0 2px 8px rgba(0,0,0,0.1);${index === 0 ? 'border:3px solid #FFD700;' : ''}">
+                    <div style="display:flex;align-items:center;margin-bottom:12px;">
+                        <div style="font-size:2em;margin-right:15px;">${medal}</div>
+                        <div style="font-size:1.5em;margin-right:10px;">${characterIcon}</div>
+                        <div style="flex:1;">
+                            <div style="font-size:1.3em;font-weight:bold;color:#333;">${characterName}${player.name}</div>
+                            <div style="font-size:0.9em;color:#666;">總分：<span style="font-size:1.5em;color:#4CAF50;font-weight:bold;">${player.totalScore}</span></div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;">
+                        <div style="display:flex;gap:20px;margin-bottom:8px;">
+                            <div style="color:#666;">💰 現金：<strong>${player.money}</strong></div>
+                            <div style="color:#666;">🏆 標籤分數：<strong style="color:#FF9800;">+${player.tagScore}</strong></div>
+                            <div style="color:#666;">📋 已撕標籤：<strong>${player.totalRemovedTags}</strong></div>
+                        </div>
+                        
+                        ${removedCountryTagsHtml || removedGeneralTagsHtml ? `
+                            <div style="margin-top:10px;">
+                                <div style="font-weight:bold;color:#555;margin-bottom:6px;">✅ 已撕掉的標籤：</div>
+                                ${removedCountryTagsHtml}
+                                ${removedGeneralTagsHtml}
+                            </div>
+                        ` : ''}
+                        
+                        ${remainingTagsHtml ? `
+                            <div style="margin-top:10px;">
+                                <div style="font-weight:bold;color:#555;margin-bottom:6px;">⏸️ 剩餘標籤：</div>
+                                ${remainingTagsHtml}
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
         });
-        html += '</ol>';
-        alert(html.replace(/<[^>]+>/g, ''));
-        // 你可以改成自訂 modal 彈窗
+
+        modal.innerHTML = `
+            <div style="background:#fff;padding:40px 30px;border-radius:20px;min-width:600px;max-width:900px;box-shadow:0 8px 32px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;">
+                <h1 style="text-align:center;color:${headerColor};margin:0 0 30px 0;font-size:2.5em;">${headerText}</h1>
+                
+                ${rankingsHtml}
+                
+                <div style="text-align:center;margin-top:30px;">
+                    <button id="returnToMenuBtn" style="padding:15px 40px;border-radius:10px;background:#667eea;color:#fff;border:none;cursor:pointer;font-size:1.2em;font-weight:bold;box-shadow:0 4px 12px rgba(102,126,234,0.4);">
+                        返回主選單
+                    </button>
+                </div>
+            </div>
+        `;
+
+        modal.querySelector('#returnToMenuBtn').onclick = () => {
+            modal.remove();
+            window.location.reload();
+        };
     }
 
     // 問號格觸發標籤刪除
@@ -1599,16 +1730,26 @@ class MonopolyClient {
             const cancelBtn = modal.querySelector('#tagRemoveCancel');
             if (cancelBtn) {
                 cancelBtn.onclick = () => {
+                    console.log('🎲 玩家取消問號格標籤移除');
+
                     // 通知服務器關閉所有人的彈窗
                     this.socket.emit('requestCloseModalForAll', {
                         roomCode: this.roomCode,
                         modalType: 'tagRemove'
                     });
 
-                    // 取消後結束回合
+                    // 取消後自動結束回合（通過 checkAutoEndTurn）
                     setTimeout(() => {
-                        this.endTurn();
-                    }, 300);
+                        console.log('🎲 問號格取消後，檢查是否自動結束回合');
+                        // 先檢查是否有其他彈窗
+                        const hasModal = this.hasAnyModalOpen();
+                        if (!hasModal && this.isMyTurn()) {
+                            console.log('✅ 沒有其他彈窗，自動結束回合');
+                            this.endTurn();
+                        } else {
+                            console.log('⚠️ 還有其他彈窗或不是我的回合');
+                        }
+                    }, 500);
                 };
             }
         }
