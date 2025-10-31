@@ -736,20 +736,29 @@ class MonopolyGame {
     }
 
     endTurn() {
+        console.log('🔄 [endTurn] 被調用');
+        console.log('🔄 當前玩家:', this.currentPlayer);
+        console.log('🔄 currentRoll:', this.currentRoll);
+        console.log('🔄 doubleRollCount:', this.doubleRollCount);
+        
         // 🔥 防抖：防止在 1 秒內重複調用 endTurn
         const now = Date.now();
         if (now - this.lastEndTurnTime < 1000) {
             console.log('[endTurn] 防止重複調用（1秒內）');
-            return;
+            return false;  // 返回 false 表示沒有執行
         }
         this.lastEndTurnTime = now;
 
         // Check if player gets another turn from doubles
         if (this.currentRoll && this.currentRoll.isDouble && this.doubleRollCount < 3) {
+            console.log('🎲 [endTurn] 擲出雙倍骰子，同一玩家再掷一次！');
             // Player gets another turn, but reset roll state
             this.hasRolledThisTurn = false;
             this.currentRoll = null;
-            return;
+            // 🔥 重要：需要增加版本號並返回 true，讓調用者知道需要廣播狀態
+            this.bumpVersion();
+            console.log('🎲 [endTurn] 重置骰子狀態，保持當前玩家');
+            return true;  // 返回 true 表示需要廣播狀態更新
         }
 
         // Reset turn state
@@ -759,7 +768,11 @@ class MonopolyGame {
 
         // Move to next player
         const playersCount = this.playerOrder.length;
-        if (playersCount === 0) return;
+        if (playersCount === 0) {
+            console.log('⚠️ [endTurn] 沒有玩家');
+            return false;
+        }
+        
         let safety = playersCount; // 避免理論上的無限迴圈
         do {
             this.currentPlayerIndex = (this.currentPlayerIndex + 1) % playersCount;
@@ -774,8 +787,11 @@ class MonopolyGame {
             break;
         } while (safety > 0);
 
+        console.log('🔄 [endTurn] 切換到下一位玩家:', this.currentPlayer, 'index:', this.currentPlayerIndex);
+        
         // 狀態版本自增，通知前端僅接受較新的狀態
         this.bumpVersion();
+        return true;  // 返回 true 表示成功執行
     }
 
     getGameState() {

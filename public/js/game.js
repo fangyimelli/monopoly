@@ -225,14 +225,22 @@ class MonopolyClient {
             console.log('🔄 玩家列表:', data.gameState.players.map(p => ({ id: p.id, name: p.name })));
             console.log('🔄 收到的 currentRoll:', data.gameState.currentRoll);
 
-            // 重置骰子狀態（新回合還沒擲骰子）
-            data.gameState.currentRoll = null;
+            // 檢查是否為雙倍骰子（同一玩家再掷一次）
+            const isSamePlayer = data.gameState.currentPlayer === this.playerId && this.gameState && this.gameState.currentPlayer === this.playerId;
+
+            // 更新遊戲狀態
             this.gameState = data.gameState;
 
             // 重置所有回合相關標記
             this.hasRemovedTagThisTurn = false;
             this.autoEndTurnExecuted = false;
             console.log('🔄 已重置 autoEndTurnExecuted 為 false');
+
+            // 如果是同一玩家（雙倍骰子）
+            if (isSamePlayer && data.gameState.currentRoll === null) {
+                console.log('🎲 雙倍骰子！您可以再掷一次！');
+                this.showSuccess('🎲 雙倍骰子！您可以再掷一次！');
+            }
 
             // 如果輪到我的回合
             if (data.gameState.currentPlayer === this.playerId) {
@@ -379,6 +387,14 @@ class MonopolyClient {
                 if (modal) {
                     console.log(`關閉彈窗: ${modalId}`);
                     modal.remove();
+
+                    // 🔥 彈窗關閉後，重新檢查是否需要自動結束回合
+                    setTimeout(() => {
+                        if (this.isMyTurn() && this.gameState.currentRoll && this.gameState.currentRoll.total > 0) {
+                            console.log('🔍 彈窗已關閉，重新檢查自動結束回合');
+                            this.checkAutoEndTurn();
+                        }
+                    }, 500);
                 }
             }
         });
@@ -993,6 +1009,28 @@ class MonopolyClient {
                 this.autoEndTurnExecuted = false;
             }
         }, 300);
+    }
+
+    // 🆘 緊急手動結束回合（用於調試或回合卡住時）
+    forceEndCurrentTurn() {
+        console.log('🆘 強制結束當前回合');
+        const currentPlayer = this.gameState.players[this.gameState.currentPlayerIndex];
+        if (currentPlayer) {
+            console.log('🆘 當前玩家:', currentPlayer.name, currentPlayer.id);
+            console.log('🆘 我的ID:', this.playerId);
+
+            // 重置自動結束標記
+            this.autoEndTurnExecuted = false;
+
+            // 如果是我的回合，直接結束
+            if (currentPlayer.id === this.playerId) {
+                console.log('🆘 是我的回合，執行結束回合');
+                this.endTurn();
+            } else {
+                console.log('🆘 不是我的回合，無法強制結束');
+                console.log('🆘 提示：請由當前玩家(' + currentPlayer.name + ')在控制台執行 window.game.forceEndCurrentTurn()');
+            }
+        }
     }
 
     // 更新按鈕狀態
@@ -2061,8 +2099,15 @@ class MonopolyClient {
 
         modal.querySelector('#bonusConfirm').onclick = () => {
             modal.remove();
-            // 🔥 確認後前端發送 endTurn 請求（因為 Bonus 沒有其他後端處理）
-            this.endTurn();
+
+            // 🔥 延遲檢查：如果沒有其他彈窗，則自動結束回合
+            setTimeout(() => {
+                const hasModal = this.hasAnyModalOpen();
+                if (!hasModal && this.isMyTurn()) {
+                    console.log('✅ Bonus確認完成，沒有其他彈窗，自動結束回合');
+                    this.endTurn();
+                }
+            }, 300);
         };
     }
 
