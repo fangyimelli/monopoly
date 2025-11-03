@@ -194,7 +194,18 @@ class MonopolyClient {
             }
 
             // 動畫完成後才更新 gameState 和畫面
-            this.gameState = data.gameState;
+            // 🔥 只更新玩家位置和骰子狀態，保留當前回合狀態（避免與 turnEnded 事件衝突）
+            const updatedPlayer = data.gameState.players.find(p => p.id === data.playerId);
+            if (updatedPlayer && this.gameState) {
+                const localPlayer = this.gameState.players.find(p => p.id === data.playerId);
+                if (localPlayer) {
+                    localPlayer.position = updatedPlayer.position;
+                    console.log('🎲 [diceRolled] 更新玩家位置:', data.playerId, '新位置:', updatedPlayer.position);
+                }
+                // 更新骰子狀態
+                this.gameState.currentRoll = data.gameState.currentRoll;
+            }
+            
             this.updateGameScreen();
 
             // 只有當前掷骰子的玩家才检查自动结束
@@ -866,13 +877,23 @@ class MonopolyClient {
             console.log('🎲 上次問號格位置:', this.lastQuestionMarkPosition);
             console.log('🎲 當前位置:', me.position);
 
-            // 只有在剛擲骰子移動到問號格且還沒處理過該位置時才觸發
+            // 🔥 只有在我的回合且剛擲骰子移動到問號格且還沒處理過該位置時才觸發
+            const isMyTurnAndJustRolled = this.isMyTurn() && 
+                this.gameState.currentRoll && this.gameState.currentRoll.total > 0;
+            
+            // 🔥 檢查上次位置和當前位置：如果兩次都是問號格且位置相同，則不觸發
+            const isSameQuestionMarkPosition = this.lastQuestionMarkPosition !== null && 
+                this.lastQuestionMarkPosition === me.position &&
+                currentSquare && currentSquare.name.includes('❓');
+            
             if (currentSquare && currentSquare.name.includes('❓') &&
-                this.gameState.currentRoll && this.gameState.currentRoll.total > 0 &&
-                this.lastQuestionMarkPosition !== me.position) {
+                isMyTurnAndJustRolled &&
+                !isSameQuestionMarkPosition) {
                 console.log('🎲 觸發問號格處理');
                 this.lastQuestionMarkPosition = me.position;
                 this.handleQuestionMark(me);
+            } else if (isSameQuestionMarkPosition) {
+                console.log('🎲 跳過問號格處理：上次位置與當前位置相同且都是問號格');
             }
         }
     }
@@ -1332,15 +1353,15 @@ class MonopolyClient {
         const currentTurnPlayer = this.getCurrentTurnPlayer();
         const result = currentTurnPlayer && currentTurnPlayer.id === this.playerId;
         
-        console.log('🔍 [isMyTurn] 檢查是否輪到我:', {
-            myId: this.playerId,
-            currentTurnPlayerId: currentTurnPlayer?.id,
-            currentTurnPlayerName: currentTurnPlayer?.name,
-            currentPlayerFromState: this.gameState.currentPlayer,
-            currentPlayerIndex: this.gameState.currentPlayerIndex,
-            playersLength: this.gameState.players?.length,
-            isMyTurn: result
-        });
+        // 🔥 強制打印所有欄位
+        console.log('🔍 [isMyTurn] 檢查是否輪到我:');
+        console.log('  myId:', this.playerId);
+        console.log('  currentTurnPlayerId:', currentTurnPlayer?.id);
+        console.log('  currentTurnPlayerName:', currentTurnPlayer?.name);
+        console.log('  currentPlayerFromState:', this.gameState.currentPlayer);
+        console.log('  currentPlayerIndex:', this.gameState.currentPlayerIndex);
+        console.log('  playersLength:', this.gameState.players?.length);
+        console.log('  isMyTurn:', result);
         
         // 🔥 驗證一致性
         if (this.gameState.currentPlayer !== currentTurnPlayer?.id) {
