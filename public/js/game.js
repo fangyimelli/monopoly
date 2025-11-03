@@ -189,8 +189,12 @@ class MonopolyClient {
             }
 
             // 如果玩家移動了，重置問號格位置記錄
-            if (data.playerId === this.playerId && oldPosition !== data.gameState.players.find(p => p.id === data.playerId).position) {
+            const newPlayer = data.gameState.players.find(p => p.id === data.playerId);
+            if (data.playerId === this.playerId && newPlayer && oldPosition !== newPlayer.position) {
+                console.log('🎲 玩家從位置', oldPosition, '移動到位置', newPlayer.position, '，重置問號格記錄');
                 this.lastQuestionMarkPosition = null;
+            } else if (data.playerId === this.playerId) {
+                console.log('🎲 玩家沒有移動（舊位置:', oldPosition, '新位置:', newPlayer?.position, '），保留問號格記錄:', this.lastQuestionMarkPosition);
             }
 
             // 動畫完成後才更新 gameState 和畫面
@@ -254,8 +258,9 @@ class MonopolyClient {
             // 重置所有回合相關標記
             this.hasRemovedTagThisTurn = false;
             this.autoEndTurnExecuted = false;
-            this.lastQuestionMarkPosition = null;  // 重置問號格記錄
-            console.log('🔄 已重置所有回合標記（包含問號格記錄）');
+            // ❌ 不要重置 lastQuestionMarkPosition，它應該持續到玩家移動到新位置
+            // lastQuestionMarkPosition 只在 diceRolled 事件中，當玩家移動時才重置
+            console.log('🔄 已重置回合標記（保留問號格位置記錄）');
 
             // 如果輪到我的回合
             if (data.gameState.currentPlayer === this.playerId) {
@@ -870,30 +875,37 @@ class MonopolyClient {
                 ? window.game.gameBoard.boardLayout.find(sq => sq.id == me.position)
                 : null;
 
-            console.log('🎲 檢查問號格觸發條件:');
-            console.log('🎲 當前格子:', currentSquare);
-            console.log('🎲 是否為問號格:', currentSquare && currentSquare.name.includes('❓'));
-            console.log('🎲 當前擲骰結果:', this.gameState.currentRoll);
-            console.log('🎲 上次問號格位置:', this.lastQuestionMarkPosition);
-            console.log('🎲 當前位置:', me.position);
-
-            // 🔥 只有在我的回合且剛擲骰子移動到問號格且還沒處理過該位置時才觸發
+            const isQuestionMarkSquare = currentSquare && currentSquare.name.includes('❓');
             const isMyTurnAndJustRolled = this.isMyTurn() && 
                 this.gameState.currentRoll && this.gameState.currentRoll.total > 0;
             
             // 🔥 檢查上次位置和當前位置：如果兩次都是問號格且位置相同，則不觸發
             const isSameQuestionMarkPosition = this.lastQuestionMarkPosition !== null && 
                 this.lastQuestionMarkPosition === me.position &&
-                currentSquare && currentSquare.name.includes('❓');
+                isQuestionMarkSquare;
             
-            if (currentSquare && currentSquare.name.includes('❓') &&
+            console.log('🎲 檢查問號格觸發條件:');
+            console.log('🎲 當前格子:', currentSquare?.name || '未知');
+            console.log('🎲 是否為問號格:', isQuestionMarkSquare);
+            console.log('🎲 當前擲骰結果:', this.gameState.currentRoll);
+            console.log('🎲 上次問號格位置:', this.lastQuestionMarkPosition);
+            console.log('🎲 當前位置:', me.position);
+            console.log('🎲 是否相同問號格位置:', isSameQuestionMarkPosition);
+            
+            // 🔥 只有在以下條件都滿足時才觸發：
+            // 1. 當前格子是問號格
+            // 2. 是我的回合且剛擲骰子
+            // 3. 不是相同的問號格位置（避免重複觸發）
+            if (isQuestionMarkSquare &&
                 isMyTurnAndJustRolled &&
                 !isSameQuestionMarkPosition) {
-                console.log('🎲 觸發問號格處理');
+                console.log('🎲 ✅ 觸發問號格處理');
                 this.lastQuestionMarkPosition = me.position;
                 this.handleQuestionMark(me);
             } else if (isSameQuestionMarkPosition) {
-                console.log('🎲 跳過問號格處理：上次位置與當前位置相同且都是問號格');
+                console.log('🎲 ⏭️ 跳過問號格處理：已在這個問號格處理過，不會重複觸發');
+            } else if (isQuestionMarkSquare && !isMyTurnAndJustRolled) {
+                console.log('🎲 ⏭️ 跳過問號格處理：不是我的回合或還沒擲骰子');
             }
         }
     }
