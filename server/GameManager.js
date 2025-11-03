@@ -263,18 +263,34 @@ class GameManager {
 
         const game = this.rooms.get(roomCode);
         if (game) {
+            // 🔥 記錄斷線玩家信息（在移除之前）
+            const wasCurrentPlayer = game.currentPlayer === playerId;
+            const isNonHostDisconnect = game.hostId !== playerId;
+            const wasGameStarted = game.gameStarted;
+            
+            console.log(`📢 [斷線處理] 玩家 ${playerId} 斷線:`);
+            console.log(`📢 [斷線處理] 是否為當前玩家: ${wasCurrentPlayer}`);
+            console.log(`📢 [斷線處理] 是否為非房主: ${isNonHostDisconnect}`);
+            console.log(`📢 [斷線處理] 遊戲是否已開始: ${wasGameStarted}`);
+            console.log(`📢 [斷線處理] 當前玩家: ${game.currentPlayer}`);
+            console.log(`📢 [斷線處理] 房主ID: ${game.hostId}`);
+            
             game.removePlayer(playerId);
 
             // If no players left, delete the room
             if (game.players.size === 0) {
                 this.rooms.delete(roomCode);
+                console.log(`📢 [斷線處理] 所有玩家都離開了，刪除房間`);
             }
 
             this.playerRooms.delete(playerId);
 
             return {
                 roomCode,
-                gameState: game.getGameState()
+                gameState: game.getGameState(),
+                wasCurrentPlayer: wasCurrentPlayer,
+                isNonHostDisconnect: isNonHostDisconnect,
+                wasGameStarted: wasGameStarted
             };
         }
 

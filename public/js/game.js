@@ -123,14 +123,24 @@ class MonopolyClient {
         });
 
         this.socket.on('playerDisconnected', (data) => {
+            console.log('📢 收到玩家斷線通知:', data);
             this.gameState = data.gameState;
+            
             if (this.gameState.gameStarted) {
+                // 🔥 遊戲進行中，更新畫面並顯示友好提示
                 this.updateGameScreen();
+                
+                if (data.wasCurrentPlayer) {
+                    this.showSuccess('有玩家離開了遊戲，回合已自動切換到下一玩家');
+                } else {
+                    this.showSuccess('有玩家離開了遊戲，遊戲繼續進行');
+                }
             } else {
+                // 遊戲未開始，更新大廳
                 this.updateLobby();
                 this.updateCharacterAvailability();
+                this.showError('有玩家離開了遊戲');
             }
-            this.showError('有玩家離開了遊戲');
         });
 
         // Game events

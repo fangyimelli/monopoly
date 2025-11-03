@@ -38,9 +38,39 @@ io.on('connection', (socket) => {
 
         // Notify other players in the room
         if (result.roomCode) {
+            const game = gameManager.rooms.get(result.roomCode);
+            
+            // 🔥 如果遊戲正在進行且斷線的是非房主玩家，確保遊戲可以繼續
+            if (result.wasGameStarted && result.isNonHostDisconnect) {
+                console.log(`🔄 非房主玩家 ${socket.id} 斷線，檢查是否需要自動處理`);
+                
+                // 延遲一點確保 removePlayer 的狀態更新完成
+                setTimeout(() => {
+                    // 檢查遊戲是否還在進行且還有玩家
+                    const updatedGame = gameManager.rooms.get(result.roomCode);
+                    if (updatedGame && updatedGame.gameStarted && updatedGame.players.size > 0) {
+                        // 如果斷線玩家是當前玩家，removePlayer 已經調整了 currentPlayer
+                        // 發送 turnEnded 事件確保所有玩家知道回合已切換
+                        if (result.wasCurrentPlayer) {
+                            console.log(`🔄 斷線玩家是當前玩家，已自動切換到下一玩家: ${updatedGame.currentPlayer}`);
+                            io.to(result.roomCode).emit('turnEnded', {
+                                gameState: updatedGame.getGameState()
+                            });
+                            console.log(`🔄 已通知所有玩家回合已切換到: ${updatedGame.currentPlayer}`);
+                        } else {
+                            console.log(`🔄 斷線玩家不是當前玩家，遊戲繼續進行`);
+                        }
+                    } else if (!updatedGame || updatedGame.players.size === 0) {
+                        console.log(`🔄 遊戲無法繼續：房間不存在或沒有玩家了`);
+                    }
+                }, 500);
+            }
+            
             socket.to(result.roomCode).emit('playerDisconnected', {
                 playerId: socket.id,
-                gameState: result.gameState
+                gameState: result.gameState,
+                wasCurrentPlayer: result.wasCurrentPlayer,
+                isNonHostDisconnect: result.isNonHostDisconnect
             });
         }
     });
