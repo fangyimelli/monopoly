@@ -262,6 +262,11 @@ class MonopolyClient {
             // lastQuestionMarkPosition 只在 diceRolled 事件中，當玩家移動時才重置
             console.log('🔄 已重置回合標記（保留問號格位置記錄）');
 
+            // 🔥 如果是房主，清除所有待處理的結束回合提示
+            if (this.isHost) {
+                this.clearHostTurnEndPrompts();
+            }
+
             // 如果輪到我的回合
             if (data.gameState.currentPlayer === this.playerId) {
                 console.log('🔄 輪到我的回合了！');
@@ -286,6 +291,26 @@ class MonopolyClient {
 
         this.socket.on('turnError', (data) => {
             this.showError(data.message);
+        });
+
+        // 房主收到玩家無法結束回合的通知
+        this.socket.on('playerNeedsHelpEndingTurn', (data) => {
+            console.log('📢 收到玩家需要幫助結束回合的通知:', data);
+            console.log('📢 當前是否為房主:', this.isHost);
+            console.log('📢 當前玩家ID:', this.playerId);
+            console.log('📢 遊戲狀態hostId:', this.gameState?.hostId);
+            
+            // 即使 isHost 還沒更新，也嘗試顯示（服務器端已經確保只發送給房主）
+            // 但為了保險，還是檢查一下
+            const isActuallyHost = this.isHost || (this.gameState && this.playerId === this.gameState.hostId);
+            
+            if (!isActuallyHost) {
+                console.warn('📢 警告：收到房主通知，但當前不是房主');
+                return;
+            }
+            
+            console.log('📢 顯示房主結束回合提示');
+            this.showHostTurnEndPrompt(data);
         });
 
         // Trade events
@@ -689,6 +714,13 @@ class MonopolyClient {
     }
 
     endTurn() {
+        // 🔥 只有房主可以結束回合（無論輪到誰）
+        if (!this.isHost) {
+            console.log('❌ 只有房主可以結束回合');
+            this.showError('只有房主可以結束回合');
+            return;
+        }
+
         // 防抖：1秒內只能調用一次 endTurn
         const now = Date.now();
         if (now - this.lastEndTurnTime < 1000) {
@@ -697,7 +729,10 @@ class MonopolyClient {
         }
         this.lastEndTurnTime = now;
 
-        console.log('endTurn 正在發送...');
+        // 🔥 清除所有待處理的結束回合提示（回合即將結束）
+        this.clearHostTurnEndPrompts();
+
+        console.log('🔄 房主結束當前回合，直接跳到下一個玩家');
         this.socket.emit('endTurn', { roomCode: this.roomCode });
     }
 
@@ -883,26 +918,29 @@ class MonopolyClient {
         const endGameBtn = document.getElementById('endGameBtn');
         const rollDiceBtn = document.getElementById('rollDiceBtn');
         const endTurnBtn = document.getElementById('endTurnBtn');
+        const debugReportBtn = document.getElementById('debugReportBtn');
 
         if (this.playerId === this.gameState.hostId) {
-            // 房主可以看到結束遊戲按鈕
+            // 房主可以看到結束遊戲按鈕、結束回合按鈕和回報問題按鈕
             if (endGameBtn) endGameBtn.style.display = 'block';
+            if (endTurnBtn) endTurnBtn.style.display = 'block';
+            if (debugReportBtn) debugReportBtn.style.display = 'block';
 
-            // 如果是觀戰房主，隱藏遊戲操作按鈕（只保留管理功能）
+            // 如果是觀戰房主，隱藏擲骰子按鈕（只保留管理功能）
             if (this.gameState.hostIsObserver) {
-                console.log('觀戰房主：顯示結束遊戲按鈕，隱藏擲骰子和結束回合按鈕');
+                console.log('觀戰房主：顯示結束遊戲、結束回合和回報問題按鈕，隱藏擲骰子按鈕');
                 if (rollDiceBtn) rollDiceBtn.style.display = 'none';
-                if (endTurnBtn) endTurnBtn.style.display = 'none';
             } else {
                 // 參與遊戲的房主，顯示正常遊戲按鈕
                 if (rollDiceBtn) rollDiceBtn.style.display = '';
-                if (endTurnBtn) endTurnBtn.style.display = '';
             }
         } else {
-            // 非房主玩家：隱藏結束遊戲按鈕，顯示遊戲操作按鈕
+            // 非房主玩家：隱藏結束遊戲按鈕、結束回合按鈕和回報問題按鈕
             if (endGameBtn) endGameBtn.style.display = 'none';
+            if (endTurnBtn) endTurnBtn.style.display = 'none';
+            if (debugReportBtn) debugReportBtn.style.display = 'none';
+            // 只顯示擲骰子按鈕（根據回合狀態控制）
             if (rollDiceBtn) rollDiceBtn.style.display = '';
-            if (endTurnBtn) endTurnBtn.style.display = '';
         }
 
         this.updateCurrentPlayerInfo();
@@ -1064,6 +1102,7 @@ class MonopolyClient {
 
     // 檢查是否有任何彈窗正在顯示
     hasAnyModalOpen() {
+        // 檢查固定ID的modal
         const modals = [
             'ownPropertyModal',
             'othersPropertyModal',
@@ -1082,6 +1121,13 @@ class MonopolyClient {
                 console.log(`🔍 發現彈窗: ${modalId}`);
                 return true;
             }
+        }
+
+        // 檢查房主協助結束回合的modal（動態ID）
+        const hostEndTurnModals = document.querySelectorAll('[id^="hostEndTurnModal_"]');
+        if (hostEndTurnModals.length > 0) {
+            console.log('🔍 發現房主協助結束回合modal');
+            return true;
         }
 
         // 檢查問答系統的彈窗（雙重保險）
@@ -1178,26 +1224,28 @@ class MonopolyClient {
         const rollBtn = document.getElementById('rollDiceBtn');
         const endBtn = document.getElementById('endTurnBtn');
 
-        if (!rollBtn || !endBtn) {
+        if (!rollBtn) {
             return;
         }
 
+        // 🔥 結束回合按鈕的顯示已在 updateGameScreen 中控制（只有房主可見）
+        // 這裡只處理擲骰子按鈕的狀態
         rollBtn.style.display = 'block';
-        endBtn.style.display = 'block';
 
         if (!this.isMyTurn()) {
             // 不是我的回合
             rollBtn.disabled = true;
-            endBtn.disabled = true;
-            endBtn.textContent = '結束回合';
-            console.log('🎮 updateActionButtons: 不是我的回合，禁用所有按鈕');
+            console.log('🎮 updateActionButtons: 不是我的回合，禁用擲骰子按鈕');
+            
+            // 如果是房主，結束回合按鈕可用（無論輪到誰）
+            if (endBtn && this.isHost) {
+                endBtn.disabled = false;
+                endBtn.textContent = '結束回合（房主強制）';
+            }
             return;
         }
 
         // 輪到我的回合
-        endBtn.disabled = false;
-        endBtn.textContent = '結束回合';
-
         // 檢查是否已經擲過骰子
         const hasRolled = this.gameState.currentRoll && this.gameState.currentRoll.total > 0;
         console.log('🎮 updateActionButtons - isMyTurn: true, hasRolled:', hasRolled);
@@ -1212,12 +1260,10 @@ class MonopolyClient {
             console.log('🎮 還沒擲骰子，啟用擲骰子按鈕');
         }
 
-        // 只設置一次 onclick，避免重複綁定
-        if (!endBtn.dataset.onclickSet) {
-            endBtn.dataset.onclickSet = 'true';
-            endBtn.onclick = () => {
-                this.endTurn();
-            };
+        // 如果是房主，結束回合按鈕可用
+        if (endBtn && this.isHost) {
+            endBtn.disabled = false;
+            endBtn.textContent = '結束回合';
         }
     }
 
@@ -2834,6 +2880,182 @@ class MonopolyClient {
             // 關閉modal（本地）
             modal.remove();
         };
+    }
+
+    // 顯示房主結束回合提示（持續顯示，不會自動消失）
+    showHostTurnEndPrompt(data) {
+        console.log('📢 showHostTurnEndPrompt 被調用:', data);
+        const { playerName, playerId, reason } = data;
+
+        // 🔥 如果是"已擲過骰子"錯誤，顯示modal而不是持續提示
+        if (reason === 'already_rolled_dice') {
+            this.showHostEndTurnModal(data);
+            return;
+        }
+
+        // 檢查是否已經存在該玩家的提示
+        const existingPrompt = document.getElementById(`hostTurnEndPrompt_${playerId}`);
+        if (existingPrompt) {
+            // 已存在，只更新內容
+            console.log('📢 更新已存在的結束回合提示');
+            return;
+        }
+
+        console.log('📢 創建新的結束回合提示');
+
+        // 創建持續顯示的提示
+        const prompt = document.createElement('div');
+        prompt.id = `hostTurnEndPrompt_${playerId}`;
+        prompt.dataset.playerId = playerId;
+        prompt.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #FF9800;
+            color: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 10001;
+            font-size: 1.1em;
+            font-weight: bold;
+            max-width: 400px;
+            animation: slideInRight 0.3s ease-out;
+        `;
+
+        prompt.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="font-size: 1.5em;">⚠️</div>
+                <div style="flex: 1;">
+                    <div style="margin-bottom: 8px;">${playerName} 已擲過骰子</div>
+                    <div style="font-size: 0.9em; font-weight: normal; opacity: 0.9;">
+                        請按「結束回合」按鈕
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(prompt);
+        console.log('📢 提示已添加到DOM，ID:', prompt.id);
+
+        // 添加動畫
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+        `;
+        if (!document.getElementById('hostTurnEndPromptStyles')) {
+            style.id = 'hostTurnEndPromptStyles';
+            document.head.appendChild(style);
+        }
+    }
+
+    // 清除所有待處理的結束回合提示和modal
+    clearHostTurnEndPrompts() {
+        // 清除持續提示
+        const prompts = document.querySelectorAll('[id^="hostTurnEndPrompt_"]');
+        prompts.forEach(prompt => {
+            console.log('🗑️ 清除結束回合提示:', prompt.id);
+            prompt.style.animation = 'slideOutRight 0.3s ease-out';
+            setTimeout(() => {
+                prompt.remove();
+            }, 300);
+        });
+        
+        // 清除modal
+        const modals = document.querySelectorAll('[id^="hostEndTurnModal_"]');
+        modals.forEach(modal => {
+            console.log('🗑️ 清除結束回合modal:', modal.id);
+            modal.remove();
+        });
+
+        // 添加淡出動畫
+        if (!document.getElementById('hostTurnEndPromptSlideOut')) {
+            const style = document.createElement('style');
+            style.id = 'hostTurnEndPromptSlideOut';
+            style.textContent = `
+                @keyframes slideOutRight {
+                    from {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                    to {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+
+    // 顯示房主協助結束回合的modal
+    showHostEndTurnModal(data) {
+        console.log('📢 顯示房主協助結束回合modal:', data);
+        const { playerName, playerId, roomCode } = data;
+
+        // 檢查是否已經存在該玩家的modal
+        const existingModal = document.getElementById(`hostEndTurnModal_${playerId}`);
+        if (existingModal) {
+            console.log('📢 Modal已存在，不重複創建');
+            return;
+        }
+
+        // 創建modal
+        const modal = document.createElement('div');
+        modal.id = `hostEndTurnModal_${playerId}`;
+        modal.dataset.playerId = playerId;
+        modal.style.cssText = `
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10002;
+        `;
+
+        modal.innerHTML = `
+            <div style="background:#fff;padding:40px 30px;border-radius:20px;min-width:400px;max-width:500px;box-shadow:0 8px 32px rgba(0,0,0,0.3);text-align:center;">
+                <h2 style="color:#FF9800;margin:0 0 20px 0;font-size:1.8em;">⚠️ 協助結束回合</h2>
+                <p style="font-size:1.2em;margin-bottom:30px;color:#333;line-height:1.6;">
+                    ${playerName} 已擲過骰子但無法結束回合
+                </p>
+                <p style="font-size:1.1em;margin-bottom:30px;color:#666;">
+                    請協助玩家結束回合
+                </p>
+                <button id="hostEndTurnConfirmBtn_${playerId}" style="padding:14px 40px;border-radius:10px;background:#4CAF50;color:#fff;border:none;cursor:pointer;font-size:1.2em;font-weight:bold;box-shadow:0 4px 12px rgba(76,175,80,0.4);">
+                    確認
+                </button>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // 確認按鈕點擊處理
+        const confirmBtn = modal.querySelector(`#hostEndTurnConfirmBtn_${playerId}`);
+        if (confirmBtn) {
+            confirmBtn.onclick = () => {
+                console.log(`📢 房主確認結束玩家 ${playerName} 的回合`);
+                
+                // 關閉modal
+                modal.remove();
+                
+                // 調用結束回合（房主可以隨時結束任何玩家的回合）
+                this.endTurn();
+            };
+        }
     }
 }
 

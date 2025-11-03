@@ -128,6 +128,28 @@ io.on('connection', (socket) => {
                 });
             } else {
                 socket.emit('rollError', { message: result.message });
+                
+                // 🔥 如果是"已擲過骰子"的錯誤，通知房主
+                if (result.message && result.message.includes('already rolled dice')) {
+                    const game = gameManager.rooms.get(roomCode);
+                    if (game) {
+                        const player = game.players.get(socket.id);
+                        const hostSocketId = game.hostId;
+                        
+                        console.log(`📢 [擲骰子錯誤] 玩家 ${player?.name || socket.id} 已擲過骰子但再次嘗試擲骰子`);
+                        console.log(`📢 [擲骰子錯誤] 通知房主: ${hostSocketId}`);
+                        
+                        if (hostSocketId) {
+                            io.to(hostSocketId).emit('playerNeedsHelpEndingTurn', {
+                                playerId: socket.id,
+                                playerName: player?.name || '未知玩家',
+                                message: result.message,
+                                roomCode: roomCode,
+                                reason: 'already_rolled_dice' // 標記原因
+                            });
+                        }
+                    }
+                }
             }
         } catch (error) {
             socket.emit('rollError', { message: 'Failed to roll dice' });
@@ -215,6 +237,48 @@ io.on('connection', (socket) => {
             } else {
                 console.error('🔄 [endTurn] 結束回合失敗:', result.message);
                 socket.emit('turnError', { message: result.message });
+                
+                // 🔥 如果玩家無法結束回合且已經擲過骰子，通知房主
+                if (game) {
+                    const gameState = game.getGameState();
+                    const currentPlayerInGame = game.players.get(game.currentPlayer);
+                    const requestingPlayer = game.players.get(socket.id);
+                    
+                    // 檢查是否已經擲過骰子（通過 hasRolledThisTurn 或 currentRoll）
+                    // 如果請求玩家是當前玩家且已擲過骰子，或者當前玩家已擲過骰子
+                    const hasRolled = (game.currentPlayer === socket.id && game.hasRolledThisTurn) || 
+                                     (gameState.currentRoll && gameState.currentRoll.total > 0 && currentPlayerInGame);
+                    
+                    console.log(`📢 [通知檢查] 玩家 ${socket.id} 嘗試結束回合失敗:`);
+                    console.log(`📢 [通知檢查] 當前玩家: ${game.currentPlayer}`);
+                    console.log(`📢 [通知檢查] 請求玩家: ${socket.id}`);
+                    console.log(`📢 [通知檢查] 是否為當前玩家: ${game.currentPlayer === socket.id}`);
+                    console.log(`📢 [通知檢查] hasRolledThisTurn: ${game.hasRolledThisTurn}`);
+                    console.log(`📢 [通知檢查] currentRoll:`, gameState.currentRoll);
+                    console.log(`📢 [通知檢查] hasRolled: ${hasRolled}`);
+                    
+                    if (hasRolled) {
+                        // 顯示當前玩家的信息（而不是請求玩家，因為可能是其他玩家嘗試結束）
+                        const playerToShow = currentPlayerInGame || requestingPlayer;
+                        const hostSocketId = game.hostId;
+                        
+                        console.log(`📢 [通知檢查] 房主ID: ${hostSocketId}`);
+                        
+                        if (hostSocketId) {
+                            console.log(`📢 ✅ 通知房主：玩家 ${playerToShow?.name || '未知'} 已擲過骰子但無法結束回合`);
+                            io.to(hostSocketId).emit('playerNeedsHelpEndingTurn', {
+                                playerId: game.currentPlayer, // 當前玩家的ID（需要幫助的玩家）
+                                playerName: playerToShow?.name || '未知玩家',
+                                message: result.message,
+                                roomCode: roomCode
+                            });
+                        } else {
+                            console.error('📢 ❌ 找不到房主ID');
+                        }
+                    } else {
+                        console.log(`📢 [通知檢查] 玩家尚未擲過骰子，不通知房主`);
+                    }
+                }
             }
         } catch (error) {
             console.error('🔄 [endTurn] 結束回合異常:', error);

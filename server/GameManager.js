@@ -231,9 +231,15 @@ class GameManager {
             return { success: false, message: 'Room not found' };
         }
 
-        if (game.currentPlayer !== playerId) {
+        // 🔥 允許房主無論輪到誰都可以結束回合
+        const isHost = game.hostId === playerId;
+        if (!isHost && game.currentPlayer !== playerId) {
             console.log(`[${roomCode}] Not ${playerId}'s turn to end, current player is ${game.currentPlayer}`);
             return { success: false, message: 'Not your turn' };
+        }
+
+        if (isHost && game.currentPlayer !== playerId) {
+            console.log(`[${roomCode}] 房主強制結束當前回合（當前玩家：${game.currentPlayer}）`);
         }
 
         console.log(`[${roomCode}] Player ${playerId} ending turn successfully, next player will be determined`);

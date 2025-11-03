@@ -112,6 +112,37 @@ class UIManager {
             }
         });
 
+        // Debug report button
+        const debugReportBtn = document.getElementById('debugReportBtn');
+        if (debugReportBtn) {
+            debugReportBtn.addEventListener('click', () => {
+                // 收集當前遊戲狀態
+                const debugData = {
+                    timestamp: new Date().toISOString(),
+                    playerId: window.game?.playerId,
+                    roomCode: window.game?.roomCode,
+                    gameState: window.game?.gameState ? JSON.parse(JSON.stringify(window.game.gameState)) : null,
+                    description: '玩家回報問題',
+                    consoleLogs: [] // 可以擴展為收集最近的 console logs
+                };
+
+                // 保存到 localStorage
+                let reports = JSON.parse(localStorage.getItem('debugReports') || '[]');
+                reports.push(debugData);
+                // 只保留最近100個報告
+                if (reports.length > 100) {
+                    reports = reports.slice(-100);
+                }
+                localStorage.setItem('debugReports', JSON.stringify(reports));
+
+                // 提示用戶
+                alert('問題已回報！報告已保存到本地存儲。\n\n您可以在新標籤頁打開 debug-report.html 查看所有報告。');
+                
+                // 可選：在新標籤頁打開報告頁面
+                window.open('debug-report.html', '_blank');
+            });
+        }
+
         // Modal close buttons
         document.querySelectorAll('.close').forEach(closeBtn => {
             closeBtn.addEventListener('click', (e) => {
