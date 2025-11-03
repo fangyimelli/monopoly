@@ -347,25 +347,45 @@ class GameManager {
                 if (!currentTags.includes(tagId)) {
                     // 這個標籤已被撕掉
                     const isCountryTag = player.initialCountryTags && player.initialCountryTags.includes(tagId);
-                    const tagValue = isCountryTag ? 1000 : 500;
+                    const tagValue = isCountryTag ? 500 : 100; // 🔥 國家標籤改為500，一般標籤改為100
                     tagScore += tagValue;
 
                     if (isCountryTag) {
-                        removedCountryTags.push({ id: tagId, value: 1000 });
+                        removedCountryTags.push({ id: tagId, value: 500 }); // 🔥 國家標籤改為500
                     } else {
-                        removedGeneralTags.push({ id: tagId, value: 500 });
+                        removedGeneralTags.push({ id: tagId, value: 100 }); // 🔥 一般標籤改為100
                     }
                 }
             });
 
-            // 剩餘的標籤
+            // 🔥 計算剩餘標籤的扣分
+            let remainingCountryTags = [];
+            let remainingGeneralTags = [];
+            let penaltyScore = 0;
+
             currentTags.forEach(tagId => {
                 remainingTags.push(tagId);
+                
+                // 判斷是國家標籤還是一般標籤
+                const isCountryTag = player.initialCountryTags && player.initialCountryTags.includes(tagId);
+                if (isCountryTag) {
+                    // 剩餘的國家標籤：每個 -100
+                    remainingCountryTags.push({ id: tagId, penalty: -100 });
+                    penaltyScore -= 100;
+                } else {
+                    // 剩餘的一般標籤：每個 -50
+                    remainingGeneralTags.push({ id: tagId, penalty: -50 });
+                    penaltyScore -= 50;
+                }
             });
 
-            score += tagScore;
+            score += tagScore; // 加上撕掉標籤的分數
+            score += penaltyScore; // 扣除剩餘標籤的分數
 
-            console.log('🏁 玩家', player.name, '總分:', score, '(金錢:', player.money, '+ 標籤:', tagScore, ')');
+            console.log('🏁 玩家', player.name, '總分:', score, 
+                '(金錢:', player.money, 
+                '+ 撕標籤分數:', tagScore, 
+                '+ 剩餘標籤扣分:', penaltyScore, ')');
 
             return {
                 id: player.id,
@@ -373,10 +393,13 @@ class GameManager {
                 character: player.character,
                 money: player.money || 0,
                 tagScore: tagScore,
+                penaltyScore: penaltyScore, // 🔥 新增：剩餘標籤扣分
                 totalScore: score,
                 removedCountryTags: removedCountryTags,
                 removedGeneralTags: removedGeneralTags,
                 remainingTags: remainingTags,
+                remainingCountryTags: remainingCountryTags, // 🔥 新增：剩餘的國家標籤
+                remainingGeneralTags: remainingGeneralTags, // 🔥 新增：剩餘的一般標籤
                 totalRemovedTags: removedCountryTags.length + removedGeneralTags.length
             };
         });

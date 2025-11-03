@@ -416,7 +416,8 @@ class MonopolyClient {
                 modalType === 'tagRemove' ? 'tagRemoveModal' :
                 modalType === 'questionMarkResult' ? 'questionMarkResultModal' :
                 modalType === 'questionMarkTagSelection' ? 'questionMarkTagSelectionModal' :
-                modalType === 'questionMarkLottery' ? 'questionMarkLotteryModal' : null;
+                modalType === 'questionMarkLottery' ? 'questionMarkLotteryModal' :
+                modalType === 'bankruptcy' ? 'bankruptcyModal' : null;
 
             if (modalId) {
                 const modal = document.getElementById(modalId);
@@ -453,6 +454,37 @@ class MonopolyClient {
             // ✅ 只顯示錯誤消息即可
         });
 
+        // 玩家破產事件（廣播給所有玩家）
+        this.socket.on('playerBankruptToAll', (data) => {
+            console.log('💸 收到破產事件（廣播）:', data);
+            console.log('💸 觸發玩家ID:', data.triggeredBy);
+            console.log('💸 當前玩家ID:', this.playerId);
+            console.log('💸 遊戲狀態:', this.gameState);
+            if (!data) {
+                console.error('💸 破產事件數據為空！');
+                return;
+            }
+            // 確保 modal 函數存在
+            if (typeof this.showBankruptcyModal === 'function') {
+                this.showBankruptcyModal(data);
+            } else {
+                console.error('💸 showBankruptcyModal 函數不存在！');
+            }
+        });
+
+        // 破產處理完成
+        this.socket.on('bankruptcyResolved', (data) => {
+            console.log('💸 破產處理完成:', data);
+            this.showSuccess(data.message);
+            this.updateGameScreen();
+        });
+
+        // 破產處理錯誤
+        this.socket.on('bankruptcyError', (data) => {
+            console.error('💸 破產處理錯誤:', data);
+            this.showError(data.message);
+        });
+
         // 其他玩家的標籤被移除
         this.socket.on('tagRemoved', (data) => {
             console.log('[標籤移除] 收到 tagRemoved 事件:', data);
@@ -486,12 +518,21 @@ class MonopolyClient {
         // 玩家被處罰
         this.socket.on('playerPenalized', (data) => {
             console.log('💰 [playerPenalized] 收到扣分事件:', data);
+            console.log('💰 [playerPenalized] 被處罰玩家ID:', data.playerId);
+            console.log('💰 [playerPenalized] 我的ID:', this.playerId);
+            console.log('💰 [playerPenalized] 新餘額:', data.newBalance);
             
             // 🔥 只更新金錢和公費，不覆蓋整個 gameState（避免回合狀態不同步）
             const penalizedPlayer = this.gameState.players.find(p => p.id === data.playerId);
             if (penalizedPlayer && data.newBalance !== undefined) {
                 penalizedPlayer.money = data.newBalance;
                 console.log('💰 [playerPenalized] 更新玩家金錢:', penalizedPlayer.name, '新餘額:', data.newBalance);
+                
+                // 🔥 檢查是否是我破產了（但還沒收到破產事件）
+                if (data.playerId === this.playerId && data.newBalance <= 0) {
+                    console.log('💰 [playerPenalized] 警告：我的餘額<=0，但還沒收到破產事件！');
+                    console.log('💰 [playerPenalized] 等待破產事件...');
+                }
             }
             
             // 如果有地主收到錢
@@ -1030,7 +1071,8 @@ class MonopolyClient {
             'questionMarkLotteryModal',
             'questionMarkResultModal',
             'questionMarkTagSelectionModal',
-            'questionModal'  // 🔥 加入問答系統的 modal
+            'questionModal',  // 🔥 加入問答系統的 modal
+            'bankruptcyModal'  // 🔥 加入破產modal
         ];
 
         // 檢查是否有任何彈窗存在
@@ -1605,12 +1647,21 @@ class MonopolyClient {
                 }).join('');
             }
 
-            // 剩餘標籤
-            let remainingTagsHtml = '';
-            if (player.remainingTags && player.remainingTags.length > 0) {
-                remainingTagsHtml = player.remainingTags.map(tagId => {
-                    const tagName = this.allTags[tagId] ? this.allTags[tagId].zh : tagId;
-                    return `<span style="display:inline-block;padding:4px 10px;margin:2px;background:#757575;color:#fff;border-radius:6px;font-size:0.9em;">${tagName}</span>`;
+            // 剩餘的國家標籤（顯示扣分）
+            let remainingCountryTagsHtml = '';
+            if (player.remainingCountryTags && player.remainingCountryTags.length > 0) {
+                remainingCountryTagsHtml = player.remainingCountryTags.map(tag => {
+                    const tagName = this.allTags[tag.id] ? this.allTags[tag.id].zh : tag.id;
+                    return `<span style="display:inline-block;padding:4px 10px;margin:2px;background:#F44336;color:#fff;border-radius:6px;font-size:0.9em;">${tagName} (${tag.penalty})</span>`;
+                }).join('');
+            }
+
+            // 剩餘的一般標籤（顯示扣分）
+            let remainingGeneralTagsHtml = '';
+            if (player.remainingGeneralTags && player.remainingGeneralTags.length > 0) {
+                remainingGeneralTagsHtml = player.remainingGeneralTags.map(tag => {
+                    const tagName = this.allTags[tag.id] ? this.allTags[tag.id].zh : tag.id;
+                    return `<span style="display:inline-block;padding:4px 10px;margin:2px;background:#FF9800;color:#fff;border-radius:6px;font-size:0.9em;">${tagName} (${tag.penalty})</span>`;
                 }).join('');
             }
 
@@ -1626,9 +1677,10 @@ class MonopolyClient {
                     </div>
                     
                     <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;">
-                        <div style="display:flex;gap:20px;margin-bottom:8px;">
-                            <div style="color:#666;">💰 現金：<strong>${player.money}</strong></div>
-                            <div style="color:#666;">🏆 標籤分數：<strong style="color:#FF9800;">+${player.tagScore}</strong></div>
+                        <div style="display:flex;gap:20px;margin-bottom:8px;flex-wrap:wrap;">
+                            <div style="color:#666;">💰 得分：<strong>${player.money}</strong></div>
+                            <div style="color:#666;">🏆 撕標籤分數：<strong style="color:#4CAF50;">+${player.tagScore}</strong></div>
+                            ${player.penaltyScore ? `<div style="color:#666;">⚠️ 剩餘標籤扣分：<strong style="color:#F44336;">${player.penaltyScore}</strong></div>` : ''}
                             <div style="color:#666;">📋 已撕標籤：<strong>${player.totalRemovedTags}</strong></div>
                         </div>
                         
@@ -1640,10 +1692,11 @@ class MonopolyClient {
                             </div>
                         ` : ''}
                         
-                        ${remainingTagsHtml ? `
+                        ${remainingCountryTagsHtml || remainingGeneralTagsHtml ? `
                             <div style="margin-top:10px;">
-                                <div style="font-weight:bold;color:#555;margin-bottom:6px;">⏸️ 剩餘標籤：</div>
-                                ${remainingTagsHtml}
+                                <div style="font-weight:bold;color:#555;margin-bottom:6px;">⚠️ 剩餘標籤（扣分）：</div>
+                                ${remainingCountryTagsHtml}
+                                ${remainingGeneralTagsHtml}
                             </div>
                         ` : ''}
                     </div>
@@ -2633,6 +2686,154 @@ class MonopolyClient {
                 ${generalTags.map(t => `<span class="player-tag">${t.zh}</span>`).join(' ')}
             </div>
         `;
+    }
+
+    // 顯示破產modal（廣播給所有玩家）
+    showBankruptcyModal(data) {
+        const { triggeredBy, playerName, playerCharacter, characterName, currentMoney } = data;
+
+        // 判斷是否為觸發玩家（只有破產玩家可以選擇標籤）
+        const isTriggerer = triggeredBy === this.playerId;
+
+        // 建立破產modal
+        let modal = document.getElementById('bankruptcyModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'bankruptcyModal';
+            modal.style.cssText = `
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(0,0,0,0.8);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+            `;
+            document.body.appendChild(modal);
+        }
+
+        // 所有一般標籤
+        const allGeneralTags = [
+            { id: 'g1', zh: '高' }, { id: 'g2', zh: '矮' }, { id: 'g3', zh: '胖' }, { id: 'g4', zh: '瘦' },
+            { id: 'g5', zh: '男生' }, { id: 'g6', zh: '女生' }, { id: 'g7', zh: '長頭髮' }, { id: 'g8', zh: '短頭髮' },
+            { id: 'g9', zh: '內向的' }, { id: 'g10', zh: '外向的' }, { id: 'g11', zh: '感性的' }, { id: 'g12', zh: '理性的' },
+            { id: 'g13', zh: '有規劃的' }, { id: 'g14', zh: '隨性的' }, { id: 'g15', zh: '務實派' }, { id: 'g16', zh: '想像派' },
+            { id: 'g17', zh: '皮膚白皙' }, { id: 'g18', zh: '皮膚黝黑' }, { id: 'g19', zh: '膽小' }, { id: 'g20', zh: '謹慎' },
+            { id: 'g21', zh: '衝動' }, { id: 'g22', zh: '大膽' }, { id: 'g23', zh: '保守' }, { id: 'g24', zh: '有幽默感' }
+        ];
+
+        // 儲存標籤數據到 allTags
+        allGeneralTags.forEach(tag => {
+            if (!this.allTags[tag.id]) {
+                this.allTags[tag.id] = { id: tag.id, zh: tag.zh };
+            }
+        });
+
+        modal.innerHTML = `
+            <div style="background:#fff;padding:40px 30px;border-radius:20px;min-width:500px;max-width:700px;box-shadow:0 8px 32px rgba(0,0,0,0.3);text-align:center;">
+                <h2 style="color:#F44336;margin:0 0 20px 0;font-size:2em;">💸 Oh my god！${characterName}${playerName}口袋空空了...</h2>
+                <p style="font-size:1.3em;margin-bottom:30px;color:#333;line-height:1.6;">
+                    新增三個一般標籤，增加1500點吧！
+                </p>
+                ${isTriggerer ? `
+                    <div style="margin-bottom:30px;">
+                        <p style="margin-bottom:15px;font-weight:bold;color:#555;font-size:1.1em;">選擇要新增的一般標籤（3個）：</p>
+                        <div id="bankruptcyTagsList" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;max-height:300px;overflow-y:auto;"></div>
+                    </div>
+                    <button id="bankruptcyConfirmBtn" style="margin-top:20px;padding:14px 40px;border-radius:10px;background:#4CAF50;color:#fff;border:none;cursor:pointer;font-size:1.2em;font-weight:bold;box-shadow:0 4px 12px rgba(76,175,80,0.4);" disabled>
+                        確認 (已選擇 <span id="bankruptcyTagCount">0</span>/3)
+                    </button>
+                ` : `
+                    <div style="margin-top:20px;padding:20px;background:#f0f8ff;border-radius:10px;color:#666;">
+                        <p style="font-size:1.1em;">等待 ${characterName}${playerName} 選擇標籤...</p>
+                    </div>
+                `}
+            </div>
+        `;
+
+        // 只有觸發玩家才能選擇標籤
+        if (!isTriggerer) {
+            // 其他玩家只顯示等待提示，不需要選擇功能
+            return;
+        }
+
+        const tagsContainer = modal.querySelector('#bankruptcyTagsList');
+        const confirmBtn = modal.querySelector('#bankruptcyConfirmBtn');
+        const tagCountSpan = modal.querySelector('#bankruptcyTagCount');
+        let selectedTags = [];
+
+        // 生成所有一般標籤按鈕
+        allGeneralTags.forEach(tag => {
+            const btn = document.createElement('button');
+            btn.textContent = tag.zh;
+            btn.dataset.tagId = tag.id;
+            btn.style.cssText = `
+                padding:14px 24px;
+                border-radius:12px;
+                border:2px solid #999;
+                background:#f5f5f5;
+                cursor:pointer;
+                font-size:1.1em;
+                transition:all 0.2s;
+                font-weight:normal;
+            `;
+
+            btn.onclick = () => {
+                if (btn.classList.contains('selected')) {
+                    // 取消選擇
+                    btn.classList.remove('selected');
+                    btn.style.background = '#f5f5f5';
+                    btn.style.border = '2px solid #999';
+                    btn.style.color = '#000';
+                    selectedTags = selectedTags.filter(id => id !== tag.id);
+                } else {
+                    // 選擇（最多3個）
+                    if (selectedTags.length >= 3) {
+                        this.showError('最多只能選擇3個標籤');
+                        return;
+                    }
+                    btn.classList.add('selected');
+                    btn.style.background = '#4CAF50';
+                    btn.style.border = '2px solid #4CAF50';
+                    btn.style.color = '#fff';
+                    selectedTags.push(tag.id);
+                }
+
+                // 更新按鈕狀態
+                tagCountSpan.textContent = selectedTags.length;
+                confirmBtn.disabled = selectedTags.length !== 3;
+            };
+
+            tagsContainer.appendChild(btn);
+        });
+
+        // 確認按鈕點擊處理
+        confirmBtn.onclick = () => {
+            if (selectedTags.length !== 3) {
+                this.showError('請選擇3個一般標籤');
+                return;
+            }
+
+            console.log('💸 發送破產標籤選擇:', selectedTags);
+
+            // 🔥 先廣播關閉所有人的破產modal
+            this.socket.emit('requestCloseModalForAll', {
+                roomCode: this.roomCode,
+                modalType: 'bankruptcy'
+            });
+
+            // 發送到服務器
+            this.socket.emit('handleBankruptcyTags', {
+                roomCode: this.roomCode,
+                selectedTagIds: selectedTags
+            });
+
+            // 關閉modal（本地）
+            modal.remove();
+        };
     }
 }
 

@@ -576,8 +576,8 @@ io.on('connection', (socket) => {
             
             // 扣除玩家點數
             player.money -= penalty;
-            if (player.money < 0) player.money = 0;
-
+            const originalMoney = player.money; // 保存原始金額用於破產檢查
+            
             // 判斷是拒絕幫忙還是走到無玩家的國家
             const hasOwnerInGame = owner ? true : false;
             let message = '';
@@ -619,6 +619,33 @@ io.on('connection', (socket) => {
                 // ❌ 不發送 gameState，避免覆蓋回合狀態
             });
 
+            // 🔥 檢查是否破產（錢<=0）
+            if (player.money <= 0) {
+                console.log('💸 [破產檢查] 玩家破產:', player.name, '餘額:', player.money);
+                
+                // 獲取角色名稱
+                const characterNames = {
+                    'french': '法國人',
+                    'indian': '印度人',
+                    'american': '美國人',
+                    'thai': '泰國人',
+                    'japanese': '日本人'
+                };
+                const characterName = characterNames[player.character] || '玩家';
+                
+                // 🔥 廣播破產事件給所有玩家
+                io.to(roomCode).emit('playerBankruptToAll', {
+                    triggeredBy: socket.id,
+                    playerName: player.name,
+                    playerCharacter: player.character,
+                    characterName: characterName,
+                    currentMoney: player.money
+                });
+                
+                // ❌ 不要立即結束回合，等待玩家選擇標籤後再結束
+                return;
+            }
+
             // 通知玩家
             socket.emit('penaltyApplied', {
                 message: message,
@@ -637,6 +664,102 @@ io.on('connection', (socket) => {
         }
 
         // 🔥 不再由後端自動結束回合，讓前端完全控制
+    });
+
+    // 處理破產玩家選擇標籤
+    socket.on('handleBankruptcyTags', ({ roomCode, selectedTagIds }) => {
+        console.log('💸 [破產處理] 玩家選擇破產標籤:', socket.id, 'selectedTagIds:', selectedTagIds);
+        const game = gameManager.rooms.get(roomCode);
+        if (!game) {
+            console.error('💸 [破產處理] 房間不存在:', roomCode);
+            return;
+        }
+
+        const player = game.players.get(socket.id);
+        if (!player) {
+            console.error('💸 [破產處理] 玩家不存在:', socket.id);
+            return;
+        }
+
+        // 驗證選擇了3個標籤
+        if (!selectedTagIds || selectedTagIds.length !== 3) {
+            socket.emit('bankruptcyError', { message: '請選擇3個一般標籤' });
+            return;
+        }
+
+        // 驗證都是一般標籤（g開頭）
+        const invalidTags = selectedTagIds.filter(tagId => !tagId.startsWith('g'));
+        if (invalidTags.length > 0) {
+            socket.emit('bankruptcyError', { message: '只能選擇一般標籤' });
+            return;
+        }
+
+        // 獲取一般標籤數據（從 GameManager 導入）
+        const GameManagerModule = require('./server/GameManager');
+        const GENERAL_TAGS = [
+            { id: 'g1', zh: '高', en: 'tall' },
+            { id: 'g2', zh: '矮', en: 'short' },
+            { id: 'g3', zh: '胖', en: 'fat' },
+            { id: 'g4', zh: '瘦', en: 'thin' },
+            { id: 'g5', zh: '男生', en: 'male' },
+            { id: 'g6', zh: '女生', en: 'female' },
+            { id: 'g7', zh: '長頭髮', en: 'long hair' },
+            { id: 'g8', zh: '短頭髮', en: 'short hair' },
+            { id: 'g9', zh: '內向的', en: 'introverted' },
+            { id: 'g10', zh: '外向的', en: 'extroverted' },
+            { id: 'g11', zh: '感性的', en: 'emotional' },
+            { id: 'g12', zh: '理性的', en: 'logical' },
+            { id: 'g13', zh: '有規劃的', en: 'organized' },
+            { id: 'g14', zh: '隨性的', en: 'flexible' },
+            { id: 'g15', zh: '務實派', en: 'practical' },
+            { id: 'g16', zh: '想像派', en: 'imaginative' },
+            { id: 'g17', zh: '皮膚白皙', en: 'fair skin' },
+            { id: 'g18', zh: '皮膚黝黑', en: 'dark skin' },
+            { id: 'g19', zh: '膽小', en: 'timid' },
+            { id: 'g20', zh: '謹慎', en: 'careful' },
+            { id: 'g21', zh: '衝動', en: 'impulsive' },
+            { id: 'g22', zh: '大膽', en: 'bold' },
+            { id: 'g23', zh: '保守', en: 'conservative' },
+            { id: 'g24', zh: '有幽默感', en: 'humorous' }
+        ];
+        const selectedTags = GENERAL_TAGS.filter(tag => selectedTagIds.includes(tag.id));
+
+        // 添加標籤到玩家標籤列表
+        if (!player.tags) {
+            player.tags = [];
+        }
+        player.tags = [...player.tags, ...selectedTagIds];
+
+        // 增加1500點
+        player.money += 1500;
+
+        console.log('💸 [破產處理] 標籤已添加，金額已增加:', player.name, '新餘額:', player.money);
+
+        // 更新遊戲狀態
+        if (typeof game.bumpVersion === 'function') game.bumpVersion();
+        const gameState = game.getGameState();
+
+        // 通知所有玩家更新狀態
+        io.to(roomCode).emit('gameStateUpdated', {
+            gameState: gameState
+        });
+
+        // 通知玩家
+        socket.emit('bankruptcyResolved', {
+            message: '成功選擇標籤，獲得1500點！',
+            newBalance: player.money,
+            addedTags: selectedTags
+        });
+
+        // 🔥 現在才結束回合
+        console.log('💸 [破產處理] 破產處理完成，自動結束回合');
+        setTimeout(() => {
+            game.endTurn();
+            io.to(roomCode).emit('turnEnded', {
+                gameState: game.getGameState()
+            });
+            console.log('💸 [破產處理] 回合已結束，新當前玩家:', game.currentPlayer);
+        }, 500);
     });
 
     // 問號格抽獎處理
@@ -959,7 +1082,6 @@ io.on('connection', (socket) => {
             
             // 扣除玩家點數
             player.money -= penalty;
-            if (player.money < 0) player.money = 0;
 
             let message = '';
             if (owner) {
@@ -999,6 +1121,33 @@ io.on('connection', (socket) => {
                 publicFund: game.publicFund
                 // ❌ 不發送 gameState，避免覆蓋回合狀態
             });
+
+            // 🔥 檢查是否破產（錢<=0）
+            if (player.money <= 0) {
+                console.log('💸 [破產檢查-問答] 玩家破產:', player.name, '餘額:', player.money);
+                
+                // 獲取角色名稱
+                const characterNames = {
+                    'french': '法國人',
+                    'indian': '印度人',
+                    'american': '美國人',
+                    'thai': '泰國人',
+                    'japanese': '日本人'
+                };
+                const characterName = characterNames[player.character] || '玩家';
+                
+                // 🔥 廣播破產事件給所有玩家
+                io.to(roomCode).emit('playerBankruptToAll', {
+                    triggeredBy: socket.id,
+                    playerName: player.name,
+                    playerCharacter: player.character,
+                    characterName: characterName,
+                    currentMoney: player.money
+                });
+                
+                // ❌ 不要立即結束回合，等待玩家選擇標籤後再結束
+                return;
+            }
 
             // 通知玩家被扣分
             io.to(socket.id).emit('penaltyApplied', {
