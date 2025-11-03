@@ -14,16 +14,11 @@ const CHARACTERS = {
 document.addEventListener('DOMContentLoaded', function () {
     console.log('地產大亨遊戲初始化中...');
 
-    // 創建 MonopolyClient 實例並初始化
-    window.game = new MonopolyClient();
-    window.game.init();
-
-    // （已移除測試用自動顯示遊戲畫面程式碼）
-
-    // Wait for game object to be available
+    // 等待 game.js 載入並創建 window.game 實例
     function waitForGame() {
-        if (window.game && window.game.socket) {
+        if (window.game && typeof window.game.init === 'function') {
             console.log('Game object is ready, initializing...');
+            window.game.init();
             init();
         } else {
             console.log('Waiting for game object...');

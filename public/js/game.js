@@ -12,13 +12,6 @@ class MonopolyClient {
         this.lastQuestionMarkPosition = null; // 記錄上次處理問號格的位置
         this.lastEndTurnTime = 0; // 記錄上次結束回合的時間，防止重複調用
         this.autoEndTurnExecuted = false; // 記錄本回合是否已執行自動結束
-
-        // 提醒定時器
-        this.gentleReminderTimer = null; // 2秒溫柔提醒
-        this.urgentReminderTimer = null; // 5秒急迫提醒
-        this.reminderHideTimer = null;   // 提醒消失定時器
-
-        this.setupTagRemoveModal();
     }
 
     init() {
@@ -173,9 +166,6 @@ class MonopolyClient {
             console.log('🎲 掷骰子的玩家:', data.playerId);
             console.log('🎲 我的 ID:', this.playerId);
 
-            // 清除提醒定時器（玩家已經擲骰子了）
-            this.clearReminderTimers();
-
             // 保存舊 gameState 用於動畫
             const oldGameState = JSON.parse(JSON.stringify(this.gameState));
             const movingPlayer = oldGameState ? oldGameState.players.find(p => p.id === data.playerId) : null;
@@ -207,30 +197,6 @@ class MonopolyClient {
             this.gameState = data.gameState;
             this.updateGameScreen();
 
-            // ✅ 檢查是否移動到問號格（只在剛移動後檢查一次）
-            if (data.playerId === this.playerId) {
-                const me = this.gameState.players.find(p => p.id === this.playerId);
-                if (me) {
-                    const currentSquare = window.game && window.game.gameBoard && window.game.gameBoard.boardLayout
-                        ? window.game.gameBoard.boardLayout.find(sq => sq.id == me.position)
-                        : null;
-
-                    console.log('🎲 檢查問號格觸發條件:');
-                    console.log('🎲 當前格子:', currentSquare);
-                    console.log('🎲 是否為問號格:', currentSquare && currentSquare.name.includes('❓'));
-                    console.log('🎲 新位置:', me.position);
-                    console.log('🎲 舊位置:', oldPosition);
-
-                    // 只有移動到新的問號格位置時才觸發（確保不是停留在原地）
-                    if (currentSquare && currentSquare.name.includes('❓') && oldPosition !== me.position) {
-                        console.log('🎲 移動到問號格，觸發抽獎');
-                        this.lastQuestionMarkPosition = me.position;
-                        this.handleQuestionMark(me);
-                        return; // 問號格會處理自己的結束回合邏輯，不需要自動結束
-                    }
-                }
-            }
-
             // 只有當前掷骰子的玩家才检查自动结束
             if (data.playerId === this.playerId) {
                 console.log('🎲 是我掷的骰子，延遲 1200ms 後檢查是否需要自動結束回合');
@@ -257,16 +223,19 @@ class MonopolyClient {
             console.log('🔄 新當前玩家索引:', data.gameState.currentPlayerIndex);
             console.log('🔄 我的 ID:', this.playerId);
             console.log('🔄 玩家列表:', data.gameState.players.map(p => ({ id: p.id, name: p.name })));
+            console.log('🔄 玩家順序:', data.gameState.players.map((p, idx) => ({ 索引: idx, id: p.id, name: p.name })));
             console.log('🔄 收到的 currentRoll:', data.gameState.currentRoll);
-            console.log('🔄 players[currentPlayerIndex]:', data.gameState.players[data.gameState.currentPlayerIndex]?.id);
-            console.log('🔄 驗證：currentPlayer === players[currentPlayerIndex].id?',
-                data.gameState.currentPlayer === data.gameState.players[data.gameState.currentPlayerIndex]?.id);
+            
+            // 🔥 診斷：計算應該輪到誰
+            const expectedPlayerId = data.gameState.players[data.gameState.currentPlayerIndex]?.id;
+            console.log('🔄 根據索引計算的當前玩家 ID:', expectedPlayerId);
+            if (expectedPlayerId !== data.gameState.currentPlayer) {
+                console.error('❌ 警告：currentPlayer 與 currentPlayerIndex 不匹配！');
+                console.error('❌ currentPlayer:', data.gameState.currentPlayer);
+                console.error('❌ players[currentPlayerIndex].id:', expectedPlayerId);
+            }
 
-            // 清除提醒定時器（回合已結束）
-            this.clearReminderTimers();
-
-            // 檢查是否為雙倍骰子（同一玩家再掷一次）
-            const isSamePlayer = data.gameState.currentPlayer === this.playerId && this.gameState && this.gameState.currentPlayer === this.playerId;
+            // ❌ 已停用雙倍骰子功能，移除所有相關判斷
 
             // 更新遊戲狀態
             this.gameState = data.gameState;
@@ -276,12 +245,6 @@ class MonopolyClient {
             this.autoEndTurnExecuted = false;
             this.lastQuestionMarkPosition = null;  // 重置問號格記錄
             console.log('🔄 已重置所有回合標記（包含問號格記錄）');
-
-            // 如果是同一玩家（雙倍骰子）
-            if (isSamePlayer && data.gameState.currentRoll === null) {
-                console.log('🎲 雙倍骰子！您可以再掷一次！');
-                this.showSuccess('🎲 雙倍骰子！您可以再掷一次！');
-            }
 
             // 如果輪到我的回合
             if (data.gameState.currentPlayer === this.playerId) {
@@ -408,16 +371,22 @@ class MonopolyClient {
             this.showOthersPropertyModalToAll(data);
         });
 
-        // 接收抽獎結果
-        this.socket.on('lotteryResult', (data) => {
-            console.log('🎰 收到抽獎結果:', data);
-            this.showLotteryResultModal(data);
+        // 接收問號格抽獎動畫通知
+        this.socket.on('showQuestionMarkLotteryToAll', (data) => {
+            console.log('🎲 收到問號格抽獎通知:', data);
+            this.showQuestionMarkLottery(data);
         });
 
-        // 接收廣播的問號格彈窗（已改為抽獎系統，保留舊代碼以防萬一）
-        this.socket.on('showTagRemoveModalToAll', (data) => {
-            console.log('🎲 收到廣播的問號格彈窗:', data);
-            this.showTagRemoveModalToAll(data);
+        // 接收問號格抽獎結果（增加標籤）
+        this.socket.on('showQuestionMarkAddTagToAll', (data) => {
+            console.log('🎲 收到問號格增加標籤結果:', data);
+            this.showQuestionMarkAddTagResult(data);
+        });
+
+        // 接收問號格標籤選擇通知（撕標籤）
+        this.socket.on('showQuestionMarkTagSelectionToAll', (data) => {
+            console.log('🎲 收到問號格標籤選擇通知:', data);
+            this.showQuestionMarkTagSelection(data);
         });
 
         // 接收廣播的關閉彈窗事件
@@ -428,9 +397,10 @@ class MonopolyClient {
             // 根據類型關閉對應的彈窗
             const modalId = modalType === 'ownProperty' ? 'ownPropertyModal' :
                 modalType === 'othersProperty' ? 'othersPropertyModal' :
-                    modalType === 'tagRemove' ? 'tagRemoveModal' :
-                        modalType === 'lottery' ? 'lotteryModal' :
-                            modalType === 'generalTagRemove' ? 'generalTagRemoveModal' : null;
+                modalType === 'tagRemove' ? 'tagRemoveModal' :
+                modalType === 'questionMarkResult' ? 'questionMarkResultModal' :
+                modalType === 'questionMarkTagSelection' ? 'questionMarkTagSelectionModal' :
+                modalType === 'questionMarkLottery' ? 'questionMarkLotteryModal' : null;
 
             if (modalId) {
                 const modal = document.getElementById(modalId);
@@ -499,7 +469,31 @@ class MonopolyClient {
 
         // 玩家被處罰
         this.socket.on('playerPenalized', (data) => {
-            this.gameState = data.gameState;
+            console.log('💰 [playerPenalized] 收到扣分事件:', data);
+            
+            // 🔥 只更新金錢和公費，不覆蓋整個 gameState（避免回合狀態不同步）
+            const penalizedPlayer = this.gameState.players.find(p => p.id === data.playerId);
+            if (penalizedPlayer && data.newBalance !== undefined) {
+                penalizedPlayer.money = data.newBalance;
+                console.log('💰 [playerPenalized] 更新玩家金錢:', penalizedPlayer.name, '新餘額:', data.newBalance);
+            }
+            
+            // 如果有地主收到錢
+            if (data.ownerId && data.ownerNewBalance !== undefined) {
+                const ownerPlayer = this.gameState.players.find(p => p.id === data.ownerId);
+                if (ownerPlayer) {
+                    ownerPlayer.money = data.ownerNewBalance;
+                    console.log('💰 [playerPenalized] 更新地主金錢:', ownerPlayer.name, '新餘額:', data.ownerNewBalance);
+                }
+            }
+            
+            // 更新公費
+            if (data.publicFund !== undefined) {
+                this.gameState.publicFund = data.publicFund;
+                console.log('💰 [playerPenalized] 更新公費:', data.publicFund);
+            }
+            
+            // ✅ 只更新畫面，不改變回合狀態
             this.updateGameScreen();
         });
 
@@ -515,11 +509,21 @@ class MonopolyClient {
             console.log('觸發者ID:', data.triggeredBy);
             console.log('當前玩家ID:', this.socket.id);
 
-            // 關閉所有標籤選擇彈窗
-            const modals = ['tagRemoveModal', 'ownPropertyModal', 'othersPropertyModal'];
+            // 關閉所有標籤選擇彈窗（包含問號格相關的 modal）
+            const modals = [
+                'tagRemoveModal', 
+                'ownPropertyModal', 
+                'othersPropertyModal',
+                'questionMarkTagSelectionModal',
+                'questionMarkResultModal',
+                'questionMarkLotteryModal'
+            ];
             modals.forEach(modalId => {
                 const modal = document.getElementById(modalId);
-                if (modal) modal.remove();
+                if (modal) {
+                    console.log(`關閉彈窗: ${modalId}`);
+                    modal.remove();
+                }
             });
 
             if (window.questionSystem) {
@@ -848,9 +852,29 @@ class MonopolyClient {
         this.updatePlayersPanel();
         this.updateGameBoard();
         this.updatePublicFundDisplay(); // 右上角同步顯示公費
-        this.updateActionButtons(); // ✅ 確保每次更新遊戲畫面時都更新按鈕狀態
+        // 新增：檢查自己是否在問號格（只有在剛移動到該格時才觸發）
+        const me = this.gameState.players.find(p => p.id === this.playerId);
+        if (me) {
+            const currentSquare = window.game && window.game.gameBoard && window.game.gameBoard.boardLayout
+                ? window.game.gameBoard.boardLayout.find(sq => sq.id == me.position)
+                : null;
 
-        console.log('🔄 updateGameScreen 完成，當前玩家:', this.gameState.currentPlayer, '我的ID:', this.playerId);
+            console.log('🎲 檢查問號格觸發條件:');
+            console.log('🎲 當前格子:', currentSquare);
+            console.log('🎲 是否為問號格:', currentSquare && currentSquare.name.includes('❓'));
+            console.log('🎲 當前擲骰結果:', this.gameState.currentRoll);
+            console.log('🎲 上次問號格位置:', this.lastQuestionMarkPosition);
+            console.log('🎲 當前位置:', me.position);
+
+            // 只有在剛擲骰子移動到問號格且還沒處理過該位置時才觸發
+            if (currentSquare && currentSquare.name.includes('❓') &&
+                this.gameState.currentRoll && this.gameState.currentRoll.total > 0 &&
+                this.lastQuestionMarkPosition !== me.position) {
+                console.log('🎲 觸發問號格處理');
+                this.lastQuestionMarkPosition = me.position;
+                this.handleQuestionMark(me);
+            }
+        }
     }
 
     updateCurrentPlayerInfo() {
@@ -946,12 +970,6 @@ class MonopolyClient {
                 tagsHtml = `<div class="player-tags">${tagNames.map(name => `<span class="player-tag">${name}</span>`).join('')}</div>`;
             }
 
-            // 對話泡泡（只顯示給當前要擲骰子的玩家）
-            let reminderBubble = '';
-            if (player.id === this.gameState.currentPlayer && this.gameState.currentRoll === null) {
-                reminderBubble = `<div id="reminderBubble_${player.id}" class="reminder-bubble" style="display:none;"></div>`;
-            }
-
             playerItem.innerHTML = `
                 <div class="game-player-header">
                     <div class="game-player-character">${characterIcon}</div>
@@ -964,25 +982,22 @@ class MonopolyClient {
                 <div class="game-player-score" style="margin-top:2px;font-size:1em;color:#333;">得分：${score}</div>
                 ${tagsHtml}
                 ${ownerColorHex ? `<div class="owner-color-strip" style="height: 8px; border-radius: 4px; margin: 4px 0 0 0; background: ${ownerColorHex};"></div>` : ''}
-                ${reminderBubble}
             `;
 
             playersList.appendChild(playerItem);
         });
-
-        // 啟動提醒定時器（只為當前玩家）
-        this.startReminderTimer();
     }
 
     // 檢查是否有任何彈窗正在顯示
     hasAnyModalOpen() {
         const modals = [
-            'tagRemoveModal',
             'ownPropertyModal',
             'othersPropertyModal',
             'bonusModal',
-            'lotteryModal',
-            'generalTagRemoveModal'
+            'questionMarkLotteryModal',
+            'questionMarkResultModal',
+            'questionMarkTagSelectionModal',
+            'questionModal'  // 🔥 加入問答系統的 modal
         ];
 
         // 檢查是否有任何彈窗存在
@@ -994,113 +1009,14 @@ class MonopolyClient {
             }
         }
 
-        // 檢查問答系統的彈窗
+        // 檢查問答系統的彈窗（雙重保險）
         if (window.questionSystem && window.questionSystem.currentModal) {
-            console.log('🔍 發現問答系統彈窗');
+            console.log('🔍 發現問答系統彈窗（通過 currentModal 屬性）');
             return true;
         }
 
         console.log('🔍 沒有任何彈窗');
         return false;
-    }
-
-    // 啟動提醒定時器
-    startReminderTimer() {
-        // 清除之前的定時器
-        this.clearReminderTimers();
-
-        // 只有當前玩家且還沒擲骰子時才啟動提醒
-        if (!this.gameState || !this.gameState.currentPlayer) return;
-        if (this.gameState.currentRoll !== null) return; // 已經擲過骰子了
-
-        const currentPlayer = this.gameState.players.find(p => p.id === this.gameState.currentPlayer);
-        if (!currentPlayer) return;
-
-        console.log('⏰ 啟動提醒定時器，當前玩家:', currentPlayer.name);
-
-        // 5秒後顯示溫柔提醒
-        this.gentleReminderTimer = setTimeout(() => {
-            this.showGentleReminder(currentPlayer);
-        }, 5000);
-
-        // 10秒後顯示急迫提醒
-        this.urgentReminderTimer = setTimeout(() => {
-            this.showUrgentReminder(currentPlayer);
-        }, 10000);
-    }
-
-    // 清除所有提醒定時器
-    clearReminderTimers() {
-        if (this.gentleReminderTimer) {
-            clearTimeout(this.gentleReminderTimer);
-            this.gentleReminderTimer = null;
-        }
-        if (this.urgentReminderTimer) {
-            clearTimeout(this.urgentReminderTimer);
-            this.urgentReminderTimer = null;
-        }
-        if (this.reminderHideTimer) {
-            clearTimeout(this.reminderHideTimer);
-            this.reminderHideTimer = null;
-        }
-
-        // 隱藏所有提醒泡泡
-        const allBubbles = document.querySelectorAll('.reminder-bubble');
-        allBubbles.forEach(bubble => {
-            bubble.style.display = 'none';
-            bubble.textContent = '';
-        });
-    }
-
-    // 顯示溫柔提醒
-    showGentleReminder(player) {
-        // 如果已經擲過骰子，不顯示提醒
-        if (this.gameState.currentRoll !== null) return;
-
-        const gentleMessages = [
-            `${player.name} 換你啦～`,
-            `${player.name} It's your turn!`
-        ];
-
-        const message = gentleMessages[Math.floor(Math.random() * gentleMessages.length)];
-        this.showReminderBubble(player.id, message, 'gentle');
-    }
-
-    // 顯示急迫提醒
-    showUrgentReminder(player) {
-        // 如果已經擲過骰子，不顯示提醒
-        if (this.gameState.currentRoll !== null) return;
-
-        const urgentMessages = [
-            `${player.name} Hurry up!`,
-            `${player.name} 該擲骰子啦！`
-        ];
-
-        const message = urgentMessages[Math.floor(Math.random() * urgentMessages.length)];
-        this.showReminderBubble(player.id, message, 'urgent');
-    }
-
-    // 顯示提醒泡泡
-    showReminderBubble(playerId, message, type) {
-        const bubble = document.getElementById(`reminderBubble_${playerId}`);
-        if (!bubble) return;
-
-        bubble.textContent = message;
-        bubble.className = `reminder-bubble ${type}`;
-        bubble.style.display = 'block';
-
-        console.log(`💬 顯示提醒: ${message} (${type})`);
-
-        // 只有溫柔提醒會在3秒後自動隱藏，急迫提醒會一直抖動到玩家擲骰子
-        if (type === 'gentle') {
-            if (this.reminderHideTimer) {
-                clearTimeout(this.reminderHideTimer);
-            }
-            this.reminderHideTimer = setTimeout(() => {
-                bubble.style.display = 'none';
-            }, 3000);
-        }
-        // 急迫提醒不自動隱藏，會一直抖動到擲骰子
     }
 
     // 檢查是否需要自動結束回合
@@ -1184,16 +1100,10 @@ class MonopolyClient {
 
     // 更新按鈕狀態
     updateActionButtons() {
-        console.log('🎮 === updateActionButtons 開始 ===');
-        console.log('🎮 currentPlayer:', this.gameState?.currentPlayer);
-        console.log('🎮 myId:', this.playerId);
-        console.log('🎮 currentRoll:', this.gameState?.currentRoll);
-
         const rollBtn = document.getElementById('rollDiceBtn');
         const endBtn = document.getElementById('endTurnBtn');
 
         if (!rollBtn || !endBtn) {
-            console.log('🎮 按鈕元素不存在');
             return;
         }
 
@@ -1410,41 +1320,36 @@ class MonopolyClient {
         if (!this.gameState) {
             return null;
         }
-        // ✅ 直接使用 currentPlayer ID 查找，而不是依賴數組索引
-        if (this.gameState.currentPlayer) {
-            return this.gameState.players.find(p => p.id === this.gameState.currentPlayer);
-        }
-        // 備用：使用索引（但優先使用ID）
         return this.gameState.players[this.gameState.currentPlayerIndex];
     }
 
     isMyTurn() {
-        if (!this.gameState || !this.gameState.currentPlayer) {
-            console.log('❌ 沒有遊戲狀態或當前玩家');
+        if (!this.gameState) {
+            console.log('❌ [isMyTurn] gameState 不存在');
             return false;
         }
-
-        // ✅ 直接比較 currentPlayer ID，這是最可靠的方法
-        const result = this.gameState.currentPlayer === this.playerId;
-
-        // 🔍 額外驗證：檢查狀態一致性
-        if (this.gameState.players && this.gameState.currentPlayerIndex !== undefined) {
-            const playerByIndex = this.gameState.players[this.gameState.currentPlayerIndex];
-            if (playerByIndex && playerByIndex.id !== this.gameState.currentPlayer) {
-                console.error('⚠️ 狀態不一致！currentPlayer ID 和 players[currentPlayerIndex].id 不匹配');
-                console.error('currentPlayer:', this.gameState.currentPlayer);
-                console.error('players[' + this.gameState.currentPlayerIndex + '].id:', playerByIndex.id);
-                // 即使不一致，仍然使用 currentPlayer ID 作為準確來源
-            }
-        }
-
-        console.log('🔍 檢查是否輪到我:', {
+        
+        const currentTurnPlayer = this.getCurrentTurnPlayer();
+        const result = currentTurnPlayer && currentTurnPlayer.id === this.playerId;
+        
+        console.log('🔍 [isMyTurn] 檢查是否輪到我:', {
             myId: this.playerId,
-            currentPlayerId: this.gameState.currentPlayer,
+            currentTurnPlayerId: currentTurnPlayer?.id,
+            currentTurnPlayerName: currentTurnPlayer?.name,
+            currentPlayerFromState: this.gameState.currentPlayer,
             currentPlayerIndex: this.gameState.currentPlayerIndex,
+            playersLength: this.gameState.players?.length,
             isMyTurn: result
         });
-
+        
+        // 🔥 驗證一致性
+        if (this.gameState.currentPlayer !== currentTurnPlayer?.id) {
+            console.error('❌ [isMyTurn] gameState.currentPlayer 與 players[currentPlayerIndex].id 不匹配！');
+            console.error('❌ gameState.currentPlayer:', this.gameState.currentPlayer);
+            console.error('❌ players[currentPlayerIndex].id:', currentTurnPlayer?.id);
+            console.error('❌ 完整玩家列表:', this.gameState.players.map((p, idx) => ({ idx, id: p.id, name: p.name })));
+        }
+        
         return result;
     }
 
@@ -1733,41 +1638,41 @@ class MonopolyClient {
         };
     }
 
-    // 問號格觸發抽奖
+    // 問號格觸發標籤處理
     handleQuestionMark(player) {
         console.log('🎲 handleQuestionMark 被調用:', player);
         console.log('🎲 玩家標籤:', player.tags);
         console.log('🎲 是否為當前玩家:', player.id === this.playerId);
+        console.log('🎲 本回合是否已處理問號格:', this.hasRemovedTagThisTurn);
 
         if (player.id !== this.playerId) {
             console.log('🎲 不是當前玩家，跳過');
             return;
         }
+        if (this.hasRemovedTagThisTurn) {
+            console.log('🎲 本回合已處理過問號格，跳過');
+            return;
+        }
 
-        console.log('🎲 準備顯示抽獎特效');
-        this.showLotteryEffect(player);
-    }
-
-    // 抽獎特效
-    showLotteryEffect(player) {
-        // 請求服務器執行抽獎
-        this.socket.emit('requestLottery', {
-            roomCode: this.roomCode,
-            playerId: player.id
+        console.log('🎲 開始處理問號格抽獎');
+        // 標記本回合已處理問號格
+        this.hasRemovedTagThisTurn = true;
+        
+        // 請求服務器處理問號格抽獎
+        this.socket.emit('handleQuestionMarkLottery', {
+            roomCode: this.roomCode
         });
     }
 
-    // 顯示抽獎結果彈窗
-    showLotteryResultModal(data) {
-        const { result, player, newTag, generalTags } = data;
-
-        console.log('🎰 抽獎結果:', result);
-
-        // 建立抽獎特效彈窗
-        let modal = document.getElementById('lotteryModal');
+    // 顯示問號格抽獎動畫
+    showQuestionMarkLottery(data) {
+        const { triggeredBy, playerName, playerCharacter, playerCharacterName, currentSquare } = data;
+        
+        // 建立抽獎 modal
+        let modal = document.getElementById('questionMarkLotteryModal');
         if (!modal) {
             modal = document.createElement('div');
-            modal.id = 'lotteryModal';
+            modal.id = 'questionMarkLotteryModal';
             modal.style.cssText = `
                 position: fixed;
                 left: 0;
@@ -1783,396 +1688,209 @@ class MonopolyClient {
             document.body.appendChild(modal);
         }
 
-        const isMe = player.id === this.playerId;
-        const characterName = this.getCharacterName(player.character);
-        const characterIcon = this.getCharacterIcon(player.character);
-
-        if (result === 'addTag') {
-            // 增加標籤結果（壞事）
-            const tagName = this.allTags[newTag] ? this.allTags[newTag].zh : newTag;
-
-            modal.innerHTML = `
-                <div style="background:#fff;padding:50px 40px;border-radius:20px;min-width:500px;max-width:700px;box-shadow:0 8px 32px rgba(0,0,0,0.3);text-align:center;animation:bounceIn 0.6s;">
-                    <div style="font-size:5em;margin-bottom:20px;animation:spin 2s ease-out;">🎰</div>
-                    <h2 style="color:#f44336;margin:0 0 20px 0;font-size:2em;">😱 糟糕！</h2>
-                    <p style="font-size:1.5em;margin-bottom:15px;">
-                        <span style="font-size:1.2em;">${characterIcon}</span> <strong>${characterName}${player.name}</strong>
-                    </p>
-                    <p style="font-size:1.3em;color:#666;margin-bottom:30px;">
-                        抽中<strong style="color:#f44336;font-size:1.2em;">增加標籤</strong>！
-                    </p>
-                    <div style="background:linear-gradient(135deg, #757575 0%, #424242 100%);padding:20px;border-radius:12px;margin:20px 0;">
-                        <p style="color:#fff;font-size:1.1em;margin-bottom:10px;">⚠️ 獲得新的負擔：</p>
-                        <div style="background:#fff;padding:15px 25px;border-radius:8px;display:inline-block;">
-                            <span style="font-size:1.5em;color:#f44336;font-weight:bold;">${tagName}</span>
-                        </div>
-                    </div>
-                    ${isMe ? `
-                        <button id="lotteryConfirmBtn" style="margin-top:20px;padding:15px 50px;border-radius:10px;background:#757575;color:#fff;border:none;cursor:pointer;font-size:1.2em;font-weight:bold;box-shadow:0 4px 12px rgba(117,117,117,0.4);">
-                            接受現實
-                        </button>
-                    ` : `
-                        <div style="margin-top:20px;padding:12px;background:#f0f8ff;border-radius:8px;color:#666;">
-                            等待 ${characterName}${player.name} 確認...
-                        </div>
-                    `}
-                </div>
-                <style>
-                    @keyframes bounceIn {
-                        0% { transform: scale(0.3); opacity: 0; }
-                        50% { transform: scale(1.05); }
-                        70% { transform: scale(0.9); }
-                        100% { transform: scale(1); opacity: 1; }
-                    }
-                    @keyframes spin {
-                        0% { transform: rotate(0deg); }
-                        100% { transform: rotate(720deg); }
-                    }
-                </style>
-            `;
-
-            if (isMe) {
-                modal.querySelector('#lotteryConfirmBtn').onclick = () => {
-                    // 通知服務器關閉所有人的抽獎彈窗
-                    this.socket.emit('requestCloseModalForAll', {
-                        roomCode: this.roomCode,
-                        modalType: 'lottery'
-                    });
-
-                    this.showError(`😱 獲得新的負擔：${tagName}`);
-                    // 自動結束回合
-                    setTimeout(() => {
-                        const hasModal = this.hasAnyModalOpen();
-                        if (!hasModal && this.isMyTurn()) {
-                            this.endTurn();
-                        }
-                    }, 500);
-                };
-            }
-        } else {
-            // 撕去標籤結果 - 需要答題（好事）
-            modal.innerHTML = `
-                <div style="background:#fff;padding:50px 40px;border-radius:20px;min-width:500px;max-width:700px;box-shadow:0 8px 32px rgba(0,0,0,0.3);text-align:center;animation:bounceIn 0.6s;">
-                    <div style="font-size:5em;margin-bottom:20px;animation:spin 2s ease-out;">🎰</div>
-                    <h2 style="color:#4CAF50;margin:0 0 20px 0;font-size:2em;">🎉 太棒了！</h2>
-                    <p style="font-size:1.5em;margin-bottom:15px;">
-                        <span style="font-size:1.2em;">${characterIcon}</span> <strong>${characterName}${player.name}</strong>
-                    </p>
-                    <p style="font-size:1.3em;color:#666;margin-bottom:30px;">
-                        抽中<strong style="color:#4CAF50;font-size:1.2em;">撕去標籤</strong>！
-                    </p>
-                    <div style="background:linear-gradient(135deg, #4CAF50 0%, #81C784 100%);padding:20px;border-radius:12px;margin:20px 0;">
-                        <p style="color:#fff;font-size:1.2em;margin:0;">
-                            ✨ 回答問題後可撕去一個<strong>一般標籤</strong>！<br>
-                            <span style="font-size:0.9em;opacity:0.9;">還能獲得 100 點獎勵</span>
-                        </p>
-                    </div>
-                    ${isMe ? `
-                        <button id="lotteryStartBtn" style="margin-top:20px;padding:15px 50px;border-radius:10px;background:#4CAF50;color:#fff;border:none;cursor:pointer;font-size:1.2em;font-weight:bold;box-shadow:0 4px 12px rgba(76,175,80,0.4);">
-                            挑戰答題
-                        </button>
-                        <button id="lotteryCancelBtn" style="margin-left:15px;padding:15px 50px;border-radius:10px;background:#ccc;color:#333;border:none;cursor:pointer;font-size:1.2em;">
-                            放棄機會
-                        </button>
-                    ` : `
-                        <div style="margin-top:20px;padding:12px;background:#f0f8ff;border-radius:8px;color:#666;">
-                            等待 ${characterName}${player.name} 選擇...
-                        </div>
-                    `}
-                </div>
-            `;
-
-            if (isMe) {
-                modal.querySelector('#lotteryStartBtn').onclick = () => {
-                    // 通知服務器關閉所有人的抽獎彈窗
-                    this.socket.emit('requestCloseModalForAll', {
-                        roomCode: this.roomCode,
-                        modalType: 'lottery'
-                    });
-
-                    // 顯示一般標籤選擇（只顯示一般標籤）
-                    this.showGeneralTagRemoveModal(generalTags);
-                };
-
-                modal.querySelector('#lotteryCancelBtn').onclick = () => {
-                    // 通知服務器關閉所有人的抽獎彈窗
-                    this.socket.emit('requestCloseModalForAll', {
-                        roomCode: this.roomCode,
-                        modalType: 'lottery'
-                    });
-
-                    this.showError('😢 放棄了寶貴的撕標籤機會');
-                    // 自動結束回合
-                    setTimeout(() => {
-                        const hasModal = this.hasAnyModalOpen();
-                        if (!hasModal && this.isMyTurn()) {
-                            this.endTurn();
-                        }
-                    }, 500);
-                };
-            }
-        }
-    }
-
-    // 顯示一般標籤移除模態框（只顯示一般標籤）
-    showGeneralTagRemoveModal(generalTags) {
-        if (!generalTags || generalTags.length === 0) {
-            this.showInfo('太棒了！你已經沒有一般標籤可以撕了！');
-            setTimeout(() => {
-                const hasModal = this.hasAnyModalOpen();
-                if (!hasModal && this.isMyTurn()) {
-                    this.endTurn();
-                }
-            }, 500);
-            return;
-        }
-
-        let modal = document.getElementById('generalTagRemoveModal');
-        if (!modal) {
-            modal = document.createElement('div');
-            modal.id = 'generalTagRemoveModal';
-            modal.style.cssText = `
-                position: fixed;
-                left: 0;
-                top: 0;
-                width: 100vw;
-                height: 100vh;
-                background: rgba(0,0,0,0.5);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 9999;
-            `;
-            document.body.appendChild(modal);
-        }
-
-        modal.innerHTML = `
-            <div style="background:#fff;padding:40px 30px;border-radius:16px;min-width:400px;max-width:600px;box-shadow:0 4px 24px rgba(0,0,0,0.3);text-align:center;">
-                <h2 style="color:#4CAF50;margin:0 0 16px 0;">🎉 選擇要撕去的一般標籤</h2>
-                <p style="color:#666;margin-bottom:24px;">
-                    回答問題後可撕去一個標籤，還能獲得 <strong style="color:#4CAF50;font-size:1.3em;">100</strong> 點獎勵！
-                </p>
-                <div style="margin-bottom:24px;">
-                    <div id="generalTagsList" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;"></div>
-                </div>
-                <button id="generalTagCancelBtn" style="margin-top:18px;padding:12px 32px;border-radius:8px;background:#e0e0e0;color:#666;border:none;cursor:pointer;font-size:1.1em;">
-                    放棄機會
-                </button>
-            </div>
-        `;
-
-        const tagsContainer = modal.querySelector('#generalTagsList');
-        generalTags.forEach(tagId => {
-            const btn = document.createElement('button');
-            const tagName = this.allTags[tagId] ? this.allTags[tagId].zh : tagId;
-            btn.textContent = tagName;
-            btn.style.cssText = `
-                padding:12px 20px;
-                border-radius:12px;
-                border:2px solid #4CAF50;
-                background:#e8f5e9;
-                cursor:pointer;
-                font-size:1em;
-                transition:all 0.2s;
-            `;
-
-            btn.onmouseover = () => {
-                btn.style.background = '#4CAF50';
-                btn.style.color = '#fff';
-            };
-            btn.onmouseout = () => {
-                btn.style.background = '#e8f5e9';
-                btn.style.color = '#000';
-            };
-            btn.onclick = () => {
-                console.log('選擇移除一般標籤:', tagId);
-                modal.remove();
-                // 顯示問題模態框
-                this.showQuestionBeforeRemoveTag(tagId, 100, '機會卡抽獎', 'mystery');
-            };
-            tagsContainer.appendChild(btn);
-        });
-
-        modal.querySelector('#generalTagCancelBtn').onclick = () => {
-            modal.remove();
-            this.showError('😢 放棄了寶貴的撕標籤機會');
-            // 自動結束回合
-            setTimeout(() => {
-                const hasModal = this.hasAnyModalOpen();
-                if (!hasModal && this.isMyTurn()) {
-                    this.endTurn();
-                }
-            }, 500);
-        };
-    }
-
-    showTagRemoveModal(player) {
-        if (!player || !player.tags || player.tags.length === 0) return;
-
-        // 取得目前國家（根據棋盤格地名）
-        const currentSquare = window.game && window.game.gameBoard && window.game.gameBoard.boardLayout
-            ? window.game.gameBoard.boardLayout.find(sq => sq.id == player.position)
-            : null;
-        let country = '';
-        if (currentSquare) {
-            // 以地名判斷國家關鍵字
-            if (currentSquare.name.includes('日本') || currentSquare.name.includes('Tokyo') || currentSquare.name.includes('京都') || currentSquare.name.includes('大阪') || currentSquare.name.includes('札幌')) country = 'japan';
-            else if (currentSquare.name.includes('法國') || currentSquare.name.includes('Paris') || currentSquare.name.includes('馬賽') || currentSquare.name.includes('尼斯') || currentSquare.name.includes('里昂')) country = 'france';
-            else if (currentSquare.name.includes('美國') || currentSquare.name.includes('Chicago') || currentSquare.name.includes('New York') || currentSquare.name.includes('Miami') || currentSquare.name.includes('San Francisco')) country = 'usa';
-            else if (currentSquare.name.includes('中國') || currentSquare.name.includes('北京') || currentSquare.name.includes('上海') || currentSquare.name.includes('廣州') || currentSquare.name.includes('福建') || currentSquare.name.includes('台北') || currentSquare.name.includes('Taipei')) country = 'china';
-            else if (currentSquare.name.includes('墨西哥') || currentSquare.name.includes('Mexico') || currentSquare.name.includes('瓜達拉哈拉') || currentSquare.name.includes('普埃布拉') || currentSquare.name.includes('埃卡提佩')) country = 'mexico';
-            else country = 'other';
-        }
-
-        // 初始化 deletedTagsByCountry
-        if (!player.deletedTagsByCountry) player.deletedTagsByCountry = {};
-        if (!player.deletedTagsByCountry[country]) player.deletedTagsByCountry[country] = [];
-
-        // 過濾掉已刪除的標籤
-        const availableTags = player.tags.filter(tag => !player.deletedTagsByCountry[country].includes(tag));
-        if (availableTags.length === 0) return;
-
-        // 請求服務器廣播彈窗給所有玩家
-        console.log('🎲 請求服務器廣播問號格彈窗');
-        this.socket.emit('requestShowTagRemoveModal', {
-            roomCode: this.roomCode,
-            modalData: {
-                playerTags: availableTags,
-                currentSquare: currentSquare
-            }
-        });
-    }
-
-    // 新增：接收廣播的問號格彈窗（所有玩家都能看到）
-    showTagRemoveModalToAll(data) {
-        const { modalData, triggeredBy, playerName, playerCharacter, playerCountryName, playerCharacterName } = data;
-        const { playerTags, currentSquare } = modalData;
-
-        if (!playerTags || playerTags.length === 0) return;
-
-        // 建立 modal（所有玩家都能看到）
-        let modal = document.getElementById('tagRemoveModal');
-        if (!modal) {
-            modal = document.createElement('div');
-            modal.id = 'tagRemoveModal';
-            modal.style.cssText = `
-                position: fixed;
-                left: 0;
-                top: 0;
-                width: 100vw;
-                height: 100vh;
-                background: rgba(0,0,0,0.5);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 9999;
-            `;
-            document.body.appendChild(modal);
-        }
-
-        // 判斷是否為觸發玩家
-        const isTriggerer = triggeredBy === this.playerId;
         const squareName = currentSquare ? currentSquare.name : '機會卡';
 
         modal.innerHTML = `
-            <div style="background:#fff;padding:40px 30px;border-radius:16px;min-width:400px;max-width:600px;box-shadow:0 4px 24px rgba(0,0,0,0.3);text-align:center;">
-                <h2 style="color:#FFA500;margin:0 0 16px 0;">🎲 機會卡！</h2>
-                <p style="font-size:1.2em;margin-bottom:10px;color:#333;">
+            <div style="background:#fff;padding:50px 40px;border-radius:20px;min-width:500px;box-shadow:0 8px 32px rgba(0,0,0,0.3);text-align:center;">
+                <h2 style="color:#FF9800;margin:0 0 20px 0;font-size:2em;">🎰 機會卡抽獎！</h2>
+                <p style="font-size:1.3em;margin-bottom:15px;color:#333;">
                     <strong>${playerCharacterName}${playerName}</strong>
                 </p>
-                <p style="font-size:1.1em;margin-bottom:20px;color:#666;">
+                <p style="font-size:1.1em;margin-bottom:30px;color:#666;">
                     ${squareName}
                 </p>
-                <p style="color:#666;margin-bottom:24px;">
-                    回答問題移除一個標籤，可獲得 <strong style="color:#FF9800;font-size:1.3em;">100</strong> 點！
+                <div id="lotterySlot" style="
+                    width:300px;
+                    height:150px;
+                    margin:0 auto 30px auto;
+                    border:4px solid #FF9800;
+                    border-radius:12px;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    font-size:3em;
+                    background:linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+                    animation:pulse 1s infinite;
+                ">
+                    🎲
+                </div>
+                <p style="color:#666;font-size:1.1em;">抽獎中...</p>
+            </div>
+            <style>
+                @keyframes pulse {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.05); }
+                }
+            </style>
+        `;
+
+        // 2秒後自動關閉，由服務器決定結果
+        setTimeout(() => {
+            modal.remove();
+        }, 2500);
+    }
+
+    // 顯示問號格增加標籤結果
+    showQuestionMarkAddTagResult(data) {
+        const { triggeredBy, newTag, gameState } = data;
+        
+        // 更新遊戲狀態
+        this.gameState = gameState;
+        this.updateGameScreen();
+
+        // 建立結果 modal
+        let modal = document.getElementById('questionMarkResultModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'questionMarkResultModal';
+            modal.style.cssText = `
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(0,0,0,0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+            `;
+            document.body.appendChild(modal);
+        }
+
+        const isTriggerer = triggeredBy === this.playerId;
+        const tagName = newTag.zh || newTag.id;
+
+        modal.innerHTML = `
+            <div style="background:#fff;padding:50px 40px;border-radius:20px;min-width:500px;box-shadow:0 8px 32px rgba(0,0,0,0.3);text-align:center;">
+                <h2 style="color:#F44336;margin:0 0 20px 0;font-size:2em;">😰 壞消息！</h2>
+                <p style="font-size:3em;margin:20px 0;">➕</p>
+                <p style="color:#666;margin-bottom:20px;font-size:1.2em;">
+                    獲得了一個新標籤
                 </p>
-                <div style="margin-bottom:24px;">
-                    <p style="margin-bottom:12px;font-weight:bold;color:#555;">選擇要移除的標籤：</p>
-                    <div id="chanceTagsList" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;"></div>
+                <div style="padding:20px;background:#ffebee;border-radius:12px;margin:20px 0;">
+                    <p style="font-size:1.5em;color:#F44336;font-weight:bold;">${tagName}</p>
                 </div>
                 ${isTriggerer ? `
-                <button id="tagRemoveCancel" style="margin-top:18px;padding:12px 32px;border-radius:8px;background:#ccc;color:#333;border:none;cursor:pointer;font-size:1.1em;">
-                    取消
-                </button>
+                    <button id="acceptAddTagBtn" style="margin-top:20px;padding:14px 40px;border-radius:10px;background:#F44336;color:#fff;border:none;cursor:pointer;font-size:1.2em;font-weight:bold;box-shadow:0 4px 12px rgba(244,67,54,0.4);">
+                        忍痛接受
+                    </button>
                 ` : `
-                    <div style="margin-top:18px;padding:12px;background:#f0f8ff;border-radius:8px;color:#666;">
-                        等待 ${playerCharacterName}${playerName} 選擇...
+                    <div style="margin-top:20px;padding:12px;background:#f0f8ff;border-radius:8px;color:#666;">
+                        等待玩家確認...
                     </div>
                 `}
             </div>
         `;
 
-        const tagsContainer = modal.querySelector('#chanceTagsList');
-        playerTags.forEach((tagId, idx) => {
-            const btn = document.createElement('button');
-            const tagName = this.allTags[tagId] ? this.allTags[tagId].zh : tagId;
-            btn.textContent = tagName;
-            btn.style.cssText = `
-                padding:12px 20px;
-                border-radius:12px;
-                border:2px solid #FFA500;
-                background:#fff3e0;
-                ${isTriggerer ? 'cursor:pointer;' : 'cursor:default;opacity:0.7;'}
-                font-size:1em;
-                transition:all 0.2s;
-            `;
-
-            if (isTriggerer) {
-                btn.onmouseover = () => {
-                    btn.style.background = '#FFA500';
-                    btn.style.color = '#fff';
-                };
-                btn.onmouseout = () => {
-                    btn.style.background = '#fff3e0';
-                    btn.style.color = '#000';
-                };
-                btn.onclick = () => {
-                    console.log('問號格標籤按鈕被點擊:', tagId, '機會卡');
-
-                    // 通知服務器關閉所有人的彈窗
-                    this.socket.emit('requestCloseModalForAll', {
-                        roomCode: this.roomCode,
-                        modalType: 'tagRemove'
-                    });
-
-                    // 顯示問題模態框（問號格）
-                    this.showQuestionBeforeRemoveTag(tagId, 100, '機會卡', 'mystery');
-                };
-            }
-            tagsContainer.appendChild(btn);
-        });
-
         if (isTriggerer) {
-            const cancelBtn = modal.querySelector('#tagRemoveCancel');
-            if (cancelBtn) {
-                cancelBtn.onclick = () => {
-                    console.log('🎲 玩家取消問號格標籤移除');
-
-                    // 通知服務器關閉所有人的彈窗
+            const acceptBtn = modal.querySelector('#acceptAddTagBtn');
+            if (acceptBtn) {
+                acceptBtn.onclick = () => {
+                    // 先廣播關閉所有人的 modal
                     this.socket.emit('requestCloseModalForAll', {
                         roomCode: this.roomCode,
-                        modalType: 'tagRemove'
+                        modalType: 'questionMarkResult'
                     });
-
-                    // 取消後自動結束回合（通過 checkAutoEndTurn）
-                    setTimeout(() => {
-                        console.log('🎲 問號格取消後，檢查是否自動結束回合');
-                        // 先檢查是否有其他彈窗
-                        const hasModal = this.hasAnyModalOpen();
-                        if (!hasModal && this.isMyTurn()) {
-                            console.log('✅ 沒有其他彈窗，自動結束回合');
-                            this.endTurn();
-                        } else {
-                            console.log('⚠️ 還有其他彈窗或不是我的回合');
-                        }
-                    }, 500);
+                    
+                    // 請求服務器結束回合
+                    this.socket.emit('confirmQuestionMarkResult', {
+                        roomCode: this.roomCode
+                    });
                 };
             }
         }
     }
 
-    setupTagRemoveModal() {
-        // 預留，未來可加全局事件
+    // 顯示問號格標籤選擇（撕標籤）
+    showQuestionMarkTagSelection(data) {
+        const { triggeredBy, playerName, playerCharacter, playerCharacterName, currentSquare, generalTags } = data;
+        
+        // 建立標籤選擇 modal
+        let modal = document.getElementById('questionMarkTagSelectionModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'questionMarkTagSelectionModal';
+            modal.style.cssText = `
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(0,0,0,0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+            `;
+            document.body.appendChild(modal);
+        }
+
+        const isTriggerer = triggeredBy === this.playerId;
+        const squareName = currentSquare ? currentSquare.name : '機會卡';
+
+        modal.innerHTML = `
+            <div style="background:#fff;padding:40px 30px;border-radius:16px;min-width:500px;max-width:700px;box-shadow:0 4px 24px rgba(0,0,0,0.3);text-align:center;">
+                <h2 style="color:#4CAF50;margin:0 0 20px 0;font-size:2em;">🎉 好消息！</h2>
+                <p style="font-size:1.3em;margin-bottom:15px;color:#333;">
+                    <strong>${playerCharacterName}${playerName}</strong>
+                </p>
+                <p style="font-size:1.1em;margin-bottom:20px;color:#666;">
+                    ${squareName}
+                </p>
+                <p style="color:#666;margin-bottom:30px;font-size:1.1em;">
+                    回答問題後可以撕掉一個標籤！
+                </p>
+                <div style="margin-bottom:30px;">
+                    <p style="margin-bottom:15px;font-weight:bold;color:#555;font-size:1.1em;">選擇要撕掉的一般標籤：</p>
+                    <div id="questionMarkTagsList" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;"></div>
+                </div>
+            </div>
+        `;
+
+        const tagsContainer = modal.querySelector('#questionMarkTagsList');
+        generalTags.forEach((tagId) => {
+            const btn = document.createElement('button');
+            const tagName = this.allTags[tagId] ? this.allTags[tagId].zh : tagId;
+            btn.textContent = tagName;
+            btn.style.cssText = `
+                padding:14px 24px;
+                border-radius:12px;
+                border:2px solid #4CAF50;
+                background:#e8f5e9;
+                ${isTriggerer ? 'cursor:pointer;' : 'cursor:default;opacity:0.7;'}
+                font-size:1.1em;
+                transition:all 0.2s;
+                font-weight:bold;
+            `;
+
+            if (isTriggerer) {
+                btn.onmouseover = () => {
+                    btn.style.background = '#4CAF50';
+                    btn.style.color = '#fff';
+                };
+                btn.onmouseout = () => {
+                    btn.style.background = '#e8f5e9';
+                    btn.style.color = '#000';
+                };
+                btn.onclick = () => {
+                    console.log('🎲 選擇撕掉標籤:', tagId);
+                    
+                    // 先廣播關閉所有人的撕標籤 modal
+                    this.socket.emit('requestCloseModalForAll', {
+                        roomCode: this.roomCode,
+                        modalType: 'questionMarkTagSelection'
+                    });
+                    
+                    // 然後請求服務器顯示問題（問題 modal 是獨立的）
+                    this.socket.emit('handleQuestionMarkTagSelection', {
+                        roomCode: this.roomCode,
+                        selectedTagId: tagId
+                    });
+                };
+            }
+            tagsContainer.appendChild(btn);
+        });
     }
 
     // 在撕標籤前顯示問題
@@ -2361,9 +2079,9 @@ class MonopolyClient {
                     <div id="ownPropertyTags" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;"></div>
                 </div>
                 ${isTriggerer ? `
-                <button id="ownPropertyCancel" style="margin-top:18px;padding:10px 24px;border-radius:8px;background:#ccc;border:none;cursor:pointer;font-size:1em;">
-                    取消
-                </button>
+                    <button id="ownPropertyCancel" style="margin-top:18px;padding:10px 24px;border-radius:8px;background:#ccc;border:none;cursor:pointer;font-size:1em;">
+                        取消
+                    </button>
                 ` : `
                     <div style="margin-top:18px;padding:12px;background:#f0f8ff;border-radius:8px;color:#666;">
                         等待 ${playerCharacterName}${playerName} 選擇...
@@ -2474,9 +2192,9 @@ class MonopolyClient {
                         這是 <strong>${characterName}</strong> 的地盤
                     </p>
                     ${isTriggerer ? `
-                    <button id="othersPropertyPay" style="margin-top:18px;padding:14px 32px;border-radius:8px;background:#F44336;color:#fff;border:none;cursor:pointer;font-size:1.1em;font-weight:bold;">
-                        扣 ${penalty} 點並結束回合
-                    </button>
+                        <button id="othersPropertyPay" style="margin-top:18px;padding:14px 32px;border-radius:8px;background:#F44336;color:#fff;border:none;cursor:pointer;font-size:1.1em;font-weight:bold;">
+                            扣 ${penalty} 點並結束回合
+                        </button>
                     ` : `
                         <div style="margin-top:18px;padding:12px;background:#f0f8ff;border-radius:8px;color:#666;">
                             等待 ${playerCharacterName}${playerName} 選擇...
@@ -2488,26 +2206,23 @@ class MonopolyClient {
             if (isTriggerer) {
                 const payBtn = modal.querySelector('#othersPropertyPay');
                 if (payBtn) {
-                    payBtn.onclick = () => {
-                        // 通知服務器關閉所有人的彈窗
-                        this.socket.emit('requestCloseModalForAll', {
-                            roomCode: this.roomCode,
-                            modalType: 'othersProperty'
-                        });
+                payBtn.onclick = () => {
+                    // 通知服務器關閉所有人的彈窗
+                    this.socket.emit('requestCloseModalForAll', {
+                        roomCode: this.roomCode,
+                        modalType: 'othersProperty'
+                    });
 
-                        // 發送扣分請求
-                        this.socket.emit('handleOthersTag', {
-                            roomCode: this.roomCode,
-                            ownerCharacter: ownerCharacter,
-                            tagId: null,
-                            help: false
-                        });
-
-                        // 🔥 弹窗关闭后，前端手动结束回合
-                        setTimeout(() => {
-                            this.endTurn();
-                        }, 300);
-                    };
+                    // 發送扣分請求（服務器會自動結束回合）
+                    this.socket.emit('handleOthersTag', {
+                        roomCode: this.roomCode,
+                        ownerCharacter: ownerCharacter,
+                        tagId: null,
+                        help: false
+                    });
+                    
+                    // ✅ 不需要手動 endTurn()，服務器會自動處理
+                };
                 }
             }
             return;
@@ -2535,9 +2250,9 @@ class MonopolyClient {
                     <div id="othersPropertyTags" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;"></div>
                 </div>
                 ${isTriggerer ? `
-                <button id="othersPropertyRefuse" style="margin-top:18px;padding:12px 32px;border-radius:8px;background:#F44336;color:#fff;border:none;cursor:pointer;font-size:1.1em;font-weight:bold;">
-                    拒絕幫忙（扣 ${penalty} 點）並結束回合
-                </button>
+                    <button id="othersPropertyRefuse" style="margin-top:18px;padding:12px 32px;border-radius:8px;background:#F44336;color:#fff;border:none;cursor:pointer;font-size:1.1em;font-weight:bold;">
+                        拒絕幫忙（扣 ${penalty} 點）並結束回合
+                    </button>
                 ` : `
                     <div style="margin-top:18px;padding:12px;background:#f0f8ff;border-radius:8px;color:#666;">
                         等待 ${playerCharacterName}${playerName} 選擇...
@@ -2598,18 +2313,15 @@ class MonopolyClient {
                         modalType: 'othersProperty'
                     });
 
-                    // 發送拒絕幫忙的請求
+                    // 發送拒絕幫忙的請求（服務器會自動結束回合）
                     this.socket.emit('handleOthersTag', {
                         roomCode: this.roomCode,
                         ownerCharacter: ownerCharacter,
                         tagId: null,
                         help: false
                     });
-
-                    // 🔥 弹窗关闭后，前端手动结束回合
-                    setTimeout(() => {
-                        this.endTurn();
-                    }, 300);
+                    
+                    // ✅ 不需要手動 endTurn()，服務器會自動處理
                 };
             }
         }

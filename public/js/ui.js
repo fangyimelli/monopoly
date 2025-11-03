@@ -1,7 +1,16 @@
 // UI Event Handlers and Management
 class UIManager {
     constructor() {
-        this.setupEventListeners();
+        // 延遲設置事件監聽器，直到 game 對象準備好
+        this.waitForGameAndSetup();
+    }
+
+    waitForGameAndSetup() {
+        if (window.game && typeof window.game.showCreateRoom === 'function') {
+            this.setupEventListeners();
+        } else {
+            setTimeout(() => this.waitForGameAndSetup(), 100);
+        }
     }
 
     setupEventListeners() {

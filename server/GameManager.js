@@ -310,9 +310,9 @@ class GameManager {
             correctTagIds.every(id => selectedTagIds.includes(id));
     }
 
-    // 隨機獲得一般標籤（默認2個）
-    getRandomGeneralTags(count = 2) {
-        return this.shuffleArray([...GENERAL_TAGS]).slice(0, count);
+    // 隨機獲得2個一般標籤
+    getRandomGeneralTags() {
+        return this.shuffleArray([...GENERAL_TAGS]).slice(0, 2);
     }
 
     // 洗牌算法
@@ -607,20 +607,8 @@ class MonopolyGame {
         const player = this.players.get(this.currentPlayer);
         console.log(`[擲骰子] 玩家當前位置: ${player.position}`);
 
-        if (isDouble) {
-            this.doubleRollCount++;
-            if (this.doubleRollCount >= 3) {
-                // Go to jail on third double
-                this.sendPlayerToJail(this.currentPlayer);
-                this.doubleRollCount = 0;
-                this.hasRolledThisTurn = false; // 重置回合狀態
-                return this.currentRoll;
-            }
-            // 如果是雙重但不到第三次，允許再次擲骰子
-            this.hasRolledThisTurn = false;
-        } else {
-            this.doubleRollCount = 0;
-        }
+        // ❌ 停用雙倍骰子功能 - 移除所有雙倍骰子邏輯
+        this.doubleRollCount = 0;
 
         // Move player
         console.log(`[擲骰子] 準備移動玩家 ${total} 格`);
@@ -803,31 +791,29 @@ class MonopolyGame {
     }
 
     endTurn() {
-        console.log('🔄 [endTurn] 被調用');
+        // 🔥 追蹤 endTurn 調用次數
+        if (!this.endTurnCallCount) this.endTurnCallCount = 0;
+        this.endTurnCallCount++;
+        
+        console.log('🔄 [endTurn] 被調用（第', this.endTurnCallCount, '次）');
+        console.log('🔄 調用堆棧:', new Error().stack.split('\n').slice(1, 4).join('\n'));
         console.log('🔄 當前玩家:', this.currentPlayer);
+        console.log('🔄 當前玩家索引:', this.currentPlayerIndex);
+        console.log('🔄 玩家順序:', this.playerOrder);
+        console.log('🔄 玩家總數:', this.playerOrder.length);
         console.log('🔄 currentRoll:', this.currentRoll);
         console.log('🔄 doubleRollCount:', this.doubleRollCount);
         
         // 🔥 防抖：防止在 1 秒內重複調用 endTurn
         const now = Date.now();
         if (now - this.lastEndTurnTime < 1000) {
-            console.log('[endTurn] 防止重複調用（1秒內）');
+            console.log('⚠️ [endTurn] 防止重複調用（1秒內），上次調用時間差:', now - this.lastEndTurnTime, 'ms');
             return false;  // 返回 false 表示沒有執行
         }
         this.lastEndTurnTime = now;
 
-        // Check if player gets another turn from doubles
-        if (this.currentRoll && this.currentRoll.isDouble && this.doubleRollCount < 3) {
-            console.log('🎲 [endTurn] 擲出雙倍骰子，同一玩家再掷一次！');
-            // Player gets another turn, but reset roll state
-            this.hasRolledThisTurn = false;
-            this.currentRoll = null;
-            // 🔥 重要：需要增加版本號並返回 true，讓調用者知道需要廣播狀態
-            this.bumpVersion();
-            console.log('🎲 [endTurn] 重置骰子狀態，保持當前玩家');
-            return true;  // 返回 true 表示需要廣播狀態更新
-        }
-
+        // ❌ 停用雙倍骰子功能 - 直接切換到下一位玩家
+        
         // Reset turn state
         this.doubleRollCount = 0;
         this.currentRoll = null;
@@ -840,12 +826,19 @@ class MonopolyGame {
             return false;
         }
         
+        console.log('🔄 [endTurn] 準備切換到下一位玩家...');
+        const oldPlayerIndex = this.currentPlayerIndex;
+        const oldPlayer = this.currentPlayer;
+        
         let safety = playersCount; // 避免理論上的無限迴圈
         do {
             this.currentPlayerIndex = (this.currentPlayerIndex + 1) % playersCount;
             this.currentPlayer = this.playerOrder[this.currentPlayerIndex];
+            console.log('🔄 [endTurn] 嘗試切換到索引:', this.currentPlayerIndex, '玩家:', this.currentPlayer);
+            
             const p = this.players.get(this.currentPlayer);
             if (p && p.skipTurns && p.skipTurns > 0) {
+                console.log('🔄 [endTurn] 玩家', this.currentPlayer, '需要跳過回合，剩餘跳過次數:', p.skipTurns);
                 p.skipTurns--;
                 // 繼續往下一位
                 safety--;
@@ -854,7 +847,9 @@ class MonopolyGame {
             break;
         } while (safety > 0);
 
-        console.log('🔄 [endTurn] 切換到下一位玩家:', this.currentPlayer, 'index:', this.currentPlayerIndex);
+        console.log('🔄 [endTurn] 切換完成！');
+        console.log('🔄 [endTurn] 從玩家', oldPlayer, '(索引', oldPlayerIndex, ')');
+        console.log('🔄 [endTurn] 切換到玩家', this.currentPlayer, '(索引', this.currentPlayerIndex, ')');
         
         // 狀態版本自增，通知前端僅接受較新的狀態
         this.bumpVersion();
@@ -862,9 +857,10 @@ class MonopolyGame {
     }
 
     getGameState() {
-        console.log('🎮 getGameState currentPlayer:', this.currentPlayer, 'currentPlayerIndex:', this.currentPlayerIndex);
-        console.log('🎮 gameStarted:', this.gameStarted);
-        console.log('🎮 playerOrder:', this.playerOrder);
+        console.log('🎮 [getGameState] currentPlayer:', this.currentPlayer, 'currentPlayerIndex:', this.currentPlayerIndex);
+        console.log('🎮 [getGameState] gameStarted:', this.gameStarted);
+        console.log('🎮 [getGameState] playerOrder:', this.playerOrder);
+        console.log('🎮 [getGameState] players.size:', this.players.size);
         
         // 🔥 重要修復：按照 playerOrder 順序返回 players 數組
         // - 游戏开始后：使用 playerOrder 顺序（确保 currentPlayerIndex 对应正确）
@@ -876,15 +872,25 @@ class MonopolyGame {
                 const player = this.players.get(playerId);
                 return player;
             }).filter(p => p !== undefined);
-            console.log('🎮 [游戏中] orderedPlayers:', orderedPlayers.map(p => ({ id: p.id, name: p.name })));
+            console.log('🎮 [getGameState] [游戏中] orderedPlayers:', orderedPlayers.map(p => ({ id: p.id, name: p.name })));
         } else {
             // 游戏未开始（大厅阶段），直接获取所有玩家
             orderedPlayers = Array.from(this.players.values());
-            console.log('🎮 [大厅] players:', orderedPlayers.map(p => ({ id: p.id, name: p.name })));
+            console.log('🎮 [getGameState] [大厅] players:', orderedPlayers.map(p => ({ id: p.id, name: p.name })));
         }
         
         if (this.gameStarted && this.playerOrder.length > 0) {
-            console.log('🎮 currentPlayer from orderedPlayers[' + this.currentPlayerIndex + ']:', orderedPlayers[this.currentPlayerIndex]?.id);
+            const expectedCurrentPlayer = orderedPlayers[this.currentPlayerIndex];
+            console.log('🎮 [getGameState] orderedPlayers[' + this.currentPlayerIndex + ']:', expectedCurrentPlayer?.id, expectedCurrentPlayer?.name);
+            console.log('🎮 [getGameState] this.currentPlayer:', this.currentPlayer);
+            
+            // 🔥 驗證一致性
+            if (expectedCurrentPlayer && expectedCurrentPlayer.id !== this.currentPlayer) {
+                console.error('❌ [getGameState] 嚴重錯誤：currentPlayer 與 orderedPlayers[currentPlayerIndex] 不匹配！');
+                console.error('❌ this.currentPlayer:', this.currentPlayer);
+                console.error('❌ orderedPlayers[' + this.currentPlayerIndex + '].id:', expectedCurrentPlayer.id);
+                console.error('❌ 這會導致客戶端判斷錯誤！');
+            }
         }
         
         return {
@@ -1074,9 +1080,171 @@ class MonopolyGame {
             this.removePlayer(playerId);
         }
     }
+
+    // 問號格：顯示抽獎介面給所有玩家
+    showQuestionMarkLotteryToAll(playerId, socketId, position) {
+        const player = this.players.get(playerId);
+        if (!player) return;
+
+        // 獲取當前格子信息
+        const currentSquare = this.boardLayout ? this.boardLayout.find(sq => sq.id == position) : null;
+
+        // 獲取玩家信息
+        const characterMap = {
+            'french': '法國',
+            'indian': '印度',
+            'american': '美國',
+            'thai': '泰國',
+            'japanese': '日本'
+        };
+        const playerCharacterName = characterMap[player.character] || '法國';
+
+        // 廣播抽獎介面給所有玩家
+        this.ioRef.to(this.roomCode).emit('showQuestionMarkLotteryToAll', {
+            triggeredBy: socketId,
+            playerName: player.name,
+            playerCharacter: player.character,
+            playerCountryName: playerCharacterName,
+            playerCharacterName: playerCharacterName,
+            currentSquare: currentSquare
+        });
+    }
+
+    // 問號格：處理增加標籤
+    handleQuestionMarkAddTag(playerId, socketId) {
+        const player = this.players.get(playerId);
+        if (!player) return;
+
+        // 獲取所有可用的一般標籤（排除玩家已經有的）
+        const availableGeneralTags = GENERAL_TAGS.filter(tag => !player.tags.includes(tag.id));
+
+        if (availableGeneralTags.length === 0) {
+            console.log('[問號格] 玩家已經有所有一般標籤，無法增加');
+            // 即使無法增加，也要結束回合
+            setTimeout(() => {
+                try {
+                    this.endTurn();
+                    const updatedGameState = this.getGameState();
+                    this.ioRef.to(this.roomCode).emit('turnEnded', {
+                        gameState: updatedGameState
+                    });
+                } catch (error) {
+                    console.error('[問號格] 結束回合時發生錯誤:', error);
+                }
+            }, 1000);
+            return;
+        }
+
+        // 隨機選擇一個標籤
+        const randomTag = availableGeneralTags[Math.floor(Math.random() * availableGeneralTags.length)];
+
+        console.log('[問號格] 增加前的玩家標籤:', player.tags);
+
+        // 添加標籤
+        player.tags.push(randomTag.id);
+
+        console.log('[問號格] 增加後的玩家標籤:', player.tags);
+
+        // 狀態版本自增
+        if (typeof this.bumpVersion === 'function') this.bumpVersion();
+        const gameState = this.getGameState();
+
+        // 廣播標籤添加結果
+        this.ioRef.to(this.roomCode).emit('showQuestionMarkAddTagToAll', {
+            triggeredBy: socketId,
+            newTag: randomTag,
+            gameState: gameState
+        });
+
+        // ⚠️ 不要在這裡結束回合！等待客戶端確認後再結束
+        console.log('[問號格] 增加標籤完成，等待客戶端確認');
+    }
+
+    // 問號格：顯示標籤選擇給所有玩家
+    showQuestionMarkTagSelectionToAll(playerId, socketId) {
+        const player = this.players.get(playerId);
+        if (!player) return;
+
+        // 篩選一般標籤
+        const generalTags = player.tags ? player.tags.filter(tag => tag.startsWith('g')) : [];
+        if (generalTags.length === 0) return;
+
+        // 獲取當前格子信息
+        const currentSquare = this.boardLayout ? this.boardLayout.find(sq => sq.id == player.position) : null;
+
+        // 獲取玩家信息
+        const characterMap = {
+            'french': '法國',
+            'indian': '印度',
+            'american': '美國',
+            'thai': '泰國',
+            'japanese': '日本'
+        };
+        const playerCharacterName = characterMap[player.character] || '法國';
+
+        // 廣播標籤選擇介面給所有玩家
+        this.ioRef.to(this.roomCode).emit('showQuestionMarkTagSelectionToAll', {
+            triggeredBy: socketId,
+            playerName: player.name,
+            playerCharacter: player.character,
+            playerCountryName: playerCharacterName,
+            playerCharacterName: playerCharacterName,
+            currentSquare: currentSquare,
+            generalTags: generalTags
+        });
+    }
+
+    // 問號格：處理標籤選擇
+    handleQuestionMarkTagSelection(playerId, selectedTagId, socketId) {
+        const player = this.players.get(playerId);
+        if (!player) return;
+
+        // 檢查玩家是否擁有這個標籤
+        if (!player.tags.includes(selectedTagId)) {
+            console.log('[問號格] 玩家沒有這個標籤:', selectedTagId);
+            return;
+        }
+
+        // 顯示問題給所有玩家
+        this.showQuestionForTagRemoval(playerId, selectedTagId, socketId);
+    }
+
+    // 顯示撕標籤問題給所有玩家
+    showQuestionForTagRemoval(playerId, tagId, socketId) {
+        const player = this.players.get(playerId);
+        if (!player) return;
+
+        // 隨機選擇一個問題
+        const questions = [
+            'https://img1.pixhost.to/images/9739/655686586_1.jpg',
+            'https://img1.pixhost.to/images/9739/655686588_2.jpg',
+            'https://img1.pixhost.to/images/9739/655686591_3.jpg'
+        ];
+        const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
+
+        // 獲取標籤名稱
+        const tagName = GENERAL_TAGS.find(t => t.id === tagId)?.zh || tagId;
+
+        // 廣播問題給所有玩家
+        this.ioRef.to(this.roomCode).emit('showQuestionToAll', {
+            questionData: {
+                imageUrl: randomQuestion,
+                type: 'mystery',
+                context: {
+                    tagId: tagId,
+                    tagName: tagName,
+                    points: 100,  // 問號格撕標籤獲得 100 點
+                    autoEndTurn: true,
+                    triggeredBy: socketId  // 添加觸發玩家ID
+                }
+            },
+            triggeredBy: socketId
+        });
+    }
 }
 
-// === Socket.io 事件註冊區（請加在 module.exports = GameManager; 之前） ===
-// 已棄用：移除舊版 removeTag 事件以避免與新流程衝突
-
-module.exports = GameManager;
+module.exports = {
+    GameManager,
+    GENERAL_TAGS,
+    COUNTRY_TAGS
+};

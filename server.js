@@ -24,7 +24,7 @@ const io = socketIo(server, {
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Game state management
-const GameManager = require('./server/GameManager');
+const { GameManager } = require('./server/GameManager');
 const gameManager = new GameManager();
 gameManager.ioRef = io;
 
@@ -192,15 +192,32 @@ io.on('connection', (socket) => {
     // Handle ending turn
     socket.on('endTurn', ({ roomCode }) => {
         try {
+            console.log('🔄 [endTurn] 收到結束回合請求:', socket.id);
+            const game = gameManager.rooms.get(roomCode);
+            if (game) {
+                console.log('🔄 [endTurn] 結束前的當前玩家:', game.currentPlayer);
+                console.log('🔄 [endTurn] 結束前的當前玩家索引:', game.currentPlayerIndex);
+                console.log('🔄 [endTurn] 玩家順序:', game.playerOrder.map((pid, idx) => ({ idx, pid, name: game.players.get(pid)?.name })));
+            }
+            
             const result = gameManager.endTurn(roomCode, socket.id);
+            
+            if (game) {
+                console.log('🔄 [endTurn] 結束後的當前玩家:', game.currentPlayer);
+                console.log('🔄 [endTurn] 結束後的當前玩家索引:', game.currentPlayerIndex);
+            }
+            
             if (result.success) {
                 io.to(roomCode).emit('turnEnded', {
                     gameState: result.gameState
                 });
+                console.log('🔄 [endTurn] 已發送 turnEnded 事件給房間:', roomCode);
             } else {
+                console.error('🔄 [endTurn] 結束回合失敗:', result.message);
                 socket.emit('turnError', { message: result.message });
             }
         } catch (error) {
+            console.error('🔄 [endTurn] 結束回合異常:', error);
             socket.emit('turnError', { message: 'Failed to end turn' });
         }
     });
@@ -490,12 +507,20 @@ io.on('connection', (socket) => {
 
     // 玩家選擇是否幫別人移除標籤
     socket.on('handleOthersTag', ({ roomCode, ownerCharacter, tagId, help }) => {
-        console.log('[標籤] 玩家處理別人的標籤:', socket.id, 'ownerCharacter:', ownerCharacter, 'tagId:', tagId, 'help:', help);
+        console.log('🏠 [handleOthersTag] 玩家處理別人的標籤:', socket.id, 'ownerCharacter:', ownerCharacter, 'tagId:', tagId, 'help:', help);
         const game = gameManager.rooms.get(roomCode);
-        if (!game) return;
+        if (!game) {
+            console.error('🏠 [handleOthersTag] 房間不存在:', roomCode);
+            return;
+        }
 
         const player = game.players.get(socket.id);
-        if (!player) return;
+        if (!player) {
+            console.error('🏠 [handleOthersTag] 玩家不存在:', socket.id);
+            return;
+        }
+        
+        console.log('🏠 [handleOthersTag] 當前回合玩家:', game.currentPlayer, '觸發玩家:', socket.id);
 
         // 找到地塊所有者
         const owner = Array.from(game.players.values()).find(p => p.character === ownerCharacter);
@@ -561,7 +586,7 @@ io.on('connection', (socket) => {
                 // 有地主在遊戲中，將扣除的點數轉移給地主
                 owner.money += penalty;
                 message = `選擇不幫忙，扣除 ${penalty} 點並支付給 ${owner.name}！`;
-                console.log('[標籤] 玩家拒絕幫忙，扣除點數:', penalty, '轉移給地主:', owner.name);
+                console.log('🏠 [handleOthersTag] 玩家拒絕幫忙，扣除點數:', penalty, '轉移給地主:', owner.name);
                 
                 // 通知地主收到過路費
                 io.to(owner.id).emit('receiveToll', {
@@ -575,20 +600,23 @@ io.on('connection', (socket) => {
                 if (typeof game.publicFund === 'number') {
                     game.publicFund += penalty;
                     message = `走到別人的地盤，扣除 ${penalty} 點（進入公費）！`;
-                    console.log('[標籤] 無地主玩家，扣除點數進入公費:', penalty);
+                    console.log('🏠 [handleOthersTag] 無地主玩家，扣除點數進入公費:', penalty);
                 } else {
                     message = `走到別人的地盤，扣除 ${penalty} 點！`;
-                    console.log('[標籤] 無地主玩家，扣除點數:', penalty);
+                    console.log('🏠 [handleOthersTag] 無地主玩家，扣除點數:', penalty);
                 }
             }
 
-            // 通知所有玩家更新遊戲狀態
+            // 通知所有玩家更新金錢狀態（不發送完整 gameState，避免回合狀態不同步）
             if (typeof game.bumpVersion === 'function') game.bumpVersion();
             io.to(roomCode).emit('playerPenalized', {
                 playerId: socket.id,
                 penalty: penalty,
+                newBalance: player.money,
                 ownerId: owner ? owner.id : null,
-                gameState: game.getGameState()
+                ownerNewBalance: owner ? owner.money : undefined,
+                publicFund: game.publicFund
+                // ❌ 不發送 gameState，避免覆蓋回合狀態
             });
 
             // 通知玩家
@@ -596,9 +624,102 @@ io.on('connection', (socket) => {
                 message: message,
                 newBalance: player.money
             });
+
+            // 🔥 自動結束回合（避免前端重複調用）
+            console.log('🏠 [handleOthersTag] 扣分完成，自動結束回合');
+            setTimeout(() => {
+                game.endTurn();
+                io.to(roomCode).emit('turnEnded', {
+                    gameState: game.getGameState()
+                });
+                console.log('🏠 [handleOthersTag] 回合已結束，新當前玩家:', game.currentPlayer);
+            }, 500);
         }
 
         // 🔥 不再由後端自動結束回合，讓前端完全控制
+    });
+
+    // 問號格抽獎處理
+    socket.on('handleQuestionMarkLottery', ({ roomCode }) => {
+        console.log('[問號格] 玩家走到問號格，開始抽獎:', socket.id);
+        const game = gameManager.rooms.get(roomCode);
+        if (!game) return;
+
+        const player = game.players.get(socket.id);
+        if (!player) return;
+
+        // 篩選一般標籤（g開頭的標籤）
+        const generalTags = player.tags ? player.tags.filter(tag => tag.startsWith('g')) : [];
+        const hasGeneralTags = generalTags.length > 0;
+
+        console.log('[問號格] 玩家一般標籤數量:', generalTags.length);
+
+        // 獲取玩家信息
+        const characterMap = {
+            'french': '法國人',
+            'indian': '印度人',
+            'american': '美國人',
+            'thai': '泰國人',
+            'japanese': '日本人'
+        };
+        const playerCharacterName = characterMap[player.character] || '法國人';
+
+        // 獲取當前格子信息
+        const currentSquare = game.boardLayout ? game.boardLayout.find(sq => sq.id == player.position) : null;
+
+        // 廣播抽獎動畫給所有玩家
+        game.ioRef = io;
+        game.roomCode = roomCode;
+        game.showQuestionMarkLotteryToAll(socket.id, socket.id, player.position);
+
+        // 2.5秒後公布抽獎結果
+        setTimeout(() => {
+            if (hasGeneralTags) {
+                // 有一般標籤：50%機會撕標籤，50%機會增加標籤
+                const lotteryResult = Math.random() < 0.5;
+                if (lotteryResult) {
+                    // 撕標籤
+                    console.log('[問號格] 抽到撕標籤機會');
+                    game.showQuestionMarkTagSelectionToAll(socket.id, socket.id);
+                } else {
+                    // 增加標籤
+                    console.log('[問號格] 抽到增加標籤');
+                    game.handleQuestionMarkAddTag(socket.id, socket.id);
+                }
+            } else {
+                // 沒有一般標籤：100%增加標籤
+                console.log('[問號格] 沒有一般標籤，必定增加標籤');
+                game.handleQuestionMarkAddTag(socket.id, socket.id);
+            }
+        }, 2500);
+    });
+
+    // 玩家選擇問號格標籤
+    socket.on('handleQuestionMarkTagSelection', ({ roomCode, selectedTagId }) => {
+        console.log('[問號格] 玩家選擇標籤:', socket.id, 'tagId:', selectedTagId);
+        const game = gameManager.rooms.get(roomCode);
+        if (!game) return;
+
+        game.handleQuestionMarkTagSelection(socket.id, selectedTagId, socket.id);
+    });
+
+    // 玩家確認問號格結果（增加標籤後）
+    socket.on('confirmQuestionMarkResult', ({ roomCode }) => {
+        console.log('[問號格] 玩家確認結果，結束回合:', socket.id);
+        const game = gameManager.rooms.get(roomCode);
+        if (!game) return;
+
+        // 結束回合
+        try {
+            game.endTurn();
+            const updatedGameState = game.getGameState();
+            io.to(roomCode).emit('turnEnded', {
+                gameState: updatedGameState
+            });
+            console.log('[問號格] 回合已結束，新玩家:', updatedGameState.currentPlayer);
+        } catch (error) {
+            console.error('[問號格] 結束回合時發生錯誤:', error);
+        }
     });
 
     // 問答系統相關事件處理
@@ -729,20 +850,32 @@ io.on('connection', (socket) => {
         }
 
         // 如果需要自動結束回合
+        console.log('[問答] 檢查是否需要自動結束回合，autoEndTurn:', autoEndTurn);
         if (autoEndTurn) {
-            console.log('[問答] 自動結束回合');
+            console.log('[問答] 準備自動結束回合，延遲1秒執行');
             setTimeout(() => {
                 try {
-                    game.endTurn(); // 使用正確的方法名
+                    console.log('[問答] 開始執行 endTurn()');
+                    console.log('[問答] 結束前的當前玩家:', game.currentPlayer);
+                    console.log('[問答] 結束前的玩家索引:', game.currentPlayerIndex);
+                    
+                    const endTurnResult = game.endTurn();
+                    console.log('[問答] endTurn() 執行結果:', endTurnResult);
+                    
                     const updatedGameState = game.getGameState();
+                    console.log('[問答] 結束後的當前玩家:', updatedGameState.currentPlayer);
+                    console.log('[問答] 結束後的玩家索引:', updatedGameState.currentPlayerIndex);
+                    
                     io.to(roomCode).emit('turnEnded', {
                         gameState: updatedGameState
                     });
-                    console.log('[問答] 回合已結束，新玩家:', updatedGameState.currentPlayer);
+                    console.log('[問答] 已發送 turnEnded 事件');
                 } catch (error) {
                     console.error('[問答] 結束回合時發生錯誤:', error);
                 }
             }, 1000); // 延遲1秒，讓玩家看到結果
+        } else {
+            console.log('[問答] 不需要自動結束回合（autoEndTurn 為 false 或 undefined）');
         }
     });
 
@@ -855,14 +988,16 @@ io.on('connection', (socket) => {
             }
 
             if (typeof game.bumpVersion === 'function') game.bumpVersion();
-            const gameState = game.getGameState();
 
-            // 通知所有玩家更新遊戲狀態
+            // 通知所有玩家更新金錢狀態（不發送完整 gameState，避免回合狀態不同步）
             io.to(roomCode).emit('playerPenalized', {
                 playerId: socket.id,
                 penalty: penalty,
+                newBalance: player.money,
                 ownerId: owner ? owner.id : null,
-                gameState: gameState
+                ownerNewBalance: owner ? owner.money : undefined,
+                publicFund: game.publicFund
+                // ❌ 不發送 gameState，避免覆蓋回合狀態
             });
 
             // 通知玩家被扣分
@@ -887,69 +1022,6 @@ io.on('connection', (socket) => {
                     }
                 }, 1000); // 延遲1秒，讓玩家看到結果
             }
-        }
-    });
-
-    // 處理問號格抽獎
-    socket.on('requestLottery', ({ roomCode, playerId }) => {
-        console.log('[抽獎] 玩家請求抽獎:', playerId);
-        const game = gameManager.rooms.get(roomCode);
-        if (!game) return;
-
-        const player = game.players.get(playerId);
-        if (!player) return;
-
-        // 先檢查玩家是否有一般標籤（排除國家標籤）
-        const countryTags = player.initialCountryTags || [];
-        const generalTags = player.tags.filter(tagId => !countryTags.includes(tagId));
-        console.log('[抽獎] 玩家的一般標籤:', generalTags);
-
-        let result;
-        if (generalTags.length === 0) {
-            // 如果玩家沒有一般標籤，強制抽到增加標籤
-            result = 'addTag';
-            console.log('[抽獎] 玩家沒有一般標籤，強制抽到增加標籤');
-        } else {
-            // 如果有一般標籤，50% 概率增加標籤，50% 概率撕去標籤
-            result = Math.random() < 0.5 ? 'addTag' : 'removeTag';
-            console.log('[抽獎] 正常抽獎結果:', result);
-        }
-
-        if (result === 'addTag') {
-            // 增加標籤：隨機給一個一般標籤
-            const allGeneralTags = gameManager.getRandomGeneralTags(1);
-            if (allGeneralTags && allGeneralTags.length > 0) {
-                const newTag = allGeneralTags[0];
-                
-                // 檢查玩家是否已有此標籤
-                if (!player.tags.includes(newTag.id)) {
-                    player.tags.push(newTag.id);
-                    console.log('[抽獎] 玩家獲得新標籤:', newTag.id);
-                }
-
-                // 廣播抽獎結果給所有玩家
-                io.to(roomCode).emit('lotteryResult', {
-                    result: 'addTag',
-                    player: {
-                        id: player.id,
-                        name: player.name,
-                        character: player.character
-                    },
-                    newTag: newTag.id
-                });
-            }
-        } else {
-            // 撕去標籤：顯示一般標籤選擇
-            // 廣播抽獎結果給所有玩家
-            io.to(roomCode).emit('lotteryResult', {
-                result: 'removeTag',
-                player: {
-                    id: player.id,
-                    name: player.name,
-                    character: player.character
-                },
-                generalTags: generalTags
-            });
         }
     });
 
@@ -1037,47 +1109,6 @@ io.on('connection', (socket) => {
         });
     });
 
-    // 新增：廣播移除標籤彈窗給所有玩家（問號格）
-    socket.on('requestShowTagRemoveModal', ({ roomCode, modalData }) => {
-        console.log('[標籤] 玩家請求顯示問號格彈窗給所有玩家:', roomCode);
-        const game = gameManager.rooms.get(roomCode);
-        if (!game) return;
-
-        const triggerPlayer = game.players.get(socket.id);
-        if (!triggerPlayer) return;
-
-        const getCountryName = (character) => {
-            const countryNames = {
-                'french': '法國',
-                'indian': '印度',
-                'american': '美國',
-                'thai': '泰國',
-                'japanese': '日本'
-            };
-            return countryNames[character] || '法國';
-        };
-
-        const getCharacterName = (character) => {
-            const characterNames = {
-                'french': '法國人',
-                'indian': '印度人',
-                'american': '美國人',
-                'thai': '泰國人',
-                'japanese': '日本人'
-            };
-            return characterNames[character] || '法國';
-        };
-
-        // 廣播給所有玩家（直接將玩家信息與 modalData 合併）
-        io.to(roomCode).emit('showTagRemoveModalToAll', {
-            modalData: modalData,
-            triggeredBy: socket.id,
-            playerName: triggerPlayer.name,
-            playerCharacter: triggerPlayer.character,
-            playerCountryName: getCountryName(triggerPlayer.character),
-            playerCharacterName: getCharacterName(triggerPlayer.character)
-        });
-    });
 
     // 新增：觸發玩家關閉彈窗時，通知所有玩家也關閉
     socket.on('requestCloseModalForAll', ({ roomCode, modalType }) => {
