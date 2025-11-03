@@ -54,6 +54,11 @@ function init() {
     // Hide loading after everything is set up
     setTimeout(() => {
         hideInitialLoading();
+        // Ensure main menu is hidden before showing tutorial
+        const mainMenu = document.getElementById('mainMenu');
+        if (mainMenu) {
+            mainMenu.classList.remove('active');
+        }
         showWelcomeMessage();
     }, 1000);
 }
@@ -88,11 +93,11 @@ function showInitialLoading() {
                 margin: 0 auto 30px;
             "></div>
             <h1 style="font-size: 2.5rem; margin-bottom: 10px;">
-                <i class="fas fa-building"></i> 地產大亨
+                <i class="fas fa-tags"></i> 撕標籤生存戰
             </h1>
             <p style="font-size: 1.2rem; opacity: 0.9;">載入中...</p>
             <div style="margin-top: 30px; font-size: 0.9rem; opacity: 0.7;">
-                多人線上大富翁遊戲
+                2-5人遊玩
             </div>
         </div>
     `;
@@ -112,10 +117,74 @@ function hideInitialLoading() {
 }
 
 function showWelcomeMessage() {
-    // Show a brief welcome message
-    if (window.uiManager) {
-        window.uiManager.showNotification('歡迎來到地產大亨！', 'success', 2000);
+    // Show tutorial modal instead of welcome message
+    showTutorialModal();
+}
+
+function showTutorialModal() {
+    // Check if tutorial has been shown before
+    const tutorialShown = localStorage.getItem('tutorialShown');
+    
+    // Option: Show tutorial only once (uncomment to enable)
+    // if (tutorialShown === 'true') {
+    //     const mainMenu = document.getElementById('mainMenu');
+    //     if (mainMenu) {
+    //         mainMenu.classList.add('active');
+    //     }
+    //     return;
+    // }
+
+    const modal = document.getElementById('tutorialModal');
+    const page1 = document.getElementById('tutorialPage1');
+    const page2 = document.getElementById('tutorialPage2');
+    const nextBtn1 = document.getElementById('tutorialNextBtn1');
+    const startBtn = document.getElementById('tutorialStartBtn');
+
+    if (!modal || !page1 || !page2 || !nextBtn1 || !startBtn) {
+        console.error('Tutorial modal elements not found');
+        // Fallback: show main menu if tutorial modal is missing
+        const mainMenu = document.getElementById('mainMenu');
+        if (mainMenu) {
+            mainMenu.classList.add('active');
+        }
+        return;
     }
+
+    // Ensure main menu is hidden
+    const mainMenu = document.getElementById('mainMenu');
+    if (mainMenu) {
+        mainMenu.classList.remove('active');
+    }
+
+    // Show tutorial modal
+    modal.style.display = 'flex';
+    page1.style.display = 'block';
+    page2.style.display = 'none';
+
+    // Next button handler
+    nextBtn1.onclick = () => {
+        page1.style.display = 'none';
+        page2.style.display = 'block';
+    };
+
+    // Start game button handler
+    startBtn.onclick = () => {
+        // Mark tutorial as shown
+        localStorage.setItem('tutorialShown', 'true');
+        
+        // Hide modal
+        modal.style.display = 'none';
+        
+        // Show main menu
+        if (mainMenu) {
+            mainMenu.classList.add('active');
+        }
+
+        // Show welcome message
+        if (window.uiManager) {
+            window.uiManager.showNotification('歡迎來到撕標籤生存戰！', 'success', 2000);
+        }
+    };
 }
 
 function setupErrorHandling() {

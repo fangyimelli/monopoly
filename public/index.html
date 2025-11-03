@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>地產大亨 - 多人大富翁遊戲</title>
+    <title>撕標籤生存戰 - 多人遊戲</title>
     <link rel="stylesheet" href="css/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -15,10 +15,10 @@
     <div id="mainMenu" class="screen active">
         <div class="menu-container">
             <h1 class="game-title">
-                <i class="fas fa-building"></i>
-                地產大亨
+                <i class="fas fa-tags"></i>
+                撕標籤生存戰
             </h1>
-            <p class="game-subtitle">多人線上大富翁遊戲</p>
+            <p class="game-subtitle">2-5人遊玩</p>
 
             <div class="menu-buttons">
                 <button id="createRoomBtn" class="menu-btn primary">
@@ -34,10 +34,10 @@
             <div class="game-info">
                 <h3>遊戲說明</h3>
                 <ul>
-                    <li>支援 2-8 位玩家同時遊戲</li>
-                    <li>經典大富翁規則</li>
+                    <li>2-5人遊玩</li>
+                    <li>撕掉標籤獲得高分</li>
                     <li>即時多人連線</li>
-                    <li>完整的交易系統</li>
+                    <li>回答問題撕標籤</li>
                 </ul>
             </div>
         </div>
@@ -328,6 +328,89 @@
                     <button id="acceptTradeBtn" class="btn success">接受</button>
                     <button id="rejectTradeBtn" class="btn danger">拒絕</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tutorial Modal -->
+    <div id="tutorialModal" class="tutorial-modal" style="display: none;">
+        <div class="tutorial-container">
+            <!-- Page 1: Introduction -->
+            <div id="tutorialPage1" class="tutorial-page">
+                <h2 style="text-align: center; color: #667eea; margin-bottom: 30px; font-size: 2em;">
+                    🎮 撕標籤生存戰 🎮
+                </h2>
+                <div class="tutorial-content">
+                    <p style="font-size: 1.2em; line-height: 1.8; color: #333; margin-bottom: 20px;">
+                        😔 有時候我們會被別人叫綽號，或被貼上一些「標籤」，像是「你就是怎樣的人」「你是哪個國家的所以一定怎樣」。
+                    </p>
+                    <p style="font-size: 1.2em; line-height: 1.8; color: #333; margin-bottom: 20px;">
+                        ❌ 可是，這些標籤不一定是真的，也不一定是我們喜歡的。
+                    </p>
+                    <p style="font-size: 1.2em; line-height: 1.8; color: #333; margin-bottom: 20px;">
+                        🤝 這個遊戲就是要大家「互相幫忙，把不要的標籤撕掉」。
+                    </p>
+                    <p style="font-size: 1.3em; line-height: 1.8; color: #667eea; font-weight: bold; margin-top: 30px;">
+                        🏆 等一下進到遊戲裡，誰撕掉的標籤最多、分數最高，就可以獲勝！
+                    </p>
+                </div>
+                <button id="tutorialNextBtn1" class="tutorial-btn primary" style="margin-top: 30px;">
+                    下一頁 ➡️
+                </button>
+            </div>
+
+            <!-- Page 2: How to Play -->
+            <div id="tutorialPage2" class="tutorial-page" style="display: none;">
+                <h2 style="text-align: center; color: #667eea; margin-bottom: 30px; font-size: 2em;">
+                    📖 要怎麼玩？
+                </h2>
+                <div class="tutorial-content">
+                    <div style="margin-bottom: 25px;">
+                        <p style="font-size: 1.2em; line-height: 1.8; color: #333;">
+                            <strong>1️⃣</strong> 一開始先「選一個你要代表的國家」。
+                        </p>
+                        <p style="font-size: 1.2em; line-height: 1.8; color: #333;">
+                            <strong>2️⃣</strong> 再「輸入你的名字」，讓大家知道你是誰。
+                        </p>
+                        <p style="font-size: 1.2em; line-height: 1.8; color: #333;">
+                            <strong>3️⃣</strong> 系統會送你：<strong style="color: #4CAF50;">3 張國家標籤</strong>＋<strong style="color: #2196F3;">2 張一般標籤</strong>。
+                        </p>
+                    </div>
+                    <div style="margin-bottom: 25px; padding: 15px; background: #f0f9f0; border-radius: 10px;">
+                        <p style="font-size: 1.2em; line-height: 1.8; color: #333; margin-bottom: 10px;">
+                            <strong>💰 分數計算：</strong>
+                        </p>
+                        <p style="font-size: 1.1em; line-height: 1.8; color: #333;">
+                            🏷️ 如果你成功撕掉「國家標籤」1 張，可以加 <strong style="color: #4CAF50;">1000 分</strong>。
+                        </p>
+                        <p style="font-size: 1.1em; line-height: 1.8; color: #333;">
+                            🏷️ 如果你成功撕掉「一般標籤」1 張，可以加 <strong style="color: #2196F3;">500 分</strong>。
+                        </p>
+                    </div>
+                    <div style="margin-bottom: 25px;">
+                        <p style="font-size: 1.2em; line-height: 1.8; color: #333; margin-bottom: 10px;">
+                            <strong>❓ 撕標籤規則：</strong>
+                        </p>
+                        <p style="font-size: 1.1em; line-height: 1.8; color: #333;">
+                            撕掉標籤之前，一定要先回答一題問題。
+                        </p>
+                        <p style="font-size: 1.1em; line-height: 1.8; color: #333;">
+                            📖 看得懂就自己回答。
+                        </p>
+                        <p style="font-size: 1.1em; line-height: 1.8; color: #333;">
+                            👨‍🏫 如果看不懂，可以請老師幫忙，或請老師按「換下一題」。
+                        </p>
+                        <p style="font-size: 1.1em; line-height: 1.8; color: #333;">
+                            ✅ 老師確認你答對了，才可以把那張標籤撕掉。
+                        </p>
+                    </div>
+                    <p style="font-size: 1.3em; line-height: 1.8; color: #667eea; font-weight: bold; text-align: center; margin-top: 30px;">
+                        🎉 最後看大家的分數，分數最高的人就是第一名！ 🎉
+                    </p>
+                </div>
+                <button id="tutorialStartBtn" class="tutorial-btn primary" style="margin-top: 30px;">
+                    開始遊戲 🎮
+                </button>
             </div>
         </div>
     </div>

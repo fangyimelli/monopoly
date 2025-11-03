@@ -97,7 +97,7 @@ class GameBoard {
 
         centerSpace.innerHTML = `
             <div style="text-align: center; color: #333;">
-                <h2 style="margin: 0; font-size: 1.5rem; margin-bottom: 10px;">地產大亨</h2>
+                <h2 style="margin: 0; font-size: 1.5rem; margin-bottom: 10px;">撕標籤生存戰</h2>
                 <div id="gameStatus" style="font-size: 1rem; color: #666;"></div>
                 <div id="gameTimer" style="font-size: 0.9rem; color: #888; margin-top: 10px;"></div>
             </div>
